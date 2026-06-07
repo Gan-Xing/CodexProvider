@@ -20,6 +20,7 @@
 - [x] Unsafe tool security notes exist for code interpreter, computer, shell, and apply-patch boundaries.
 - [x] Draft release readiness policy exists.
 - [x] Standalone consumer harness validates root entrypoint usage without CodexBridge internals.
+- [x] Non-web OpenRouter live smoke results are recorded in `docs/LIVE_SMOKE_RESULTS.md`.
 - [ ] Live smoke recipes are executed and recorded against real upstream providers.
 - [x] Live consumer validation is completed through CodexNext or a standalone app-server harness.
 - [ ] Changelog policy and npm release workflow are decided.
