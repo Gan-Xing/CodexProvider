@@ -116,7 +116,8 @@ test('codex provider root scripts expose new commands and legacy relay aliases',
   assert.equal(packageJson.scripts?.test, 'tsx --test test/*.test.ts');
   assert.equal(packageJson.scripts?.typecheck, 'tsc -p tsconfig.json --noEmit');
   assert.equal(packageJson.scripts?.['check-boundary'], 'node scripts/check-boundary.mjs');
-  assert.equal(packageJson.scripts?.check, 'pnpm test && pnpm typecheck && pnpm build && pnpm check-boundary');
+  assert.equal(packageJson.scripts?.['consumer:harness'], 'pnpm build && tsx examples/standalone-consumer-harness.ts');
+  assert.equal(packageJson.scripts?.check, 'pnpm test && pnpm typecheck && pnpm build && pnpm consumer:harness && pnpm check-boundary');
 });
 
 test('codex provider relay root entrypoint exports profile and protocol surfaces', () => {
@@ -184,6 +185,7 @@ test('codex provider relay package includes public examples and package readines
     'docs/RELEASE_READINESS.md',
     'docs/RECIPES.md',
     'docs/UNSAFE_TOOL_SECURITY.md',
+    'examples/standalone-consumer-harness.ts',
     'examples/mixed-openrouter-runtime.ts',
     'examples/relay-emulated-web-search.ts',
     'examples/relay-emulated-file-search-local-vector.ts',
@@ -204,6 +206,7 @@ test('codex provider docs and examples prefer new product naming', () => {
   const readme = readPackageFile('README.md');
   const recipes = readPackageFile('docs/RECIPES.md');
   const examples = [
+    'examples/standalone-consumer-harness.ts',
     'examples/mixed-openrouter-runtime.ts',
     'examples/relay-emulated-web-search.ts',
     'examples/relay-emulated-file-search-local-vector.ts',

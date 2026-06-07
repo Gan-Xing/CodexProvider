@@ -19,8 +19,9 @@
 - [x] Live smoke recipe documentation exists for upstream, web search, file search, image generation, and unsafe-tool default checks.
 - [x] Unsafe tool security notes exist for code interpreter, computer, shell, and apply-patch boundaries.
 - [x] Draft release readiness policy exists.
+- [x] Standalone consumer harness validates root entrypoint usage without CodexBridge internals.
 - [ ] Live smoke recipes are executed and recorded against real upstream providers.
-- [ ] Live consumer validation is completed through CodexNext or a standalone app-server harness.
+- [x] Live consumer validation is completed through CodexNext or a standalone app-server harness.
 - [ ] Changelog policy and npm release workflow are decided.
 
 ## Consumer Boundary
@@ -52,4 +53,4 @@ Deprecated names must stay as type/function aliases for at least one stabilizati
 
 ## Current Blocker
 
-The public package name is now `@codex-provider/core`, but the package remains internal-only. Keep `private: true`, keep `version: "0.1.0-alpha.0"`, and avoid adding new public subpath exports until live smoke and external consumer validation are complete.
+The public package name is now `@codex-provider/core`, but the package remains internal-only. Keep `private: true`, keep `version: "0.1.0-alpha.0"`, and avoid adding new public subpath exports until live smoke and release workflow decisions are complete.

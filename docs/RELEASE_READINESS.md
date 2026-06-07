@@ -31,6 +31,7 @@ This package is still internal-only.
 - Stay at `0.1.0-alpha.0` while `private: true`.
 - Add `CHANGELOG.md`.
 - Add a package export audit test for every stable root export.
+- Keep `examples/standalone-consumer-harness.ts` passing as the root entrypoint consumer validation.
 - Run live smoke recipes and record redacted results.
 - Publish only after at least one external host, such as CodexNext or a standalone app-server harness, consumes the package through the root entrypoint.
 
@@ -68,6 +69,7 @@ The tarball must include only:
 
 - `dist`
 - `README.md`
+- `CHANGELOG.md`
 - `docs`
 - `examples`, if intentionally shipped
 - `package.json`
