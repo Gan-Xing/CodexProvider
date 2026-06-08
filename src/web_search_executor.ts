@@ -4,6 +4,18 @@ import type {
   CodexProviderHostedToolExecutor,
   JsonRecord,
 } from './hosted_tool_executors.js';
+import {
+  createCodexProviderOpenAiWebSearchExecutor,
+} from './web-search/openai/executor.js';
+import type {
+  CodexProviderMetaSearchService,
+  CodexProviderSearchEngine,
+  CodexProviderSearchMode,
+  CodexProviderSearchProcessor,
+} from './web-search/metasearch/index.js';
+import type {
+  CodexProviderWebRetrievalFetcher,
+} from './web-search/retrieval/index.js';
 
 export type CodexProviderWebSearchProvider =
   | 'tavily'
@@ -13,14 +25,25 @@ export type CodexProviderWebSearchProvider =
 export type CodexProviderWebSearchContextSize = 'low' | 'medium' | 'high';
 
 export interface CodexProviderWebSearchExecutorOptions {
+  search?: CodexProviderMetaSearchService | null;
+  retrieval?: CodexProviderWebRetrievalFetcher | null;
+  engines?: CodexProviderSearchEngine[] | null;
+  processor?: CodexProviderSearchProcessor | null;
+  mode?: CodexProviderSearchMode | null;
+  fetchPages?: boolean | null;
   provider?: CodexProviderWebSearchProvider | null;
   apiKey?: string | null;
   endpoint?: string | null;
   fetchImpl?: typeof fetch;
   maxResults?: number | null;
+  maxRetrievedPages?: number | null;
+  maxChunks?: number | null;
+  chunkChars?: number | null;
+  chunkOverlapChars?: number | null;
   country?: string | null;
   language?: string | null;
   sources?: CodexProviderWebSearchSourceInput[] | null;
+  now?: (() => Date) | null;
 }
 
 export type CodexProviderWebSearchSourceInput =
@@ -114,6 +137,23 @@ const DEFAULT_BRAVE_ENDPOINT = 'https://api.search.brave.com/res/v1/web/search';
 const DEFAULT_SERPER_ENDPOINT = 'https://google.serper.dev/search';
 
 export function createCodexProviderWebSearchExecutor(
+  options: CodexProviderWebSearchExecutorOptions,
+): CodexProviderHostedToolExecutor {
+  if (shouldUseOpenAiWebSearchExecutor(options)) {
+    return createCodexProviderOpenAiWebSearchExecutor(options);
+  }
+  return createLegacyCodexProviderWebSearchExecutor(options);
+}
+
+function shouldUseOpenAiWebSearchExecutor(options: CodexProviderWebSearchExecutorOptions): boolean {
+  return Boolean(
+    options.search
+    || options.retrieval
+    || (Array.isArray(options.engines) && options.engines.length > 0),
+  );
+}
+
+function createLegacyCodexProviderWebSearchExecutor(
   options: CodexProviderWebSearchExecutorOptions,
 ): CodexProviderHostedToolExecutor {
   const sources = normalizeWebSearchSources(options);

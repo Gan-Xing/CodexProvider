@@ -4,6 +4,12 @@ import {
   createCodexProviderWebSearchExecutor,
   createCodexProviderProviderWebSearchSource,
   type CodexProviderWebSearchExecutorContent,
+  type CodexProviderEngineSearchOutcome,
+  type CodexProviderMetaSearchService,
+  type CodexProviderSearchEngine,
+  type CodexProviderSearchProcessor,
+  type CodexProviderSearchRequest,
+  type CodexProviderWebRetrievalFetcher,
 } from '../src/index.js';
 
 function baseRequest(argumentsValue: Record<string, any>) {
@@ -310,4 +316,197 @@ test('Tavily web_search source forwards domain filters to provider request', asy
   assert.deepEqual(body.include_domains, ['docs.example.com']);
   assert.deepEqual(body.exclude_domains, ['blocked.example.com']);
   assert.equal(content.results[0].url, 'https://docs.example.com/allowed');
+});
+
+test('metasearch web_search executor returns sources, chunks, and citation instructions', async () => {
+  const searchRequests: CodexProviderSearchRequest[] = [];
+  const retrievalRequests: any[] = [];
+  const search: CodexProviderMetaSearchService = {
+    async search(request) {
+      searchRequests.push(request);
+      return {
+        query: request.query,
+        mode: request.mode ?? 'balanced',
+        results: [{
+          title: 'CodexProvider Web Search',
+          url: 'https://docs.example.com/web-search',
+          snippet: 'Native metasearch and retrieval runtime.',
+          engines: ['fake'],
+          engineRanks: { fake: 1 },
+          score: 1,
+        }],
+        unresponsiveEngines: [],
+        timings: { fake: 3 },
+        searchedAt: '2026-06-08T00:00:00.000Z',
+      };
+    },
+  };
+  const retrieval: CodexProviderWebRetrievalFetcher = {
+    async fetch(request) {
+      retrievalRequests.push(request);
+      const url = typeof request === 'string' ? request : request.url;
+      return {
+        url,
+        finalUrl: url,
+        status: 200,
+        contentType: 'text/html',
+        title: 'CodexProvider Web Search',
+        text: 'CodexProvider retrieval citations use source mapping and quote safe snippets for web search integration.',
+        bytes: 100,
+        fetchedAt: '2026-06-08T00:00:00.000Z',
+        fromCache: false,
+        redirectChain: [url],
+      };
+    },
+  };
+  const executor = createCodexProviderWebSearchExecutor({
+    search,
+    retrieval,
+    fetchPages: true,
+    now: () => new Date('2026-06-08T00:00:00.000Z'),
+  });
+
+  const result = await executor(baseRequest({
+    query: 'codex provider retrieval citations',
+    search_context_size: 'high',
+    return_token_budget: 900,
+    filters: {
+      allowed_domains: ['docs.example.com'],
+      blocked_domains: ['blocked.example.com'],
+    },
+  }));
+  const content = result.content as any;
+
+  assert.equal(searchRequests[0].query, 'codex provider retrieval citations');
+  assert.equal(searchRequests[0].maxResults, 10);
+  assert.deepEqual(searchRequests[0].allowedDomains, ['docs.example.com']);
+  assert.deepEqual(searchRequests[0].blockedDomains, ['blocked.example.com']);
+  assert.equal(retrievalRequests[0].url, 'https://docs.example.com/web-search');
+  assert.equal(retrievalRequests[0].externalWebAccess, true);
+  assert.equal(content.provider, 'metasearch');
+  assert.equal(content.results[0].url, 'https://docs.example.com/web-search');
+  assert.equal(content.sources[0].id, 1);
+  assert.equal(content.documents[0].from_cache, false);
+  assert.match(content.chunks[0].text, /retrieval citations/u);
+  assert.match(content.instructions, /\[\[source:N\]\]/u);
+  assert.equal(result.metadata?.chunkCount, 1);
+});
+
+test('metasearch web_search executor passes external_web_access=false through retrieval', async () => {
+  let searchExternalWebAccess: boolean | null | undefined;
+  let retrievalExternalWebAccess: boolean | null | undefined;
+  const search: CodexProviderMetaSearchService = {
+    async search(request) {
+      searchExternalWebAccess = request.externalWebAccess;
+      return {
+        query: request.query,
+        mode: request.mode ?? 'balanced',
+        results: [{
+          title: 'Cached Result',
+          url: 'https://cache.example.com/result',
+          snippet: 'Cached snippet',
+          engines: ['cache'],
+          engineRanks: { cache: 1 },
+          score: 1,
+        }],
+        unresponsiveEngines: [],
+        timings: { cache: 1 },
+        searchedAt: '2026-06-08T00:00:00.000Z',
+      };
+    },
+  };
+  const retrieval: CodexProviderWebRetrievalFetcher = {
+    async fetch(request) {
+      retrievalExternalWebAccess = typeof request === 'string' ? true : request.externalWebAccess;
+      const url = typeof request === 'string' ? request : request.url;
+      return {
+        url,
+        finalUrl: url,
+        status: 200,
+        contentType: 'text/html',
+        title: 'Cached Result',
+        text: 'Cached retrieval text for offline web search.',
+        bytes: 48,
+        fetchedAt: '2026-06-08T00:00:00.000Z',
+        fromCache: true,
+        redirectChain: [url],
+      };
+    },
+  };
+  const executor = createCodexProviderWebSearchExecutor({
+    search,
+    retrieval,
+    fetchPages: true,
+  });
+
+  const result = await executor(baseRequest({
+    query: 'offline cached query',
+    external_web_access: false,
+  }));
+  const content = result.content as any;
+
+  assert.equal(searchExternalWebAccess, false);
+  assert.equal(retrievalExternalWebAccess, false);
+  assert.equal(content.external_web_access, false);
+  assert.equal(content.documents[0].from_cache, true);
+});
+
+test('web_search executor can build metasearch service from engines and processor', async () => {
+  const calls: Array<{ engine: string; externalWebAccess: boolean }> = [];
+  const engine: CodexProviderSearchEngine = {
+    name: 'cache-engine',
+    categories: ['web'],
+    live: false,
+    buildRequest(request) {
+      return {
+        url: `https://cache.example.com/search?q=${encodeURIComponent(request.query)}`,
+      };
+    },
+    parseResponse() {
+      return [];
+    },
+  };
+  const processor: CodexProviderSearchProcessor = {
+    async search(searchEngine, request): Promise<CodexProviderEngineSearchOutcome> {
+      calls.push({
+        engine: searchEngine.name,
+        externalWebAccess: request.externalWebAccess,
+      });
+      return {
+        engine: searchEngine.name,
+        ok: true,
+        durationMs: 2,
+        results: [{
+          type: 'web',
+          engine: searchEngine.name,
+          title: 'Engine Result',
+          url: 'https://cache.example.com/engine',
+          snippet: 'Engine snippet',
+          rank: 1,
+          score: 1,
+        }],
+        error: null,
+      };
+    },
+  };
+  const executor = createCodexProviderWebSearchExecutor({
+    engines: [engine],
+    processor,
+    mode: 'any',
+    fetchPages: false,
+  });
+
+  const result = await executor(baseRequest({
+    query: 'cache engine query',
+    external_web_access: false,
+  }));
+  const content = result.content as any;
+
+  assert.deepEqual(calls, [{
+    engine: 'cache-engine',
+    externalWebAccess: false,
+  }]);
+  assert.equal(content.provider, 'metasearch');
+  assert.equal(content.results[0].url, 'https://cache.example.com/engine');
+  assert.equal(content.chunks.length, 0);
 });
