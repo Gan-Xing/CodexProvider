@@ -34,6 +34,15 @@ import {
   isCodexProviderAdapterEmulatedBuiltinToolType,
   normalizeCodexProviderBuiltinToolName,
 } from '../builtin-tools/index.js';
+import {
+  applyWebSearchCitationAnnotationsToResponsesOutput,
+} from '../web-search/openai/annotations.js';
+import {
+  buildCodexProviderWebSearchCallOutputItem,
+} from '../web-search/openai/web-search-call.js';
+import type {
+  CodexProviderWebSearchCitationSource,
+} from '../web-search/openai/placeholders.js';
 
 type JsonRecord = Record<string, any>;
 type AdapterRoute = 'responses' | 'responses.compact';
@@ -821,6 +830,7 @@ export class OpenAICompatibleResponsesAdapterServer {
       ...(loopChatBody.stream_options && typeof loopChatBody.stream_options === 'object' ? loopChatBody.stream_options : {}),
       include_usage: true,
     };
+    const executions: AdapterHostedToolExecutionRecord[] = [];
 
     for (let iteration = 1; iteration <= this.maxHostedToolIterations; iteration += 1) {
       let upstream = await this.fetchUpstreamWithRetry(
@@ -892,12 +902,23 @@ export class OpenAICompatibleResponsesAdapterServer {
         this.hostedToolExecutorRegistry,
       );
       if (decision.kind === 'final_stream') {
-        await this.writeStreamingDataLinesResponse(
-          requestBody,
-          providerCapabilities,
-          chainSseDataLines(decision.bufferedChunks, decision.remaining),
-          response,
-        );
+        const dataLines = chainSseDataLines(decision.bufferedChunks, decision.remaining);
+        if (executions.length > 0) {
+          await this.writeStreamingDataLinesResponseWithHostedToolResults(
+            requestBody,
+            providerCapabilities,
+            dataLines,
+            executions,
+            response,
+          );
+        } else {
+          await this.writeStreamingDataLinesResponse(
+            requestBody,
+            providerCapabilities,
+            dataLines,
+            response,
+          );
+        }
         return;
       }
       if (decision.kind === 'error') {
@@ -933,6 +954,7 @@ export class OpenAICompatibleResponsesAdapterServer {
               : null,
           },
         );
+        executions.push(executionResult);
         loopChatBody.messages.push({
           role: 'tool',
           tool_call_id: executionResult.callId,
@@ -1274,6 +1296,71 @@ export class OpenAICompatibleResponsesAdapterServer {
       },
     )) {
       response.write(event);
+    }
+    this.emitTrace({
+      type: 'stream.completed',
+      route: 'responses',
+      eventCount,
+    });
+    response.end();
+  }
+
+  private async writeStreamingDataLinesResponseWithHostedToolResults(
+    requestBody: JsonRecord,
+    providerCapabilities: OpenAICompatibleProviderCapabilities | null,
+    dataLines: AsyncIterable<string>,
+    executions: AdapterHostedToolExecutionRecord[],
+    response: ServerResponse,
+  ): Promise<void> {
+    ensureSseResponseHeaders(response);
+    let eventCount = 0;
+    for await (const frame of translateChatCompletionsSseStreamToResponsesSse(
+      dataLines,
+      {
+        request: requestBody,
+        providerCapabilities,
+        modelMetadata: resolveModelMetadata(
+          this.models,
+          normalizeString(requestBody?.model) || this.defaultModel,
+        ),
+      },
+    )) {
+      const event = parseResponsesSseEventFrame(frame);
+      if (!event) {
+        response.write(frame);
+        continue;
+      }
+      let eventsToWrite = [event];
+      if (
+        (event.type === 'response.completed' || event.type === 'response.failed')
+        && event.response
+        && typeof event.response === 'object'
+      ) {
+        const previousOutputLength = Array.isArray(event.response.output)
+          ? event.response.output.length
+          : 0;
+        appendHostedToolResultsToResponsesOutput({
+          response: event.response,
+          request: requestBody,
+          executions,
+          exposeByDefault: this.exposeHostedToolResultsInResponsesOutput,
+        });
+        const appendedOutputEvents = buildAppendedOutputItemSseEvents(event.response, previousOutputLength);
+        resequenceInsertedStreamEvents(appendedOutputEvents, event);
+        eventsToWrite = [
+          ...appendedOutputEvents,
+          event,
+        ];
+      }
+      for (const eventToWrite of eventsToWrite) {
+        eventCount += 1;
+        this.emitTrace({
+          type: 'stream.event',
+          route: 'responses',
+          event: eventToWrite,
+        });
+        response.write(formatResponsesSseEvent(eventToWrite));
+      }
     }
     this.emitTrace({
       type: 'stream.completed',
@@ -1863,6 +1950,39 @@ function responsesObjectToSyntheticSseEvents(response: JsonRecord): JsonRecord[]
   return events;
 }
 
+function buildAppendedOutputItemSseEvents(response: JsonRecord, startIndex: number): JsonRecord[] {
+  const output = normalizeArray(response?.output);
+  const events: JsonRecord[] = [];
+  for (let outputIndex = startIndex; outputIndex < output.length; outputIndex += 1) {
+    const item = output[outputIndex];
+    events.push({
+      type: 'response.output_item.added',
+      output_index: outputIndex,
+      item,
+    });
+    events.push({
+      type: 'response.output_item.done',
+      output_index: outputIndex,
+      item,
+    });
+  }
+  return events;
+}
+
+function resequenceInsertedStreamEvents(insertedEvents: JsonRecord[], terminalEvent: JsonRecord): void {
+  if (insertedEvents.length === 0) {
+    return;
+  }
+  const terminalSequence = Number(terminalEvent.sequence_number);
+  if (!Number.isInteger(terminalSequence) || terminalSequence < 1) {
+    return;
+  }
+  for (let index = 0; index < insertedEvents.length; index += 1) {
+    insertedEvents[index].sequence_number = terminalSequence + index;
+  }
+  terminalEvent.sequence_number = terminalSequence + insertedEvents.length;
+}
+
 function appendSyntheticMessageContentEvents(
   events: JsonRecord[],
   withSequence: (event: JsonRecord) => JsonRecord,
@@ -1909,6 +2029,29 @@ function appendSyntheticMessageContentEvents(
 
 function formatResponsesSseEvent(event: JsonRecord): string {
   return `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
+}
+
+function parseResponsesSseEventFrame(frame: string): JsonRecord | null {
+  const lines = frame.split('\n');
+  const eventLine = lines.find((line) => line.startsWith('event: '));
+  const dataLines = lines
+    .filter((line) => line.startsWith('data: '))
+    .map((line) => line.slice(6));
+  if (!eventLine || dataLines.length === 0) {
+    return null;
+  }
+  const data = dataLines.join('\n').trim();
+  if (!data || data === '[DONE]') {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(data);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as JsonRecord
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function ensureSseResponseHeaders(response: ServerResponse): void {
@@ -1990,9 +2133,11 @@ function appendHostedToolResultsToResponsesOutput({
     return;
   }
   const output = Array.isArray(response.output) ? response.output : [];
+  const webSearchCitationSources: CodexProviderWebSearchCitationSource[] = [];
   for (const execution of executions) {
+    const builtinToolName = normalizeCodexProviderBuiltinToolName(execution.toolName);
     if (
-      execution.toolName === 'file_search'
+      builtinToolName === 'file_search'
       && shouldExposeFileSearchResults(request, exposeByDefault)
     ) {
       const results = extractFileSearchResultsFromHostedToolOutput(execution.content);
@@ -2010,7 +2155,7 @@ function appendHostedToolResultsToResponsesOutput({
         results,
       });
     } else if (
-      execution.toolName === 'image_generation'
+      builtinToolName === 'image_generation'
       && shouldExposeImageGenerationResults(request, exposeByDefault)
     ) {
       const images = extractImageGenerationResultsFromHostedToolOutput(execution.content);
@@ -2027,9 +2172,21 @@ function appendHostedToolResultsToResponsesOutput({
           || null,
         result: images,
       });
+    } else if (builtinToolName === 'web_search') {
+      const webSearchCall = buildCodexProviderWebSearchCallOutputItem({
+        callId: execution.callId,
+        arguments: execution.arguments,
+        resultContent: execution.resultContent,
+        resultContentText: execution.content,
+        includeSources: shouldExposeWebSearchActionSources(request, exposeByDefault),
+        includeResults: shouldExposeWebSearchResults(request, exposeByDefault),
+      });
+      output.push(webSearchCall.item);
+      webSearchCitationSources.push(...webSearchCall.citationSources);
     }
   }
   response.output = output;
+  applyWebSearchCitationAnnotationsToResponsesOutput(response, webSearchCitationSources);
 }
 
 function shouldExposeFileSearchResults(request: JsonRecord, exposeByDefault: boolean): boolean {
@@ -2048,6 +2205,20 @@ function shouldExposeImageGenerationResults(request: JsonRecord, exposeByDefault
     return normalized === 'image_generation_call.results'
       || normalized === 'image_generation_call.result';
   });
+}
+
+function shouldExposeWebSearchActionSources(request: JsonRecord, exposeByDefault: boolean): boolean {
+  if (exposeByDefault) {
+    return true;
+  }
+  return normalizeArray(request?.include).some((entry) => normalizeString(entry) === 'web_search_call.action.sources');
+}
+
+function shouldExposeWebSearchResults(request: JsonRecord, exposeByDefault: boolean): boolean {
+  if (exposeByDefault) {
+    return true;
+  }
+  return normalizeArray(request?.include).some((entry) => normalizeString(entry) === 'web_search_call.results');
 }
 
 function extractFileSearchResultsFromHostedToolOutput(content: string): JsonRecord[] {
