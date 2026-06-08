@@ -1,0 +1,117 @@
+import {
+  canonicalSearchResultUrl,
+} from '../metasearch/dedupe.js';
+import type {
+  CodexProviderMergedSearchResult,
+  CodexProviderSearchResponse,
+} from '../metasearch/index.js';
+
+export interface CodexProviderDeepSearchSubqueryResult {
+  nodeId: string;
+  question: string;
+  query: string;
+  response: CodexProviderSearchResponse | null;
+  error?: string | null;
+}
+
+export interface CodexProviderDeepSearchReference {
+  id: number;
+  title: string;
+  url: string;
+  snippet: string;
+  source: string;
+  score: number;
+  supporting_queries: string[];
+  node_ids: string[];
+}
+
+export interface CodexProviderDeepSearchReferenceMergeOptions {
+  maxSources?: number | null;
+}
+
+export function mergeCodexProviderDeepSearchReferences(
+  subqueries: CodexProviderDeepSearchSubqueryResult[],
+  options: CodexProviderDeepSearchReferenceMergeOptions = {},
+): CodexProviderDeepSearchReference[] {
+  const maxSources = clampInteger(options.maxSources, 1, 100, 20);
+  const grouped = new Map<string, {
+    results: CodexProviderMergedSearchResult[];
+    queries: Set<string>;
+    nodeIds: Set<string>;
+  }>();
+  for (const subquery of subqueries) {
+    for (const result of subquery.response?.results ?? []) {
+      const key = canonicalSearchResultUrl(result.url);
+      const group = grouped.get(key) ?? {
+        results: [],
+        queries: new Set<string>(),
+        nodeIds: new Set<string>(),
+      };
+      group.results.push(result);
+      group.queries.add(subquery.query);
+      group.nodeIds.add(subquery.nodeId);
+      grouped.set(key, group);
+    }
+  }
+  return [...grouped.values()]
+    .map((group) => referenceFromGroup(group))
+    .sort((left, right) => (
+      right.score - left.score
+      || left.url.localeCompare(right.url)
+    ))
+    .slice(0, maxSources)
+    .map((reference, index) => ({
+      ...reference,
+      id: index + 1,
+    }));
+}
+
+export function buildCodexProviderDeepSearchSynthesisInstructions(
+  references: CodexProviderDeepSearchReference[],
+): string {
+  if (references.length === 0) {
+    return 'No sources were found. State that the research graph did not find supporting web evidence.';
+  }
+  return [
+    `Synthesize the deep search findings using the ${references.length} merged sources.`,
+    'Cite factual claims with [[source:N]] placeholders where N is the merged source id.',
+    'Prefer sources that support multiple subqueries when resolving conflicts.',
+  ].join(' ');
+}
+
+function referenceFromGroup(group: {
+  results: CodexProviderMergedSearchResult[];
+  queries: Set<string>;
+  nodeIds: Set<string>;
+}): CodexProviderDeepSearchReference {
+  const sorted = [...group.results].sort((left, right) => right.score - left.score);
+  const primary = sorted[0];
+  const engines = [...new Set(sorted.flatMap((result) => result.engines))].sort();
+  return {
+    id: 0,
+    title: bestText(sorted.map((result) => result.title)) || primary.title,
+    url: primary.url,
+    snippet: bestText(sorted.map((result) => result.snippet)),
+    source: engines.join(','),
+    score: sorted.reduce((sum, result) => sum + result.score, 0)
+      + (group.queries.size - 1) * 15
+      + (engines.length - 1) * 8,
+    supporting_queries: [...group.queries],
+    node_ids: [...group.nodeIds].sort(),
+  };
+}
+
+function bestText(values: string[]): string {
+  return values
+    .map((entry) => String(entry ?? '').trim())
+    .filter(Boolean)
+    .sort((left, right) => right.length - left.length)[0] ?? '';
+}
+
+function clampInteger(value: unknown, min: number, max: number, fallback: number): number {
+  const number = Number(value);
+  if (!Number.isInteger(number)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(min, number));
+}
