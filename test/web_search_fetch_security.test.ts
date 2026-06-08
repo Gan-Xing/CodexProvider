@@ -51,6 +51,32 @@ test('web retrieval blocks redirects to private hosts', async () => {
   assert.deepEqual(calls, ['https://public.example.com/search-result']);
 });
 
+test('web retrieval enforces max redirects', async () => {
+  const calls: string[] = [];
+  const fetcher = createCodexProviderWebRetrievalFetcher({
+    maxRedirects: 1,
+    fetchImpl: (async (url) => {
+      calls.push(String(url));
+      return new Response('', {
+        status: 302,
+        headers: {
+          Location: `https://docs.example.com/hop-${calls.length}`,
+        },
+      });
+    }) as typeof fetch,
+  });
+
+  await assert.rejects(
+    fetcher.fetch('https://docs.example.com/start'),
+    (error) => assertRetrievalError(error, 'max_redirects_exceeded'),
+  );
+
+  assert.deepEqual(calls, [
+    'https://docs.example.com/start',
+    'https://docs.example.com/hop-1',
+  ]);
+});
+
 test('web retrieval times out and aborts slow fetches', async () => {
   let aborted = false;
   const fetcher = createCodexProviderWebRetrievalFetcher({
