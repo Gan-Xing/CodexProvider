@@ -1,2 +1,3 @@
 export * from './engines/index.js';
 export * from './metasearch/index.js';
+export * from './retrieval/index.js';
