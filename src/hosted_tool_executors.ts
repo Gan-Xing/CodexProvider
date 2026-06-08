@@ -1,56 +1,56 @@
 import type {
-  CodexProviderRelayHostedToolName,
+  CodexProviderHostedToolName,
 } from './hosted_tools.js';
 import {
-  normalizeCodexProviderRelayBuiltinToolName,
+  normalizeCodexProviderBuiltinToolName,
 } from './builtin-tools/index.js';
 
 export type JsonRecord = Record<string, any>;
 
-export interface CodexProviderRelayHostedToolExecutionRequest {
-  toolName: CodexProviderRelayHostedToolName;
-  relayToolName: string;
+export interface CodexProviderHostedToolExecutionRequest {
+  toolName: CodexProviderHostedToolName;
+  emulatedToolName: string;
   callId: string;
   arguments: JsonRecord;
   rawArguments: string;
   model: string | null;
   providerKind: string | null;
   providerName: string | null;
-  emitDelta?: CodexProviderRelayHostedToolDeltaEmitter | null;
+  emitDelta?: CodexProviderHostedToolDeltaEmitter | null;
 }
 
-export interface CodexProviderRelayHostedToolExecutionResult {
+export interface CodexProviderHostedToolExecutionResult {
   content: unknown;
   metadata?: JsonRecord | null;
 }
 
-export type CodexProviderRelayHostedToolDeltaEmitter = (
+export type CodexProviderHostedToolDeltaEmitter = (
   delta: unknown,
   metadata?: JsonRecord | null,
 ) => void | Promise<void>;
 
-export type CodexProviderRelayHostedToolExecutor = (
-  request: CodexProviderRelayHostedToolExecutionRequest,
-) => CodexProviderRelayHostedToolExecutionResult | Promise<CodexProviderRelayHostedToolExecutionResult>;
+export type CodexProviderHostedToolExecutor = (
+  request: CodexProviderHostedToolExecutionRequest,
+) => CodexProviderHostedToolExecutionResult | Promise<CodexProviderHostedToolExecutionResult>;
 
-export interface CodexProviderRelayHostedToolExecutorRegistration {
-  toolName: CodexProviderRelayHostedToolName;
-  executor: CodexProviderRelayHostedToolExecutor;
+export interface CodexProviderHostedToolExecutorRegistration {
+  toolName: CodexProviderHostedToolName;
+  executor: CodexProviderHostedToolExecutor;
 }
 
-export type CodexProviderRelayHostedToolExecutorRegistryInput =
-  | CodexProviderRelayHostedToolExecutorRegistry
-  | CodexProviderRelayHostedToolExecutorRegistration[]
-  | Record<string, CodexProviderRelayHostedToolExecutor>
+export type CodexProviderHostedToolExecutorRegistryInput =
+  | CodexProviderHostedToolExecutorRegistry
+  | CodexProviderHostedToolExecutorRegistration[]
+  | Record<string, CodexProviderHostedToolExecutor>
   | null
   | undefined;
 
-export class CodexProviderRelayHostedToolExecutorRegistry {
-  private readonly executors = new Map<string, CodexProviderRelayHostedToolExecutor>();
+export class CodexProviderHostedToolExecutorRegistry {
+  private readonly executors = new Map<string, CodexProviderHostedToolExecutor>();
 
   register(
-    toolName: CodexProviderRelayHostedToolName,
-    executor: CodexProviderRelayHostedToolExecutor,
+    toolName: CodexProviderHostedToolName,
+    executor: CodexProviderHostedToolExecutor,
   ): this {
     const normalizedName = normalizeHostedToolExecutorName(toolName);
     if (!normalizedName) {
@@ -63,17 +63,17 @@ export class CodexProviderRelayHostedToolExecutorRegistry {
     return this;
   }
 
-  has(toolName: CodexProviderRelayHostedToolName): boolean {
+  has(toolName: CodexProviderHostedToolName): boolean {
     return this.executors.has(normalizeHostedToolExecutorName(toolName));
   }
 
-  get(toolName: CodexProviderRelayHostedToolName): CodexProviderRelayHostedToolExecutor | null {
+  get(toolName: CodexProviderHostedToolName): CodexProviderHostedToolExecutor | null {
     return this.executors.get(normalizeHostedToolExecutorName(toolName)) ?? null;
   }
 
   async execute(
-    request: CodexProviderRelayHostedToolExecutionRequest,
-  ): Promise<CodexProviderRelayHostedToolExecutionResult> {
+    request: CodexProviderHostedToolExecutionRequest,
+  ): Promise<CodexProviderHostedToolExecutionResult> {
     const executor = this.get(request.toolName);
     if (!executor) {
       throw new Error(`No hosted tool executor registered for ${request.toolName}.`);
@@ -82,13 +82,13 @@ export class CodexProviderRelayHostedToolExecutorRegistry {
   }
 }
 
-export function createCodexProviderRelayHostedToolExecutorRegistry(
-  input: CodexProviderRelayHostedToolExecutorRegistryInput = null,
-): CodexProviderRelayHostedToolExecutorRegistry {
-  if (input instanceof CodexProviderRelayHostedToolExecutorRegistry) {
+export function createCodexProviderHostedToolExecutorRegistry(
+  input: CodexProviderHostedToolExecutorRegistryInput = null,
+): CodexProviderHostedToolExecutorRegistry {
+  if (input instanceof CodexProviderHostedToolExecutorRegistry) {
     return input;
   }
-  const registry = new CodexProviderRelayHostedToolExecutorRegistry();
+  const registry = new CodexProviderHostedToolExecutorRegistry();
   if (!input) {
     return registry;
   }
@@ -100,14 +100,14 @@ export function createCodexProviderRelayHostedToolExecutorRegistry(
   }
   if (typeof input === 'object') {
     for (const [toolName, executor] of Object.entries(input)) {
-      registry.register(toolName as CodexProviderRelayHostedToolName, executor);
+      registry.register(toolName as CodexProviderHostedToolName, executor);
     }
   }
   return registry;
 }
 
-export function formatCodexProviderRelayHostedToolExecutionResult(
-  result: CodexProviderRelayHostedToolExecutionResult,
+export function formatCodexProviderHostedToolExecutionResult(
+  result: CodexProviderHostedToolExecutionResult,
 ): string {
   const normalized = normalizeHostedToolExecutionResult(result);
   if (typeof normalized.content === 'string') {
@@ -119,7 +119,7 @@ export function formatCodexProviderRelayHostedToolExecutionResult(
   });
 }
 
-function normalizeHostedToolExecutionResult(value: unknown): CodexProviderRelayHostedToolExecutionResult {
+function normalizeHostedToolExecutionResult(value: unknown): CodexProviderHostedToolExecutionResult {
   if (value && typeof value === 'object' && 'content' in (value as JsonRecord)) {
     const record = value as JsonRecord;
     return {
@@ -135,7 +135,7 @@ function normalizeHostedToolExecutionResult(value: unknown): CodexProviderRelayH
   };
 }
 
-function normalizeHostedToolExecutorName(value: unknown): CodexProviderRelayHostedToolName {
+function normalizeHostedToolExecutorName(value: unknown): CodexProviderHostedToolName {
   const raw = String(value ?? '').trim();
-  return (normalizeCodexProviderRelayBuiltinToolName(raw) ?? raw) as CodexProviderRelayHostedToolName;
+  return (normalizeCodexProviderBuiltinToolName(raw) ?? raw) as CodexProviderHostedToolName;
 }

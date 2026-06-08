@@ -1,10 +1,12 @@
 # CodexProvider Rename & Extraction Handoff
 
+Archived historical naming record. This handoff preserves old repository and API names for audit context and should not be treated as current API guidance.
+
 ## 背景
 
 当前仓库：`Gan-Xing/CodexBridge`
-当前包目录：`packages/codex-provider-relay`
-当前包名：`@codexbridge/codex-provider-relay`
+当前包目录：`packages/codex-provider`
+当前包名：`@codexbridge/codex-provider`
 目标产品名：`CodexProvider`
 目标 npm 包名：`@codex-provider/core`
 目标核心类：`CodexProviderRuntime`
@@ -32,11 +34,11 @@
 当前最优顺序：
 
 1. 在现有 monorepo 内完成 public API 命名迁移：
-   - `@codexbridge/codex-provider-relay` -> `@codex-provider/core`
-   - `CodexProviderRelayRuntime` -> `CodexProviderRuntime`
-   - `createCodexProviderRelayFileSearchExecutor` -> `createCodexProviderFileSearchExecutor`
+   - `@codexbridge/codex-provider` -> `@codex-provider/core`
+   - `CodexProviderRuntime` -> `CodexProviderRuntime`
+   - `createCodexProviderFileSearchExecutor` -> `createCodexProviderFileSearchExecutor`
    - 其他 public API 同步新增 `CodexProvider*` 名称。
-2. 保留旧 `CodexProviderRelay*` / `CodexGateway*` aliases 一个 stabilization cycle。
+2. 保留旧 `CodexProvider*` / `CodexProvider*` aliases 一个 stabilization cycle。
 3. 更新 docs/examples/tests/scripts/checklist。
 4. 用 CodexNext 或 standalone harness 通过 root entrypoint 消费新 API。
 5. 再创建独立仓库 `CodexProvider`，把包抽出去。
@@ -70,34 +72,34 @@
 把本文档保存到：
 
 ```text
-packages/codex-provider-relay/docs/CODEX_PROVIDER_RENAME_AND_EXTRACTION_HANDOFF.md
+packages/codex-provider/docs/CODEX_PROVIDER_RENAME_AND_EXTRACTION_HANDOFF.md
 ```
 
 先阅读：
 
 ```text
-packages/codex-provider-relay/package.json
-packages/codex-provider-relay/README.md
-packages/codex-provider-relay/docs/RELEASE_READINESS.md
-packages/codex-provider-relay/docs/INDEPENDENT_PACKAGE_CHECKLIST.md
-packages/codex-provider-relay/docs/OPENAI_BUILTIN_TOOL_COMPATIBILITY.md
-packages/codex-provider-relay/src/index.ts
-packages/codex-provider-relay/src/runtime.ts
-packages/codex-provider-relay/src/profiles.ts
-packages/codex-provider-relay/src/codex_config.ts
-packages/codex-provider-relay/src/target.ts
-packages/codex-provider-relay/src/file_search_executor.ts
-packages/codex-provider-relay/src/web_search_executor.ts
-packages/codex-provider-relay/src/image_generation_executor.ts
-packages/codex-provider-relay/src/code_interpreter_executor.ts
-packages/codex-provider-relay/src/computer_executor.ts
-packages/codex-provider-relay/src/tool_search_executor.ts
-packages/codex-provider-relay/src/hosted_tools.ts
-packages/codex-provider-relay/src/hosted_tool_executors.ts
-packages/codex-provider-relay/src/server/standalone_server.ts
-packages/codex-provider-relay/src/server/responses_adapter_server.ts
-packages/codex-provider-relay/test/public_surface.test.ts
-scripts/check-codex-provider-relay-boundary.mjs
+packages/codex-provider/package.json
+packages/codex-provider/README.md
+packages/codex-provider/docs/RELEASE_READINESS.md
+packages/codex-provider/docs/INDEPENDENT_PACKAGE_CHECKLIST.md
+packages/codex-provider/docs/OPENAI_BUILTIN_TOOL_COMPATIBILITY.md
+packages/codex-provider/src/index.ts
+packages/codex-provider/src/runtime.ts
+packages/codex-provider/src/profiles.ts
+packages/codex-provider/src/codex_config.ts
+packages/codex-provider/src/target.ts
+packages/codex-provider/src/file_search_executor.ts
+packages/codex-provider/src/web_search_executor.ts
+packages/codex-provider/src/image_generation_executor.ts
+packages/codex-provider/src/code_interpreter_executor.ts
+packages/codex-provider/src/computer_executor.ts
+packages/codex-provider/src/tool_search_executor.ts
+packages/codex-provider/src/hosted_tools.ts
+packages/codex-provider/src/hosted_tool_executors.ts
+packages/codex-provider/src/server/standalone_server.ts
+packages/codex-provider/src/server/responses_adapter_server.ts
+packages/codex-provider/test/public_surface.test.ts
+scripts/check-codex-provider-boundary.mjs
 package.json
 ```
 
@@ -107,8 +109,8 @@ package.json
 
 - 目标产品名是 `CodexProvider`。
 - 目标 npm 包名是 `@codex-provider/core`。
-- 旧 `CodexProviderRelay*` 名称需要作为 deprecated alias 保留。
-- 旧 `CodexGateway*` 名称继续保留 deprecated alias。
+- 旧 `CodexProvider*` 名称需要作为 deprecated alias 保留。
+- 旧 `CodexProvider*` 名称继续保留 deprecated alias。
 - 本阶段不发布 npm。
 - 本阶段不创建实际外部 vector DB adapter。
 - 本阶段不改 CodexBridge 业务逻辑。
@@ -136,12 +138,12 @@ CodexProviderAdapterServerFactory
 旧名保留：
 
 ```ts
-CodexProviderRelayRuntime
-CodexProviderRelayRuntimeOptions
-CodexProviderRelayRuntimeState
-CodexProviderRelayAdapterServer
-CodexProviderRelayAdapterServerOptions
-CodexProviderRelayAdapterServerFactory
+CodexProviderRuntime
+CodexProviderRuntimeOptions
+CodexProviderRuntimeState
+CodexProviderAdapterServer
+CodexProviderAdapterServerOptions
+CodexProviderAdapterServerFactory
 ```
 
 实现策略：
@@ -150,14 +152,14 @@ CodexProviderRelayAdapterServerFactory
 - 再导出 alias：
 
 ```ts
-export { CodexProviderRuntime as CodexProviderRelayRuntime };
-export type CodexProviderRelayRuntimeOptions = CodexProviderRuntimeOptions;
+export { CodexProviderRuntime as CodexProviderRuntime };
+export type CodexProviderRuntimeOptions = CodexProviderRuntimeOptions;
 ```
 
 如果重命名类风险太大，先新增 alias 也可以：
 
 ```ts
-export const CodexProviderRuntime = CodexProviderRelayRuntime;
+export const CodexProviderRuntime = CodexProviderRuntime;
 ```
 
 但最终建议 primary source 名称变为 `CodexProviderRuntime`。
@@ -181,11 +183,11 @@ CodexProviderToolStrategy
 旧 API 保留 alias：
 
 ```ts
-buildCodexProviderRelayConfig
-buildCodexProviderRelayCliArgs
-buildCodexProviderRelayTomlFragment
-buildCodexProviderRelayProfile
-CodexProviderRelayProfile
+buildCodexProviderConfig
+buildCodexProviderCliArgs
+buildCodexProviderTomlFragment
+buildCodexProviderProfile
+CodexProviderProfile
 ...
 ```
 
@@ -206,8 +208,8 @@ createCodexProviderHostedToolExecutorRegistry
 旧名保留 alias：
 
 ```ts
-CodexProviderRelayHostedToolName
-CodexProviderRelayHostedToolDeclaration
+CodexProviderHostedToolName
+CodexProviderHostedToolDeclaration
 ...
 ```
 
@@ -225,8 +227,8 @@ CODEX_PROVIDER_BUILTIN_TOOL_ALIASES
 旧名保留 alias：
 
 ```ts
-CodexProviderRelayBuiltinToolName
-CODEX_PROVIDER_RELAY_BUILTIN_TOOL_DEFINITIONS
+CodexProviderBuiltinToolName
+CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS
 ...
 ```
 
@@ -257,7 +259,7 @@ createCodexProviderToolSearchExecutor
 旧名全部保留 alias：
 
 ```ts
-createCodexProviderRelayFileSearchExecutor
+createCodexProviderFileSearchExecutor
 ...
 ```
 
@@ -278,12 +280,12 @@ resolveCodexProviderStandaloneServerEnv
 旧名保留：
 
 ```ts
-CodexProviderRelayTraceEvent
-CodexProviderRelayTraceSink
-CodexGatewayTraceEvent
-CodexGatewayTraceSink
-createCodexProviderRelayStandaloneServerFromEnv
-createCodexGatewayStandaloneServerFromEnv
+CodexProviderTraceEvent
+CodexProviderTraceSink
+CodexProviderTraceEvent
+CodexProviderTraceSink
+createCodexProviderStandaloneServerFromEnv
+createCodexProviderStandaloneServerFromEnv
 ...
 ```
 
@@ -306,8 +308,8 @@ CODEX_PROVIDER_NON_GOALS
 旧名保留 alias：
 
 ```ts
-CODEX_PROVIDER_RELAY_TARGET
-CODEX_PROVIDER_RELAY_PACKAGE_NAME
+CODEX_PROVIDER_TARGET
+CODEX_PROVIDER_PACKAGE_NAME
 ...
 ```
 
@@ -316,7 +318,7 @@ CODEX_PROVIDER_RELAY_PACKAGE_NAME
 更新：
 
 ```text
-packages/codex-provider-relay/test/public_surface.test.ts
+packages/codex-provider/test/public_surface.test.ts
 ```
 
 测试必须确认：
@@ -330,13 +332,13 @@ packages/codex-provider-relay/test/public_surface.test.ts
 
 ```ts
 CODEX_PROVIDER_PACKAGE_NAME === "@codex-provider/core"
-CODEX_PROVIDER_RELAY_PACKAGE_NAME === "@codex-provider/core"
+CODEX_PROVIDER_PACKAGE_NAME === "@codex-provider/core"
 ```
 
 如果担心兼容，可额外保留：
 
 ```ts
-LEGACY_CODEX_PROVIDER_RELAY_PACKAGE_NAME === "@codexbridge/codex-provider-relay"
+LEGACY_CODEX_PROVIDER_PACKAGE_NAME === "@codexbridge/codex-provider"
 ```
 
 ---
@@ -346,14 +348,14 @@ LEGACY_CODEX_PROVIDER_RELAY_PACKAGE_NAME === "@codexbridge/codex-provider-relay"
 修改：
 
 ```text
-packages/codex-provider-relay/package.json
+packages/codex-provider/package.json
 ```
 
 从：
 
 ```json
 {
-  "name": "@codexbridge/codex-provider-relay",
+  "name": "@codexbridge/codex-provider",
   "version": "0.0.0",
   "private": true
 }
@@ -375,8 +377,8 @@ bin 建议：
 ```json
 "bin": {
   "codex-provider-server": "./dist/cli.js",
-  "codex-provider-relay-server": "./dist/cli.js",
-  "codex-gateway-server": "./dist/cli.js"
+  "codex-provider-server": "./dist/cli.js",
+  "codex-provider-server": "./dist/cli.js"
 }
 ```
 
@@ -392,16 +394,16 @@ bin 建议：
 新增：
 
 ```json
-"codex-provider:build": "tsc -p packages/codex-provider-relay/tsconfig.json",
-"codex-provider:check-boundary": "node scripts/check-codex-provider-relay-boundary.mjs",
-"codex-provider:test": "tsx --test packages/codex-provider-relay/test/*.test.ts",
-"codex-provider:typecheck": "tsc -p packages/codex-provider-relay/tsconfig.json --noEmit"
+"codex-provider:build": "tsc -p packages/codex-provider/tsconfig.json",
+"codex-provider:check-boundary": "node scripts/check-codex-provider-boundary.mjs",
+"codex-provider:test": "tsx --test packages/codex-provider/test/*.test.ts",
+"codex-provider:typecheck": "tsc -p packages/codex-provider/tsconfig.json --noEmit"
 ```
 
 旧 scripts 保留：
 
 ```json
-"codex-provider-relay:*"
+"codex-provider:*"
 ```
 
 ---
@@ -411,14 +413,14 @@ bin 建议：
 更新这些文件中面向用户的主名称：
 
 ```text
-packages/codex-provider-relay/README.md
-packages/codex-provider-relay/docs/RELEASE_READINESS.md
-packages/codex-provider-relay/docs/INDEPENDENT_PACKAGE_CHECKLIST.md
-packages/codex-provider-relay/docs/OPENAI_BUILTIN_TOOL_COMPATIBILITY.md
-packages/codex-provider-relay/docs/RECIPES.md
-packages/codex-provider-relay/docs/LIVE_SMOKE_RECIPES.md
-packages/codex-provider-relay/docs/UNSAFE_TOOL_SECURITY.md
-packages/codex-provider-relay/examples/*.ts
+packages/codex-provider/README.md
+packages/codex-provider/docs/RELEASE_READINESS.md
+packages/codex-provider/docs/INDEPENDENT_PACKAGE_CHECKLIST.md
+packages/codex-provider/docs/OPENAI_BUILTIN_TOOL_COMPATIBILITY.md
+packages/codex-provider/docs/RECIPES.md
+packages/codex-provider/docs/LIVE_SMOKE_RECIPES.md
+packages/codex-provider/docs/UNSAFE_TOOL_SECURITY.md
+packages/codex-provider/examples/*.ts
 ```
 
 主文案：
@@ -433,7 +435,7 @@ createCodexProviderFileSearchExecutor
 保留一段 compatibility note：
 
 ```text
-Historical names under @codexbridge/codex-provider-relay and CodexProviderRelay* remain as deprecated aliases during the stabilization cycle.
+Historical names under @codexbridge/codex-provider and CodexProvider* remain as deprecated aliases during the stabilization cycle.
 ```
 
 README 开头建议改成：
@@ -456,7 +458,7 @@ CodexBridge / CodexNext 只作为 consumers 出现在 examples 或 compatibility
 当前目录：
 
 ```text
-packages/codex-provider-relay
+packages/codex-provider
 ```
 
 建议新目录：
@@ -470,7 +472,7 @@ packages/codex-provider-core
 ```text
 root package.json scripts
 tsconfig references, if any
-scripts/check-codex-provider-relay-boundary.mjs
+scripts/check-codex-provider-boundary.mjs
 docs links
 examples path comments
 test names
@@ -485,7 +487,7 @@ scripts/check-codex-provider-boundary.mjs
 旧脚本保留 alias：
 
 ```text
-scripts/check-codex-provider-relay-boundary.mjs
+scripts/check-codex-provider-boundary.mjs
 ```
 
 旧脚本可以直接调用新脚本，避免破坏 CI。
@@ -708,10 +710,10 @@ CHANGELOG.md
 
 ## 0.1.0-alpha.0
 
-- Rename internal codex-provider-relay package to CodexProvider public API.
+- Rename internal codex-provider package to CodexProvider public API.
 - Add `@codex-provider/core` package metadata while keeping `private: true`.
 - Add `CodexProviderRuntime` and `createCodexProvider*` public APIs.
-- Keep deprecated `CodexProviderRelay*` and `CodexGateway*` aliases.
+- Keep deprecated `CodexProvider*` and `CodexProvider*` aliases.
 - Preserve explicit hosted tool executor model.
 ```
 
@@ -724,7 +726,7 @@ CHANGELOG.md
 需要记录到：
 
 ```text
-packages/codex-provider-relay/docs/LIVE_SMOKE_RESULTS.md
+packages/codex-provider/docs/LIVE_SMOKE_RESULTS.md
 ```
 
 如果已改目录，则：
@@ -765,16 +767,16 @@ git diff --check
 旧命令也必须继续通过：
 
 ```bash
-npm run codex-provider-relay:test
-npm run codex-provider-relay:typecheck
-npm run codex-provider-relay:build
-npm run codex-provider-relay:check-boundary
+npm run codex-provider:test
+npm run codex-provider:typecheck
+npm run codex-provider:build
+npm run codex-provider:check-boundary
 ```
 
 包目录阶段：
 
 ```bash
-cd packages/codex-provider-relay
+cd packages/codex-provider
 pnpm test
 pnpm typecheck
 pnpm build
@@ -878,7 +880,7 @@ chore(provider): prepare CodexProvider repository extraction
 - 产品名改为 `CodexProvider`
 - npm 包名改为 `@codex-provider/core`
 - 新主 API 使用 `CodexProvider*`
-- 旧 `CodexProviderRelay*` 和 `CodexGateway*` 保留 deprecated aliases
+- 旧 `CodexProvider*` 和 `CodexProvider*` 保留 deprecated aliases
 - 暂不发布 npm
 - 暂不删除旧 alias
 - 暂不引入新依赖
@@ -887,33 +889,33 @@ chore(provider): prepare CodexProvider repository extraction
 第一步：保存 handoff 到：
 
 ```text
-packages/codex-provider-relay/docs/CODEX_PROVIDER_RENAME_AND_EXTRACTION_HANDOFF.md
+packages/codex-provider/docs/CODEX_PROVIDER_RENAME_AND_EXTRACTION_HANDOFF.md
 ```
 
 第二步：阅读这些文件：
 
 ```text
-packages/codex-provider-relay/package.json
-packages/codex-provider-relay/README.md
-packages/codex-provider-relay/docs/RELEASE_READINESS.md
-packages/codex-provider-relay/docs/INDEPENDENT_PACKAGE_CHECKLIST.md
-packages/codex-provider-relay/src/index.ts
-packages/codex-provider-relay/src/runtime.ts
-packages/codex-provider-relay/src/profiles.ts
-packages/codex-provider-relay/src/codex_config.ts
-packages/codex-provider-relay/src/target.ts
-packages/codex-provider-relay/src/file_search_executor.ts
-packages/codex-provider-relay/src/web_search_executor.ts
-packages/codex-provider-relay/src/image_generation_executor.ts
-packages/codex-provider-relay/src/code_interpreter_executor.ts
-packages/codex-provider-relay/src/computer_executor.ts
-packages/codex-provider-relay/src/tool_search_executor.ts
-packages/codex-provider-relay/src/hosted_tools.ts
-packages/codex-provider-relay/src/hosted_tool_executors.ts
-packages/codex-provider-relay/src/server/standalone_server.ts
-packages/codex-provider-relay/src/server/responses_adapter_server.ts
-packages/codex-provider-relay/test/public_surface.test.ts
-scripts/check-codex-provider-relay-boundary.mjs
+packages/codex-provider/package.json
+packages/codex-provider/README.md
+packages/codex-provider/docs/RELEASE_READINESS.md
+packages/codex-provider/docs/INDEPENDENT_PACKAGE_CHECKLIST.md
+packages/codex-provider/src/index.ts
+packages/codex-provider/src/runtime.ts
+packages/codex-provider/src/profiles.ts
+packages/codex-provider/src/codex_config.ts
+packages/codex-provider/src/target.ts
+packages/codex-provider/src/file_search_executor.ts
+packages/codex-provider/src/web_search_executor.ts
+packages/codex-provider/src/image_generation_executor.ts
+packages/codex-provider/src/code_interpreter_executor.ts
+packages/codex-provider/src/computer_executor.ts
+packages/codex-provider/src/tool_search_executor.ts
+packages/codex-provider/src/hosted_tools.ts
+packages/codex-provider/src/hosted_tool_executors.ts
+packages/codex-provider/src/server/standalone_server.ts
+packages/codex-provider/src/server/responses_adapter_server.ts
+packages/codex-provider/test/public_surface.test.ts
+scripts/check-codex-provider-boundary.mjs
 package.json
 ```
 
@@ -935,10 +937,10 @@ refactor(provider): add CodexProvider public API aliases
 完成后运行：
 
 ```bash
-npm run codex-provider-relay:test
-npm run codex-provider-relay:typecheck
-npm run codex-provider-relay:build
-npm run codex-provider-relay:check-boundary
+npm run codex-provider:test
+npm run codex-provider:typecheck
+npm run codex-provider:build
+npm run codex-provider:check-boundary
 git diff --check
 ```
 

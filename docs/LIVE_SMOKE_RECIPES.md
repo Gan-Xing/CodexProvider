@@ -2,7 +2,7 @@
 
 These recipes are for validating `@codex-provider/core` against real upstream services before public packaging.
 
-Historical names under `@codexbridge/codex-provider-relay` and `codex-provider-relay-server` remain as deprecated aliases during the stabilization cycle.
+Historical names under `@codexbridge/codex-provider` and `codex-provider-server` remain as deprecated aliases during the stabilization cycle.
 
 Live smoke tests are intentionally manual or opt-in. They require provider credentials, may call paid APIs, and should never run in ordinary unit test flows.
 
@@ -37,24 +37,24 @@ Expected:
 - `GET /v1/models` returns a non-empty model list.
 - `POST /v1/responses` translates a simple text request and returns a Responses-shaped object.
 
-## Smoke 2: Relay-Emulated Web Search
+## Smoke 2: Adapter-Emulated Web Search
 
 Goal: verify `web_search` is explicit, executor-backed, and does not silently call live search when `external_web_access` is disabled.
 
-Use `examples/relay-emulated-web-search.ts` as the wiring reference.
+Use `examples/adapter-emulated-web-search.ts` as the wiring reference.
 
 Expected:
 
-- `{ name: "web_search", mode: "relay-emulated" }` is declared.
+- `{ name: "web_search", mode: "adapter-emulated" }` is declared.
 - `hostedToolExecutors.web_search` is registered.
 - A live query returns `results`, `sources`, and `retrieved_at`.
 - A request with `external_web_access: false` fails clearly unless an offline/cache source is configured.
 
-## Smoke 3: Relay-Emulated File Search Local Vector
+## Smoke 3: Adapter-Emulated File Search Local Vector
 
 Goal: verify local-vector indexing, cache reuse, and OpenAI-compatible search result output.
 
-Use `examples/relay-emulated-file-search-local-vector.ts` as the wiring reference.
+Use `examples/adapter-emulated-file-search-local-vector.ts` as the wiring reference.
 
 Expected:
 
@@ -66,9 +66,9 @@ Expected:
 
 ## Smoke 4: Image Generation Contract
 
-Goal: verify the relay can call a host-provided image provider without bundling a default one.
+Goal: verify the provider adapter can call a host-provided image provider without bundling a default one.
 
-Use `examples/relay-emulated-image-generation.ts` as the wiring reference.
+Use `examples/adapter-emulated-image-generation.ts` as the wiring reference.
 
 Expected:
 

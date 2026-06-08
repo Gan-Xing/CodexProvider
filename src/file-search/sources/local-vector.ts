@@ -1,33 +1,33 @@
 import type {
-  CodexProviderRelayFileSearchSource,
-  CodexProviderRelayFileSearchSourceRequest,
-  CodexProviderRelayFileSearchSourceResult,
-  CodexProviderRelayLocalVectorFileSearchSourceOptions,
+  CodexProviderFileSearchSource,
+  CodexProviderFileSearchSourceRequest,
+  CodexProviderFileSearchSourceResult,
+  CodexProviderLocalVectorFileSearchSourceOptions,
   NormalizedLocalVectorFileSearchOptions,
 } from '../types.js';
-import { createCodexProviderRelayMemoryLocalVectorIndexStore } from '../stores.js';
+import { createCodexProviderMemoryLocalVectorIndexStore } from '../stores.js';
 import {
   clampInteger,
   clampNumber,
   normalizeString,
 } from '../shared.js';
-import { createCodexProviderRelayLocalVectorIndex } from '../local-vector-index.js';
+import { createCodexProviderLocalVectorIndex } from '../local-vector-index.js';
 import {
   assertExplicitLocalFileSearchRoots,
   normalizeLocalFileSearchOptions,
 } from './local-shared.js';
 
-export function createCodexProviderRelayLocalVectorFileSearchSource(
-  options: CodexProviderRelayLocalVectorFileSearchSourceOptions,
-): CodexProviderRelayFileSearchSource {
+export function createCodexProviderLocalVectorFileSearchSource(
+  options: CodexProviderLocalVectorFileSearchSourceOptions,
+): CodexProviderFileSearchSource {
   assertExplicitLocalFileSearchRoots(options.roots);
   const normalizedOptionsPromise = normalizeLocalVectorFileSearchOptions(options);
-  const indexPromise = normalizedOptionsPromise.then(createCodexProviderRelayLocalVectorIndex);
+  const indexPromise = normalizedOptionsPromise.then(createCodexProviderLocalVectorIndex);
   const sourceName = normalizeString(options.name) || 'local-vector';
   return {
     name: sourceName,
     type: 'local-vector',
-    async search(request: CodexProviderRelayFileSearchSourceRequest): Promise<CodexProviderRelayFileSearchSourceResult> {
+    async search(request: CodexProviderFileSearchSourceRequest): Promise<CodexProviderFileSearchSourceResult> {
       const index = await indexPromise;
       return index.search(request);
     },
@@ -35,7 +35,7 @@ export function createCodexProviderRelayLocalVectorFileSearchSource(
 }
 
 async function normalizeLocalVectorFileSearchOptions(
-  options: CodexProviderRelayLocalVectorFileSearchSourceOptions,
+  options: CodexProviderLocalVectorFileSearchSourceOptions,
 ): Promise<NormalizedLocalVectorFileSearchOptions> {
   const embeddingProvider = options.embeddingProvider;
   if (!embeddingProvider || typeof embeddingProvider.embed !== 'function') {
@@ -66,7 +66,7 @@ async function normalizeLocalVectorFileSearchOptions(
     name: normalizeString(options.name) || 'local-vector',
     type: 'local-vector',
     embeddingProvider,
-    indexStore: options.indexStore ?? createCodexProviderRelayMemoryLocalVectorIndexStore(),
+    indexStore: options.indexStore ?? createCodexProviderMemoryLocalVectorIndexStore(),
     chunking: {
       maxChars: clampInteger(chunking.maxChars, 400, 12_000, 1_600),
       overlapChars: clampInteger(chunking.overlapChars, 0, 2_000, 200),

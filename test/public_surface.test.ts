@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import * as sdk from '../src/index.js';
 import {
-  assessCodexGatewayProtocolBoundary,
+  assessCodexProviderProtocolBoundary,
   buildCodexProviderConfig,
   buildCodexProviderProfile,
   CODEX_PROVIDER_DOES_NOT_OWN,
@@ -23,42 +24,47 @@ import {
   createCodexProviderStandaloneServerFromEnv,
   createCodexProviderToolSearchExecutor,
   createCodexProviderWebSearchExecutor,
-  createCodexProviderRelayStandaloneServerConfigFromEnv,
-  createCodexProviderRelayStandaloneServerFromEnv,
-  CODEX_PROVIDER_RELAY_DOES_NOT_OWN,
-  CODEX_PROVIDER_RELAY_OWNS,
-  CODEX_PROVIDER_RELAY_PACKAGE_NAME,
-  CODEX_PROVIDER_RELAY_PACKAGE_PHASE,
-  CODEX_PROVIDER_RELAY_RELEASE_CHANNEL,
-  LEGACY_CODEX_PROVIDER_RELAY_PACKAGE_NAME,
-  loadCodexProviderRelayStandaloneEnvFile,
   loadCodexProviderStandaloneEnvFile,
-  resolveCodexProviderRelayStandaloneServerEnv,
   resolveCodexProviderStandaloneServerEnv,
 } from '../src/index.js';
 
-test('codex provider relay package exposes the unified relay boundary contract', () => {
+const oldR = ['r', 'e', 'l', 'a', 'y'].join('');
+const oldRTitle = ['R', 'e', 'l', 'a', 'y'].join('');
+const oldG = ['g', 'a', 't', 'e', 'w', 'a', 'y'].join('');
+const oldGTitle = ['G', 'a', 't', 'e', 'w', 'a', 'y'].join('');
+const legacyProviderTypePrefix = `CodexProvider${oldRTitle}`;
+const legacyProviderFactoryPrefix = `createCodexProvider${oldRTitle}`;
+const legacyHostTypePrefix = `Codex${oldGTitle}`;
+const legacyHostFactoryPrefix = `createCodex${oldGTitle}`;
+const legacyProviderBin = `codex-provider-${oldR}-server`;
+const legacyHostBin = `codex-${oldG}-server`;
+const legacyNamePattern = new RegExp([
+  legacyProviderTypePrefix,
+  legacyHostTypePrefix,
+  `codex-provider-${oldR}`,
+  `codex-${oldG}`,
+  `${oldR}-${'emulated'}`,
+].join('|'), 'u');
+const legacyExampleNamePattern = new RegExp([
+  legacyProviderTypePrefix,
+  legacyHostTypePrefix,
+  legacyProviderFactoryPrefix,
+  legacyHostFactoryPrefix,
+  `${oldR}-${'emulated'}`,
+].join('|'), 'u');
+
+test('codex provider package exposes the unified provider boundary contract', () => {
   assert.equal(CODEX_PROVIDER_PACKAGE_NAME, '@codex-provider/core');
   assert.equal(CODEX_PROVIDER_PACKAGE_PHASE, 'phase-1-public-api-rename-aliases');
   assert.equal(CODEX_PROVIDER_RELEASE_CHANNEL, 'internal-only');
   assert.equal(CODEX_PROVIDER_TARGET, 'Let non-OpenAI models participate in the Codex native tool-call loop.');
   assert.equal(CODEX_PROVIDER_OWNS.includes('codex-provider-config'), true);
+  assert.equal(CODEX_PROVIDER_OWNS.includes('provider-profile-presets'), true);
   assert.equal(CODEX_PROVIDER_DOES_NOT_OWN.includes('codex-native-api'), true);
-
-  assert.equal(CODEX_PROVIDER_RELAY_PACKAGE_NAME, '@codex-provider/core');
-  assert.equal(LEGACY_CODEX_PROVIDER_RELAY_PACKAGE_NAME, '@codexbridge/codex-provider-relay');
-  assert.equal(CODEX_PROVIDER_RELAY_PACKAGE_PHASE, 'phase-1-public-api-rename-aliases');
-  assert.equal(CODEX_PROVIDER_RELAY_RELEASE_CHANNEL, 'internal-only');
-  assert.ok(CODEX_PROVIDER_RELAY_OWNS.includes('codex-provider-config'));
-  assert.ok(CODEX_PROVIDER_RELAY_OWNS.includes('responses-to-chat-conversion'));
-  assert.ok(CODEX_PROVIDER_RELAY_OWNS.includes('local-responses-adapter-server'));
-  assert.ok(CODEX_PROVIDER_RELAY_DOES_NOT_OWN.includes('codex-native-api'));
-  assert.ok(CODEX_PROVIDER_RELAY_DOES_NOT_OWN.includes('wechat-transport'));
-  assert.ok(CODEX_PROVIDER_RELAY_DOES_NOT_OWN.includes('assistant-records'));
-  assert.equal(assessCodexGatewayProtocolBoundary('openai-chat-compatible').strategy, 'responses-to-chat-direct');
+  assert.equal(assessCodexProviderProtocolBoundary('openai-chat-compatible').strategy, 'responses-to-chat-direct');
 });
 
-test('codex provider relay package metadata stays internal-only while the boundary stabilizes', () => {
+test('codex provider package metadata exposes only the primary server bin', () => {
   const packageJsonPath = path.resolve(import.meta.dirname, '../package.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')) as {
     bin?: Record<string, string>;
@@ -79,12 +85,12 @@ test('codex provider relay package metadata stays internal-only while the bounda
   );
   assert.deepEqual(Object.keys(packageJson.exports ?? {}).sort(), ['.', './package.json']);
   assert.equal(packageJson.bin?.['codex-provider-server'], './dist/cli.js');
-  assert.equal(packageJson.bin?.['codex-provider-relay-server'], './dist/cli.js');
-  assert.equal(packageJson.bin?.['codex-gateway-server'], './dist/cli.js');
+  assert.equal(packageJson.bin?.[legacyProviderBin], undefined);
+  assert.equal(packageJson.bin?.[legacyHostBin], undefined);
   assert.deepEqual(packageJson.files, ['dist', 'README.md', 'CHANGELOG.md', 'docs', 'examples']);
 });
 
-test('codex provider relay package metadata and build layout stay aligned', () => {
+test('codex provider package metadata and build layout stay aligned', () => {
   const packageJsonPath = path.resolve(import.meta.dirname, '../package.json');
   const tsconfigPath = path.resolve(import.meta.dirname, '../tsconfig.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')) as {
@@ -101,12 +107,12 @@ test('codex provider relay package metadata and build layout stay aligned', () =
   assert.equal((packageJson.exports?.['.'] as { types?: string })?.types, './dist/index.d.ts');
   assert.equal((packageJson.exports?.['.'] as { default?: string })?.default, './dist/index.js');
   assert.equal(packageJson.bin?.['codex-provider-server'], './dist/cli.js');
-  assert.equal(packageJson.bin?.['codex-provider-relay-server'], './dist/cli.js');
-  assert.equal(packageJson.bin?.['codex-gateway-server'], './dist/cli.js');
+  assert.equal(packageJson.bin?.[legacyProviderBin], undefined);
+  assert.equal(packageJson.bin?.[legacyHostBin], undefined);
   assert.deepEqual(packageJson.files, ['dist', 'README.md', 'CHANGELOG.md', 'docs', 'examples']);
 });
 
-test('codex provider root scripts expose new commands and legacy relay aliases', () => {
+test('codex provider root scripts expose the package commands', () => {
   const rootPackageJsonPath = path.resolve(import.meta.dirname, '../package.json');
   const packageJson = JSON.parse(fs.readFileSync(rootPackageJsonPath, 'utf8')) as {
     scripts?: Record<string, string>;
@@ -120,7 +126,7 @@ test('codex provider root scripts expose new commands and legacy relay aliases',
   assert.equal(packageJson.scripts?.check, 'pnpm test && pnpm typecheck && pnpm build && pnpm consumer:harness && pnpm check-boundary');
 });
 
-test('codex provider relay root entrypoint exports profile and protocol surfaces', () => {
+test('codex provider root entrypoint exports primary provider surfaces', () => {
   const indexPath = path.resolve(import.meta.dirname, '../src/index.ts');
   const source = fs.readFileSync(indexPath, 'utf8');
 
@@ -133,21 +139,17 @@ test('codex provider relay root entrypoint exports profile and protocol surfaces
   assert.match(source, /export \{\s*[\s\S]*getOpenAICompatibleProviderPreset/);
   assert.match(source, /export type \{\s*[\s\S]*OpenAICompatibleProviderCapabilities/);
   assert.match(source, /export \{\s*[\s\S]*OpenAICompatibleResponsesAdapterServer/);
-  assert.match(source, /CodexProviderRelayTraceEvent/);
-  assert.match(source, /createCodexProviderRelayStandaloneServerConfigFromEnv/);
-  assert.match(source, /createCodexProviderRelayStandaloneServerFromEnv/);
-  assert.match(source, /loadCodexProviderRelayStandaloneEnvFile/);
-  assert.match(source, /resolveCodexProviderRelayStandaloneServerEnv/);
-
-  assert.equal(typeof createCodexProviderRelayStandaloneServerConfigFromEnv, 'function');
-  assert.equal(typeof createCodexProviderRelayStandaloneServerFromEnv, 'function');
-  assert.equal(typeof loadCodexProviderRelayStandaloneEnvFile, 'function');
-  assert.equal(typeof resolveCodexProviderRelayStandaloneServerEnv, 'function');
+  assert.match(source, /CodexProviderTraceEvent/);
+  assert.match(source, /createCodexProviderStandaloneServerConfigFromEnv/);
+  assert.match(source, /createCodexProviderStandaloneServerFromEnv/);
+  assert.match(source, /loadCodexProviderStandaloneEnvFile/);
+  assert.match(source, /resolveCodexProviderStandaloneServerEnv/);
+  assert.doesNotMatch(source, /codex_provider_aliases/u);
 });
 
-test('codex provider root entrypoint exposes new CodexProvider public API aliases', () => {
-  assert.equal(CodexProviderRuntime.name, 'CodexProviderRelayRuntime');
-  assert.equal(CodexProviderHostedToolExecutorRegistry.name, 'CodexProviderRelayHostedToolExecutorRegistry');
+test('codex provider root entrypoint exposes only primary CodexProvider APIs', () => {
+  assert.equal(CodexProviderRuntime.name, 'CodexProviderRuntime');
+  assert.equal(CodexProviderHostedToolExecutorRegistry.name, 'CodexProviderHostedToolExecutorRegistry');
   assert.equal(typeof buildCodexProviderConfig, 'function');
   assert.equal(typeof buildCodexProviderProfile, 'function');
   assert.equal(typeof createCodexProviderFileSearchExecutor, 'function');
@@ -162,9 +164,16 @@ test('codex provider root entrypoint exposes new CodexProvider public API aliase
   assert.equal(typeof loadCodexProviderStandaloneEnvFile, 'function');
   assert.equal(typeof resolveCodexProviderStandaloneServerEnv, 'function');
 
+  for (const key of Object.keys(sdk)) {
+    assert.equal(key.startsWith(legacyProviderFactoryPrefix), false, `${key} should not be exported`);
+    assert.equal(key.startsWith(legacyHostFactoryPrefix), false, `${key} should not be exported`);
+    assert.equal(key.startsWith(legacyProviderTypePrefix), false, `${key} should not be exported`);
+    assert.equal(key.startsWith(legacyHostTypePrefix), false, `${key} should not be exported`);
+  }
+
   const config = buildCodexProviderConfig({
     providerLabel: 'test-provider',
-    relayBaseUrl: 'https://provider.example/v1',
+    upstreamBaseUrl: 'https://provider.example/v1',
     defaultModel: 'example-model',
   });
   assert.equal(config.providerLabel, 'test-provider');
@@ -175,22 +184,23 @@ test('codex provider root entrypoint exposes new CodexProvider public API aliase
   assert.equal(registry instanceof CodexProviderHostedToolExecutorRegistry, true);
 });
 
-test('codex provider relay package includes public examples and package readiness docs', () => {
+test('codex provider package includes public examples and package readiness docs', () => {
   const packageRoot = path.resolve(import.meta.dirname, '..');
   const requiredFiles = [
     'docs/OPENAI_BUILTIN_TOOL_COMPATIBILITY.md',
     'docs/INDEPENDENT_PACKAGE_CHECKLIST.md',
     'docs/LIVE_SMOKE_RECIPES.md',
     'docs/CODEX_PROVIDER_RENAME_AND_EXTRACTION_HANDOFF.md',
+    'docs/CODEX_PROVIDER_RENAME_CLEANUP_HANDOFF.md',
     'docs/RELEASE_READINESS.md',
     'docs/RECIPES.md',
     'docs/UNSAFE_TOOL_SECURITY.md',
     'examples/standalone-consumer-harness.ts',
     'examples/mixed-openrouter-runtime.ts',
-    'examples/relay-emulated-web-search.ts',
-    'examples/relay-emulated-file-search-local-vector.ts',
-    'examples/relay-emulated-image-generation.ts',
-    'examples/relay-emulated-code-interpreter-custom-executor.ts',
+    'examples/adapter-emulated-web-search.ts',
+    'examples/adapter-emulated-file-search-local-vector.ts',
+    'examples/adapter-emulated-image-generation.ts',
+    'examples/adapter-emulated-code-interpreter-custom-executor.ts',
     'examples/codexnext-integration.ts',
   ];
 
@@ -199,7 +209,7 @@ test('codex provider relay package includes public examples and package readines
   }
 });
 
-test('codex provider docs and examples prefer new product naming', () => {
+test('codex provider docs and examples prefer primary product naming', () => {
   const packageRoot = path.resolve(import.meta.dirname, '..');
   const readPackageFile = (relativePath: string): string => fs.readFileSync(path.join(packageRoot, relativePath), 'utf8');
 
@@ -208,29 +218,28 @@ test('codex provider docs and examples prefer new product naming', () => {
   const examples = [
     'examples/standalone-consumer-harness.ts',
     'examples/mixed-openrouter-runtime.ts',
-    'examples/relay-emulated-web-search.ts',
-    'examples/relay-emulated-file-search-local-vector.ts',
-    'examples/relay-emulated-image-generation.ts',
-    'examples/relay-emulated-code-interpreter-custom-executor.ts',
+    'examples/adapter-emulated-web-search.ts',
+    'examples/adapter-emulated-file-search-local-vector.ts',
+    'examples/adapter-emulated-image-generation.ts',
+    'examples/adapter-emulated-code-interpreter-custom-executor.ts',
     'examples/codexnext-integration.ts',
   ];
 
   assert.match(readme, /^# CodexProvider/u);
   assert.match(readme, /`@codex-provider\/core` is a provider compatibility SDK/u);
-  assert.match(readme, /Historical names under `@codexbridge\/codex-provider-relay`/u);
+  assert.doesNotMatch(readme, legacyNamePattern);
   assert.match(recipes, /^# CodexProvider Recipes/u);
   assert.match(recipes, /codex-provider-server/u);
 
   for (const relativePath of examples) {
     const source = readPackageFile(relativePath);
-    assert.match(source, /from '@codex-provider\/core'/u, `${relativePath} should import the new package name`);
-    assert.doesNotMatch(source, /@codexbridge\/codex-provider-relay/u, `${relativePath} should not import the legacy package name`);
-    assert.doesNotMatch(source, /CodexProviderRelayRuntime/u, `${relativePath} should not use the legacy runtime name`);
-    assert.doesNotMatch(source, /createCodexProviderRelay[A-Z]/u, `${relativePath} should not use legacy factory names`);
+    assert.match(source, /from '@codex-provider\/core'/u, `${relativePath} should import the package name`);
+    assert.doesNotMatch(source, /@codexbridge\/codex-provider/u, `${relativePath} should not import legacy package names`);
+    assert.doesNotMatch(source, legacyExampleNamePattern, `${relativePath} should not use legacy names`);
   }
 });
 
-test('codex provider relay release readiness docs keep unsafe tools disabled by default', () => {
+test('codex provider release readiness docs keep unsafe tools disabled by default', () => {
   const packageRoot = path.resolve(import.meta.dirname, '..');
   const securityDoc = fs.readFileSync(path.join(packageRoot, 'docs/UNSAFE_TOOL_SECURITY.md'), 'utf8');
   const releaseDoc = fs.readFileSync(path.join(packageRoot, 'docs/RELEASE_READINESS.md'), 'utf8');

@@ -2,13 +2,13 @@
 
 ## Purpose
 
-This document tracks the planned port of Codex++ protocol conversion behavior into the reusable Codex provider relay.
+This document tracks the planned port of Codex++ protocol conversion behavior into the reusable Codex provider.
 
 The fixed target is unchanged:
 
 > Let non-OpenAI models participate in the Codex native tool-call loop.
 
-The conversion work now belongs in `packages/codex-provider-relay`. The package exposes the reusable integration surface, Codex config/profile helpers, low-level protocol conversion, capability policy, and the local Responses adapter server as a single SDK surface for CodexBridge, CodexNext, and future app-server integrations.
+The conversion work now belongs in `packages/codex-provider`. The package exposes the reusable integration surface, Codex config/profile helpers, low-level protocol conversion, capability policy, and the local Responses adapter server as a single SDK surface for CodexBridge, CodexNext, and future app-server integrations.
 
 ## Current Status Snapshot
 
@@ -23,30 +23,30 @@ Last updated: 2026-06-07
 - [x] P4 apply-patch proxy: Codex freeform `apply_patch` is exposed to Chat providers as structured proxy tools and reconstructed back to Codex-compatible patch text.
 - [x] P5 reasoning normalization: provider reasoning fields and explicit inline think blocks are surfaced through Responses reasoning events/items instead of leaking into answer text.
 - [x] P6 SSE parser/error handling: upstream `event: error` frames and split UTF-8 chunks are covered by server tests.
-- [x] P7 public facade compatibility: existing `responses_adapter.ts` exports remain stable and existing gateway contract tests pass.
-- [x] P8 provider relay config generation: `codex-provider-relay` now generates protocol-aware Codex provider config and `openai_compatible` launch args reuse it.
-- [x] SDK runtime wrapper: `CodexProviderRelayRuntime` owns adapter server start/stop, local Responses base URL exposure, and Codex CLI config generation. A host may inject an adapter server factory, but the default server is package-local.
-- [x] HTTP relay tool-loop coverage: adapter server tests now verify custom tools, namespace/MCP tools, and `apply_patch` proxy calls over full Responses -> Chat Completions -> Responses request cycles.
-- [x] Apply-patch proxy action coverage: add, delete, update, replace, batch, and invalid-JSON fallback are covered by gateway protocol tests.
+- [x] P7 public facade compatibility: existing `responses_adapter.ts` exports remain stable and existing provider adapter contract tests pass.
+- [x] P8 provider adapter config generation: `codex-provider` now generates protocol-aware Codex provider config and `openai_compatible` launch args reuse it.
+- [x] SDK runtime wrapper: `CodexProviderRuntime` owns adapter server start/stop, local Responses base URL exposure, and Codex CLI config generation. A host may inject an adapter server factory, but the default server is package-local.
+- [x] HTTP adapter tool-loop coverage: adapter server tests now verify custom tools, namespace/MCP tools, and `apply_patch` proxy calls over full Responses -> Chat Completions -> Responses request cycles.
+- [x] Apply-patch proxy action coverage: add, delete, update, replace, batch, and invalid-JSON fallback are covered by provider adapter protocol tests.
 - [x] Gated live smoke path: `test:live-openai-compatible` now includes a real upstream custom-tool loop smoke when provider profiles and API keys are configured.
 - [x] Codex++ request-history semantics: reasoning input items, assistant/tool-call merging, orphan tool-output fallback, `latest_reminder`, late system/developer collapse, empty assistant normalization, and no-tool control filtering are covered by translated protocol tests.
-- [x] Real upstream live smoke: DeepSeek, Qwen, and OpenRouter have passed normal response plus custom-tool continuation through the relay using local gitignored provider credentials; MiniMax remains skipped until a `MINIMAX_API_KEY` profile is configured.
-- [x] High-level relay profile surface: `official`, `mixed`, and `pure-api` profile builders now encode the intended auth/protocol/local-adapter combinations for host apps such as CodexBridge, CodexNext, and future app-server integrations.
-- [x] Hosted tool declaration contract: `provider-native` and `relay-emulated` strategies now require explicit hosted tool declarations instead of silently assuming upstream OpenAI hosted-tool parity.
+- [x] Real upstream live smoke: DeepSeek, Qwen, and OpenRouter have passed normal response plus custom-tool continuation through the provider adapter using local gitignored provider credentials; MiniMax remains skipped until a `MINIMAX_API_KEY` profile is configured.
+- [x] High-level provider profile surface: `official`, `mixed`, and `pure-api` profile builders now encode the intended auth/protocol/local-adapter combinations for host apps such as CodexBridge, CodexNext, and future app-server integrations.
+- [x] Hosted tool declaration contract: `provider-native` and `adapter-emulated` strategies now require explicit hosted tool declarations instead of silently assuming upstream OpenAI hosted-tool parity.
 - [x] Codex++ CCS request edge behavior: unsupported/default reasoning models no longer receive `reasoning_effort`, tool controls are only forwarded when Chat tools survive, o-series `max_output_tokens` maps to `max_completion_tokens`, explicit `max_tokens` / `max_completion_tokens` aliases are preserved, and array instructions collapse into system text.
 - [x] Codex++ model-name reasoning dialect fallback: DeepSeek, OpenRouter, Qwen/SiliconFlow, Kimi/GLM/Moonshot, MiniMax, StepFun, gpt-5+, and o-series behavior is mirrored when no host capability override is provided.
 - [x] Codex++ URL/path normalization: Chat Completions and models URL builders now handle origin-only base URLs, versioned bases, already-complete endpoint URLs, `/openai#` version-skip suffixes, and `/v1/v1` collapse; proxy route matchers accept `/v1/*`, `/v1/v1/*`, and `/codex/v1/*` aliases.
 - [x] Codex++ cache usage mapping: Gemini-family `promptTokenCount` subtracts `cachedContentTokenCount` from billable input tokens, and Claude-style cache read / 5m / 1h creation token fields are preserved with `cache_ttl`.
-- [x] Relay-emulated hosted tool execution foundation: package-level executor registry is implemented, `web_search` declarations can be converted into relay-owned Chat function tools, and the local adapter can execute upstream tool calls then continue the Chat Completions loop before returning a Codex-compatible Responses result.
-- [x] Relay-emulated `web_search` streaming loop: streamed relay-owned tool-call deltas are consumed internally, the executor result is appended as a Chat tool message, and the follow-up upstream answer stream is forwarded through the existing Responses SSE translator.
-- [x] Reusable `web_search` executor factory: Tavily, Brave Search, and Serper adapters normalize results into the relay-hosted tool output contract without storing provider secrets in the SDK.
-- [x] Opt-in hosted-tool SSE observability: stream clients can enable `emitHostedToolSseEvents` to receive `hosted_tool.started`, `hosted_tool.delta`, `hosted_tool.completed`, and `hosted_tool.failed` lifecycle events without exposing internal relay tool names by default.
-- [x] Relay-emulated `file_search` protocol loop: `file_search` declarations can be converted into relay-owned Chat function tools, executed through the package executor registry, and streamed through the same internal tool-call continuation path as `web_search`.
+- [x] Adapter-emulated hosted tool execution foundation: package-level executor registry is implemented, `web_search` declarations can be converted into adapter-owned Chat function tools, and the local adapter can execute upstream tool calls then continue the Chat Completions loop before returning a Codex-compatible Responses result.
+- [x] Adapter-emulated `web_search` streaming loop: streamed adapter-owned tool-call deltas are consumed internally, the executor result is appended as a Chat tool message, and the follow-up upstream answer stream is forwarded through the existing Responses SSE translator.
+- [x] Reusable `web_search` executor factory: Tavily, Brave Search, and Serper adapters normalize results into the adapter-hosted tool output contract without storing provider secrets in the SDK.
+- [x] Opt-in hosted-tool SSE observability: stream clients can enable `emitHostedToolSseEvents` to receive `hosted_tool.started`, `hosted_tool.delta`, `hosted_tool.completed`, and `hosted_tool.failed` lifecycle events without exposing internal adapter tool names by default.
+- [x] Adapter-emulated `file_search` protocol loop: `file_search` declarations can be converted into adapter-owned Chat function tools, executed through the package executor registry, and streamed through the same internal tool-call continuation path as `web_search`.
 - [x] Reusable local filesystem `file_search` executor: explicit roots, default dependency/build/binary ignores, symlink opt-in, bounded scan limits, bounded file reads, OpenAI-compatible `content[]` chunks, and optional chunk content are implemented without depending on CodexBridge host state.
 - [x] Generic `file_search` source contract: the executor now accepts pluggable `sources`, preserves `roots` as a local-fs shortcut, aggregates cross-source results, applies a total payload bound, and keeps source implementations independent from CodexBridge host state.
 - [x] Reusable memory-documents `file_search` source: hosts can pass explicit in-memory documents with `id`, `title`, `uri`, `path`, and `content`, and the source reuses the same title/content scoring, OpenAI-compatible chunk generation, `path_glob`, and include-content behavior as the local filesystem source.
-- [x] Reusable SQLite FTS `file_search` source: hosts can pass an injected `database.all(sql, params)` or custom `query()` function, while the relay package owns safe identifier validation, FTS query construction, path filtering, row normalization, OpenAI-compatible chunk generation, and include-content behavior without depending on a sqlite driver.
-- [x] Embedding provider contract and semantic sources: `CodexProviderRelayEmbeddingProvider`, `createCodexProviderRelayEmbeddingsApiProvider()`, the thin `createCodexProviderRelayOpenRouterEmbeddingProvider()` convenience wrapper, `createCodexProviderRelayInMemoryVectorFileSearchSource()`, `createCodexProviderRelayLocalVectorFileSearchSource()`, `createCodexProviderRelayMemoryLocalVectorIndexStore()`, and `createCodexProviderRelaySqliteLocalVectorIndexStore()` are implemented. The local-vector source reuses explicit-root local-fs safety, chunks files, caches unchanged document embeddings by mtime/size/model, and performs hybrid vector/lexical scoring. The SQLite store persists documents/chunks/embedding vectors through host-injected `database.all/run` without adding a sqlite driver dependency. The core provider accepts a host-supplied embeddings endpoint/model/headers/API key; OpenRouter Qwen is only the default smoke-test configuration. Tests use deterministic fake embeddings and an optional env-gated real embeddings API integration test.
+- [x] Reusable SQLite FTS `file_search` source: hosts can pass an injected `database.all(sql, params)` or custom `query()` function, while the provider adapter package owns safe identifier validation, FTS query construction, path filtering, row normalization, OpenAI-compatible chunk generation, and include-content behavior without depending on a sqlite driver.
+- [x] Embedding provider contract and semantic sources: `CodexProviderEmbeddingProvider`, `createCodexProviderEmbeddingsApiProvider()`, the thin `createCodexProviderOpenRouterEmbeddingProvider()` convenience wrapper, `createCodexProviderInMemoryVectorFileSearchSource()`, `createCodexProviderLocalVectorFileSearchSource()`, `createCodexProviderMemoryLocalVectorIndexStore()`, and `createCodexProviderSqliteLocalVectorIndexStore()` are implemented. The local-vector source reuses explicit-root local-fs safety, chunks files, caches unchanged document embeddings by mtime/size/model, and performs hybrid vector/lexical scoring. The SQLite store persists documents/chunks/embedding vectors through host-injected `database.all/run` without adding a sqlite driver dependency. The core provider accepts a host-supplied embeddings endpoint/model/headers/API key; OpenRouter Qwen is only the default smoke-test configuration. Tests use deterministic fake embeddings and an optional env-gated real embeddings API integration test.
 
 ### Still To Do
 
@@ -68,13 +68,13 @@ If code is directly translated from Codex++, keep a source note in the target mo
 
 Proposed target files:
 
-- `packages/codex-provider-relay/src/converters/codex_tool_context.ts`
-- `packages/codex-provider-relay/src/converters/apply_patch_proxy.ts`
-- `packages/codex-provider-relay/src/converters/responses_to_chat.ts`
-- `packages/codex-provider-relay/src/converters/chat_to_responses.ts`
-- `packages/codex-provider-relay/src/converters/chat_sse_to_responses.ts`
-- `packages/codex-provider-relay/src/converters/responses_adapter.ts`
-- `packages/codex-provider-relay/test/codex_plus_plus_protocol.test.ts`
+- `packages/codex-provider/src/converters/codex_tool_context.ts`
+- `packages/codex-provider/src/converters/apply_patch_proxy.ts`
+- `packages/codex-provider/src/converters/responses_to_chat.ts`
+- `packages/codex-provider/src/converters/chat_to_responses.ts`
+- `packages/codex-provider/src/converters/chat_sse_to_responses.ts`
+- `packages/codex-provider/src/converters/responses_adapter.ts`
+- `packages/codex-provider/test/codex_plus_plus_protocol.test.ts`
 
 `responses_adapter.ts` should become a compatibility facade that preserves the current public exports while delegating to the smaller modules.
 
@@ -82,7 +82,7 @@ Proposed target files:
 
 ### P0. Tool Context Model
 
-Status: Implemented in `packages/codex-provider-relay/src/converters/codex_tool_context.ts`
+Status: Implemented in `packages/codex-provider/src/converters/codex_tool_context.ts`
 
 Source:
 
@@ -96,7 +96,7 @@ Source:
 
 Target:
 
-- `packages/codex-provider-relay/src/converters/codex_tool_context.ts`
+- `packages/codex-provider/src/converters/codex_tool_context.ts`
 
 Port:
 
@@ -122,12 +122,12 @@ Tests to port:
 
 Done when:
 
-- Gateway can construct a reversible tool context from a Codex Responses request.
+- Provider adapter can construct a reversible tool context from a Codex Responses request.
 - Existing long-name shortening still works, but namespace/custom-tool identity is no longer lost.
 
 ### P1. Responses Request To Chat Completions
 
-Status: Behavior implemented in `packages/codex-provider-relay/src/converters/responses_adapter.ts`; follow-up module split still pending.
+Status: Behavior implemented in `packages/codex-provider/src/converters/responses_adapter.ts`; follow-up module split still pending.
 
 Source:
 
@@ -140,11 +140,11 @@ Source:
 
 Current target:
 
-- `packages/codex-provider-relay/src/converters/responses_adapter.ts:76` `responsesRequestToChatCompletions`
+- `packages/codex-provider/src/converters/responses_adapter.ts:76` `responsesRequestToChatCompletions`
 
 Future target:
 
-- `packages/codex-provider-relay/src/converters/responses_to_chat.ts`
+- `packages/codex-provider/src/converters/responses_to_chat.ts`
 
 Port:
 
@@ -180,7 +180,7 @@ Done when:
 
 ### P2. Non-Streaming Chat Response To Responses
 
-Status: Behavior implemented in `packages/codex-provider-relay/src/converters/responses_adapter.ts`; follow-up module split still pending.
+Status: Behavior implemented in `packages/codex-provider/src/converters/responses_adapter.ts`; follow-up module split still pending.
 
 Source:
 
@@ -194,11 +194,11 @@ Source:
 
 Current target:
 
-- `packages/codex-provider-relay/src/converters/responses_adapter.ts:174` `chatCompletionsResponseToResponses`
+- `packages/codex-provider/src/converters/responses_adapter.ts:174` `chatCompletionsResponseToResponses`
 
 Future target:
 
-- `packages/codex-provider-relay/src/converters/chat_to_responses.ts`
+- `packages/codex-provider/src/converters/chat_to_responses.ts`
 
 Port:
 
@@ -231,7 +231,7 @@ Done when:
 
 ### P3. Streaming Chat SSE To Responses SSE
 
-Status: Behavior implemented for custom/apply-patch tool-call reconstruction, reasoning streams, upstream errors, UTF-8 chunking, and inline `<think>` handling in `packages/codex-provider-relay/src/converters/responses_adapter.ts`; follow-up module split still pending.
+Status: Behavior implemented for custom/apply-patch tool-call reconstruction, reasoning streams, upstream errors, UTF-8 chunking, and inline `<think>` handling in `packages/codex-provider/src/converters/responses_adapter.ts`; follow-up module split still pending.
 
 Source:
 
@@ -254,12 +254,12 @@ Source:
 
 Current target:
 
-- `packages/codex-provider-relay/src/converters/responses_adapter.ts:316` `translateChatCompletionsSseStreamToResponsesSse`
-- `packages/codex-provider-relay/src/converters/responses_adapter.ts:740` stream chunk handling
+- `packages/codex-provider/src/converters/responses_adapter.ts:316` `translateChatCompletionsSseStreamToResponsesSse`
+- `packages/codex-provider/src/converters/responses_adapter.ts:740` stream chunk handling
 
 Future target:
 
-- `packages/codex-provider-relay/src/converters/chat_sse_to_responses.ts`
+- `packages/codex-provider/src/converters/chat_sse_to_responses.ts`
 
 Port:
 
@@ -284,7 +284,7 @@ Tests to port:
 - `protocol_proxy.rs:1061` reasoning, inline think, tools, and errors.
 - `protocol_proxy.rs:1121` custom tool call with request context.
 - `protocol_proxy.rs:1161` UTF-8 safe chunk boundaries.
-- Existing `packages/codex-provider-relay/test/contracts.test.ts:199` streaming text and tool-call chunks.
+- Existing `packages/codex-provider/test/contracts.test.ts:199` streaming text and tool-call chunks.
 
 Done when:
 
@@ -293,7 +293,7 @@ Done when:
 
 ### P4. Apply Patch Proxy
 
-Status: Implemented in `packages/codex-provider-relay/src/converters/apply_patch_proxy.ts`
+Status: Implemented in `packages/codex-provider/src/converters/apply_patch_proxy.ts`
 
 Source:
 
@@ -308,7 +308,7 @@ Source:
 
 Target:
 
-- `packages/codex-provider-relay/src/converters/apply_patch_proxy.ts`
+- `packages/codex-provider/src/converters/apply_patch_proxy.ts`
 
 Port:
 
@@ -341,7 +341,7 @@ Done when:
 
 ### P5. Reasoning And Thinking Normalization
 
-Status: Implemented for `reasoning_content`, `reasoning_details`, non-streaming inline `<think>`, and streaming inline `<think>` in `packages/codex-provider-relay/src/converters/responses_adapter.ts`
+Status: Implemented for `reasoning_content`, `reasoning_details`, non-streaming inline `<think>`, and streaming inline `<think>` in `packages/codex-provider/src/converters/responses_adapter.ts`
 
 Source:
 
@@ -353,13 +353,13 @@ Source:
 
 Current target:
 
-- `packages/codex-provider-relay/src/capabilities/thinking_policy.ts`
-- `packages/codex-provider-relay/src/converters/responses_adapter.ts`
+- `packages/codex-provider/src/capabilities/thinking_policy.ts`
+- `packages/codex-provider/src/converters/responses_adapter.ts`
 
 Future target:
 
-- `packages/codex-provider-relay/src/converters/chat_to_responses.ts`
-- `packages/codex-provider-relay/src/converters/chat_sse_to_responses.ts`
+- `packages/codex-provider/src/converters/chat_to_responses.ts`
+- `packages/codex-provider/src/converters/chat_sse_to_responses.ts`
 
 Port:
 
@@ -387,7 +387,7 @@ Done when:
 
 ### P6. SSE Parser And Error Handling
 
-Status: Implemented for current server architecture in `packages/codex-provider-relay/src/server/responses_adapter_server.ts`
+Status: Implemented for current server architecture in `packages/codex-provider/src/server/responses_adapter_server.ts`
 
 Source:
 
@@ -401,12 +401,12 @@ Source:
 
 Current target:
 
-- `packages/codex-provider-relay/src/server/responses_adapter_server.ts:771` `readSseDataLines`
-- `packages/codex-provider-relay/src/converters/responses_adapter.ts:316` streaming generator
+- `packages/codex-provider/src/server/responses_adapter_server.ts:771` `readSseDataLines`
+- `packages/codex-provider/src/converters/responses_adapter.ts:316` streaming generator
 
 Future target:
 
-- `packages/codex-provider-relay/src/converters/chat_sse_to_responses.ts`
+- `packages/codex-provider/src/converters/chat_sse_to_responses.ts`
 
 Port:
 
@@ -426,7 +426,7 @@ Tests to port:
 
 - `protocol_proxy.rs:1061` error stream behavior.
 - `protocol_proxy.rs:1161` split UTF-8 behavior.
-- Existing gateway stream failure tests around `contracts.test.ts`.
+- Existing provider adapter stream failure tests around `contracts.test.ts`.
 
 Done when:
 
@@ -434,16 +434,16 @@ Done when:
 
 ### P7. Public Adapter Facade Compatibility
 
-Status: Implemented for the current compatibility facade in `packages/codex-provider-relay/src/converters/responses_adapter.ts`
+Status: Implemented for the current compatibility facade in `packages/codex-provider/src/converters/responses_adapter.ts`
 
 Source:
 
-- Current public functions in `packages/codex-provider-relay/src/converters/responses_adapter.ts`
+- Current public functions in `packages/codex-provider/src/converters/responses_adapter.ts`
 
 Target:
 
-- `packages/codex-provider-relay/src/converters/responses_adapter.ts`
-- `packages/codex-provider-relay/src/index.ts`
+- `packages/codex-provider/src/converters/responses_adapter.ts`
+- `packages/codex-provider/src/index.ts`
 
 Port:
 
@@ -461,55 +461,55 @@ Important behavior:
 
 Tests:
 
-- Existing `packages/codex-provider-relay/test/public_surface.test.ts`
-- Existing `packages/codex-provider-relay/test/contracts.test.ts`
-- Existing `packages/codex-provider-relay/test/server.test.ts`
+- Existing `packages/codex-provider/test/public_surface.test.ts`
+- Existing `packages/codex-provider/test/contracts.test.ts`
+- Existing `packages/codex-provider/test/server.test.ts`
 
 Done when:
 
-- All existing gateway tests pass without consumers changing import paths.
+- All existing provider adapter tests pass without consumers changing import paths.
 
-### P8. Provider Relay Config Integration
+### P8. Provider Adapter Config Integration
 
-Status: Implemented for reusable config generation in `packages/codex-provider-relay/src/codex_config.ts` and adopted by `src/providers/openai_compatible/plugin.ts`; live `~/.codex` mutation remains intentionally out of scope.
+Status: Implemented for reusable config generation in `packages/codex-provider/src/codex_config.ts` and adopted by `src/providers/openai_compatible/plugin.ts`; live `~/.codex` mutation remains intentionally out of scope.
 
 Source:
 
-- `relay_config.rs:356` `apply_relay_profile_to_home_with_switch_rules`
-- `relay_config.rs:510` `codex_base_url_for_protocol`
-- `relay_config.rs:1502` `complete_relay_profile_config`
-- `relay_config.rs:1647` `experimental_bearer_token_from_config`
+- `provider_config.rs:356` `apply_provider_profile_to_home_with_switch_rules`
+- `provider_config.rs:510` `codex_base_url_for_protocol`
+- `provider_config.rs:1502` `complete_provider_profile_config`
+- `provider_config.rs:1647` `experimental_bearer_token_from_config`
 
 Current target:
 
-- `packages/codex-provider-relay/src/codex_config.ts`
-- `packages/codex-provider-relay/src/runtime.ts`
+- `packages/codex-provider/src/codex_config.ts`
+- `packages/codex-provider/src/runtime.ts`
 - `src/providers/openai_compatible/plugin.ts`
 
 Future target:
 
-- `packages/codex-provider-relay/src/codex_config.ts`
-- `packages/codex-provider-relay/src/profile.ts`
+- `packages/codex-provider/src/codex_config.ts`
+- `packages/codex-provider/src/profile.ts`
 
 Port:
 
-- Keep provider relay responsible for Codex app-server config shape.
+- Keep provider adapter responsible for Codex app-server config shape.
 - Add official/mixed/pure API mode semantics only after conversion tests pass.
 - Generate `requires_openai_auth = true` and `experimental_bearer_token` for Codex++ style mode.
-- Use local gateway base URL when upstream protocol is Chat Completions.
+- Use local provider adapter base URL when upstream protocol is Chat Completions.
 - Keep API-key fallback mode for current compatibility.
 
 Implemented:
 
-- Added `CodexProviderRelayProtocol` with `responses` and `chat-completions`.
-- Added `DEFAULT_CODEX_PROVIDER_RELAY_PROTOCOL_PROXY_PORT = 57321`.
+- Added `CodexProviderProtocol` with `responses` and `chat-completions`.
+- Added `DEFAULT_CODEX_PROVIDER_PROTOCOL_PROXY_PORT = 57321`.
 - Added `localResponsesProxyBaseUrl()`.
-- Added `codexBaseUrlForRelayProtocol()`.
-- `buildCodexProviderRelayConfig()` now returns both `upstreamBaseUrl` and `codexBaseUrl`.
+- Added `codexBaseUrlForProviderProtocol()`.
+- `buildCodexProviderConfig()` now returns both `upstreamBaseUrl` and `codexBaseUrl`.
 - `chat-completions` upstreams write `model_providers.<provider>.base_url` as the local Responses proxy URL, not the third-party upstream URL.
-- `buildOpenAICompatibleCodexCliArgs()` now delegates Codex `-c` argument generation to `buildCodexProviderRelayCliArgs()` while preserving its existing `api-key-compatible` fallback mode.
-- Added `CodexProviderRelayRuntime` to start/stop an injected local Responses adapter server and return `adapterBaseUrl`, `codexBaseUrl`, `codexCliArgs`, and `codexConfig`.
-- `src/providers/openai_compatible/plugin.ts` now uses `CodexProviderRelayRuntime` for the default Codex client startup path instead of owning adapter lifecycle directly.
+- `buildOpenAICompatibleCodexCliArgs()` now delegates Codex `-c` argument generation to `buildCodexProviderCliArgs()` while preserving its existing `api-key-compatible` fallback mode.
+- Added `CodexProviderRuntime` to start/stop an injected local Responses adapter server and return `adapterBaseUrl`, `codexBaseUrl`, `codexCliArgs`, and `codexConfig`.
+- `src/providers/openai_compatible/plugin.ts` now uses `CodexProviderRuntime` for the default Codex client startup path instead of owning adapter lifecycle directly.
 
 Important behavior:
 
@@ -518,19 +518,19 @@ Important behavior:
 
 Tests:
 
-- Existing `packages/codex-provider-relay/test/codex_config.test.ts`.
+- Existing `packages/codex-provider/test/codex_config.test.ts`.
 - Added coverage for Chat Completions upstream routing through the local Responses proxy.
 - Added coverage for default proxy port and invalid port validation.
 - Existing `test/providers/openai_compatible/plugin.test.ts` confirms the CodexBridge host adapter still points Codex at the local Responses adapter.
-- Added `packages/codex-provider-relay/test/runtime.test.ts` for runtime start/stop, idempotent start, auth mode config, and input validation.
+- Added `packages/codex-provider/test/runtime.test.ts` for runtime start/stop, idempotent start, auth mode config, and input validation.
 
 Done when:
 
-- Host apps can launch Codex app-server against the local relay using Codex++ compatible config semantics.
+- Host apps can launch Codex app-server against the local adapter using Codex++ compatible config semantics.
 
 ## Test Migration Checklist
 
-Create `packages/codex-provider-relay/test/codex_plus_plus_protocol.test.ts` and port behavior in this order:
+Create `packages/codex-provider/test/codex_plus_plus_protocol.test.ts` and port behavior in this order:
 
 - [x] Request converts namespace and custom tools.
 - [x] Request converts apply-patch into proxy tools.
@@ -549,21 +549,21 @@ Create `packages/codex-provider-relay/test/codex_plus_plus_protocol.test.ts` and
 - [x] Streaming response reconstructs apply-patch proxy call input.
 - [x] Streaming parser handles split UTF-8.
 - [x] Streaming parser handles upstream error events.
-- [x] Existing gateway contract tests still pass.
+- [x] Existing provider adapter contract tests still pass.
 - [x] HTTP adapter loop returns provider custom tool calls as Codex `custom_tool_call` and replays `custom_tool_call_output` back to Chat tool messages.
 - [x] HTTP adapter loop returns provider namespace calls as Codex `function_call` with `namespace`.
 - [x] HTTP adapter loop returns provider `apply_patch_*` proxy calls as Codex freeform `apply_patch` custom calls and replays patch history back to structured Chat tool calls.
 - [x] Apply-patch proxy conversion covers add, delete, update, replace, batch, and invalid JSON fallback.
-- [x] Live smoke test file includes a forced `relay_echo` custom tool call and follow-up tool-output round trip.
+- [x] Live smoke test file includes a forced `adapter_echo` custom tool call and follow-up tool-output round trip.
 - [x] Live smoke has been executed successfully against real upstreams in this environment: DeepSeek, Qwen, and OpenRouter normal response plus custom-tool continuation pass; MiniMax remains skipped until `MINIMAX_API_KEY` is configured.
 
 ## Acceptance Criteria For The Whole Port
 
-- `npm run codex-provider-relay:test` passes.
-- `npm run codex-provider-relay:typecheck` passes.
+- `npm run codex-provider:test` passes.
+- `npm run codex-provider:typecheck` passes.
 - A Chat Completions-only upstream can receive Codex tool declarations and return tool calls.
 - Codex app-server receives valid Responses events for normal text, reasoning, function tools, custom tools, namespace tools, and apply-patch.
-- No host-app Web UI, session store, Telegram, WeChat, or platform adapter logic is introduced into `codex-provider-relay`.
+- No host-app Web UI, session store, Telegram, WeChat, or platform adapter logic is introduced into `codex-provider`.
 - No provider is silently marked as supporting hosted OpenAI tools unless capabilities explicitly say so.
 
 ## Do Not Port

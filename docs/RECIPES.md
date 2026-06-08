@@ -2,11 +2,9 @@
 
 These recipes describe how a host app should wire `@codex-provider/core` without depending on CodexBridge internals.
 
-Historical names under `@codexbridge/codex-provider-relay` and `CodexProviderRelay*` remain as deprecated aliases during the stabilization cycle.
-
 ## Mixed OpenRouter Runtime
 
-Use `profileMode: "mixed"` when Codex should talk to a local Responses adapter while the relay calls an upstream Chat Completions API.
+Use `profileMode: "mixed"` when Codex should talk to a local Responses adapter while the provider adapter calls an upstream Chat Completions API.
 
 ```ts
 const runtime = new CodexProviderRuntime({
@@ -19,12 +17,12 @@ const runtime = new CodexProviderRuntime({
 });
 ```
 
-## Relay-Emulated Hosted Tools
+## Adapter-Emulated Hosted Tools
 
-Relay-emulated tools must be declared and registered.
+Adapter-emulated tools must be declared and registered.
 
 ```ts
-hostedTools: [{ name: "web_search", mode: "relay-emulated" }],
+hostedTools: [{ name: "web_search", mode: "adapter-emulated" }],
 hostedToolExecutors: {
   web_search: createCodexProviderWebSearchExecutor({
     provider: "tavily",
@@ -33,7 +31,7 @@ hostedToolExecutors: {
 }
 ```
 
-The relay then exposes a function tool to Chat Completions upstreams, executes the host-provided executor, appends the tool output, and continues the model loop.
+The provider adapter then exposes a function tool to Chat Completions upstreams, executes the host-provided executor, appends the tool output, and continues the model loop.
 
 ## Local Vector File Search
 
@@ -57,21 +55,19 @@ The package does not scan the process working directory implicitly. Hosts must d
 
 ## Unsafe Tool Policy
 
-`code_interpreter`, `computer`, shell-like tools, and any real environment-control surface require a host-owned executor and safety policy. The relay package only defines contracts and output normalization.
+`code_interpreter`, `computer`, shell-like tools, and any real environment-control surface require a host-owned executor and safety policy. The provider adapter package only defines contracts and output normalization.
 
 ## Standalone Server Env
 
 Use the new prefix for new deployments:
 
 ```bash
-CODEX_PROVIDER_RELAY_CAPABILITY_PRESET=openrouter
-CODEX_PROVIDER_RELAY_API_KEY=...
-CODEX_PROVIDER_RELAY_MODEL=deepseek/deepseek-chat
-CODEX_PROVIDER_RELAY_TRACE=stderr-json
+CODEX_PROVIDER_CAPABILITY_PRESET=openrouter
+CODEX_PROVIDER_API_KEY=...
+CODEX_PROVIDER_MODEL=deepseek/deepseek-chat
+CODEX_PROVIDER_TRACE=stderr-json
 codex-provider-server
 ```
-
-Legacy `CODEX_GATEWAY_*` variables remain supported for compatibility.
 
 ## Release Validation
 

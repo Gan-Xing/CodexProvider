@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  createCodexProviderRelayCodeInterpreterExecutor,
-  type CodexProviderRelayCodeInterpreterExecutorContent,
+  createCodexProviderCodeInterpreterExecutor,
+  type CodexProviderCodeInterpreterExecutorContent,
 } from '../src/index.js';
 
 function baseRequest(argumentsValue: Record<string, any>) {
   return {
     toolName: 'code_interpreter' as const,
-    relayToolName: 'relay_code_interpreter',
+    emulatedToolName: 'adapter_code_interpreter',
     callId: 'call_code_1',
     arguments: argumentsValue,
     rawArguments: JSON.stringify(argumentsValue),
@@ -20,7 +20,7 @@ function baseRequest(argumentsValue: Record<string, any>) {
 
 test('code_interpreter executor sends normalized execution request to provider', async () => {
   const seen: any[] = [];
-  const executor = createCodexProviderRelayCodeInterpreterExecutor({
+  const executor = createCodexProviderCodeInterpreterExecutor({
     async execute(request) {
       seen.push(JSON.parse(JSON.stringify({
         code: request.code,
@@ -58,7 +58,7 @@ test('code_interpreter executor sends normalized execution request to provider',
       content: 'hello',
     }],
   }));
-  const content = result.content as CodexProviderRelayCodeInterpreterExecutorContent;
+  const content = result.content as CodexProviderCodeInterpreterExecutorContent;
 
   assert.deepEqual(seen[0], {
     code: 'print(1 + 2)',
@@ -83,7 +83,7 @@ test('code_interpreter executor sends normalized execution request to provider',
 
 test('code_interpreter executor exposes stdout and stderr delta emitters', async () => {
   const deltas: any[] = [];
-  const executor = createCodexProviderRelayCodeInterpreterExecutor({
+  const executor = createCodexProviderCodeInterpreterExecutor({
     async execute(request) {
       await request.emitStdout('hello stdout\n', { step: 1 });
       await request.emitStderr('warning stderr\n', { step: 2 });
@@ -128,5 +128,5 @@ test('code_interpreter executor exposes stdout and stderr delta emitters', async
 });
 
 test('code_interpreter executor requires an explicit sandbox provider', () => {
-  assert.throws(() => createCodexProviderRelayCodeInterpreterExecutor({} as any), /requires an explicit/u);
+  assert.throws(() => createCodexProviderCodeInterpreterExecutor({} as any), /requires an explicit/u);
 });

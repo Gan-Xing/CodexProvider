@@ -1,5 +1,7 @@
 # CodexProvider Standalone Repository Extraction Handoff
 
+Archived historical naming record. This handoff preserves old repository and API names for audit context and should not be treated as current API guidance.
+
 ## 目标
 
 把当前 CodexBridge monorepo 中的 CodexProvider 包拆成独立项目。
@@ -7,7 +9,7 @@
 当前源包目录：
 
 ```text
-packages/codex-provider-relay
+packages/codex-provider
 ```
 
 当前包名已经改为：
@@ -44,13 +46,13 @@ root entrypoint consumer validation
 
 当前 CodexBridge 仓库里的包已经具备抽取条件：
 
-- `packages/codex-provider-relay/package.json` 已经使用 `@codex-provider/core`。
+- `packages/codex-provider/package.json` 已经使用 `@codex-provider/core`。
 - 版本是 `0.1.0-alpha.0`。
 - 仍然 `private: true`。
-- 主 bin 已经有 `codex-provider-server`，旧 bin `codex-provider-relay-server` / `codex-gateway-server` 保留。
+- 主 bin 已经有 `codex-provider-server`，旧 bin `codex-provider-server` / `codex-provider-server` 保留。
 - README 已经改成 `# CodexProvider`，并且把 `@codex-provider/core` 作为主包名。
 - Root entrypoint 已经导出 `codex_provider_aliases.ts`，对外提供 `CodexProvider*` public API alias。
-- 根 `package.json` 已经有新的 `codex-provider:*` scripts，同时保留旧 `codex-provider-relay:*` scripts。
+- 根 `package.json` 已经有新的 `codex-provider:*` scripts，同时保留旧 `codex-provider:*` scripts。
 - checklist 里剩余 blockers 是 live smoke、external consumer validation、changelog/release workflow。
 
 所以当前可以开始“独立仓库抽取”，但不要 public publish。
@@ -72,7 +74,7 @@ codex-provider-server
 
 因此，继续留在 CodexBridge monorepo 里会带来三个问题：
 
-1. 新用户仍然看到目录名 `codex-provider-relay`，容易误解它属于 CodexBridge。
+1. 新用户仍然看到目录名 `codex-provider`，容易误解它属于 CodexBridge。
 2. CI / dependency / docs 仍然混在 CodexBridge 项目里。
 3. 外部 consumer validation 不够真实，因为同仓路径依赖容易掩盖边界问题。
 
@@ -140,22 +142,22 @@ CodexProvider/packages/core
 
 ### Option A：保留历史
 
-如果希望保留 `packages/codex-provider-relay` 的 git 历史，用 `git filter-repo`：
+如果希望保留 `packages/codex-provider` 的 git 历史，用 `git filter-repo`：
 
 ```bash
 git clone git@github.com:Gan-Xing/CodexBridge.git CodexProvider-extract
 cd CodexProvider-extract
 
 git filter-repo \
-  --path packages/codex-provider-relay/ \
-  --path scripts/check-codex-provider-relay-boundary.mjs \
-  --path-rename packages/codex-provider-relay/:
+  --path packages/codex-provider/ \
+  --path scripts/check-codex-provider-boundary.mjs \
+  --path-rename packages/codex-provider/:
 ```
 
 然后手动整理：
 
 ```text
-scripts/check-codex-provider-relay-boundary.mjs -> scripts/check-boundary.mjs
+scripts/check-codex-provider-boundary.mjs -> scripts/check-boundary.mjs
 ```
 
 优点：
@@ -172,9 +174,9 @@ scripts/check-codex-provider-relay-boundary.mjs -> scripts/check-boundary.mjs
 
 ```bash
 mkdir CodexProvider
-cp -R CodexBridge/packages/codex-provider-relay/* CodexProvider/
+cp -R CodexBridge/packages/codex-provider/* CodexProvider/
 mkdir -p CodexProvider/scripts
-cp CodexBridge/scripts/check-codex-provider-relay-boundary.mjs CodexProvider/scripts/check-boundary.mjs
+cp CodexBridge/scripts/check-codex-provider-boundary.mjs CodexProvider/scripts/check-boundary.mjs
 ```
 
 优点：
@@ -217,8 +219,8 @@ cp CodexBridge/scripts/check-codex-provider-relay-boundary.mjs CodexProvider/scr
   },
   "bin": {
     "codex-provider-server": "./dist/cli.js",
-    "codex-provider-relay-server": "./dist/cli.js",
-    "codex-gateway-server": "./dist/cli.js"
+    "codex-provider-server": "./dist/cli.js",
+    "codex-provider-server": "./dist/cli.js"
   },
   "files": [
     "dist",
@@ -260,7 +262,7 @@ cp CodexBridge/scripts/check-codex-provider-relay-boundary.mjs CodexProvider/scr
 当前脚本来自：
 
 ```text
-scripts/check-codex-provider-relay-boundary.mjs
+scripts/check-codex-provider-boundary.mjs
 ```
 
 新仓库中改成：
@@ -280,7 +282,7 @@ const sourceRoot = path.join(packageRoot, 'src');
 删除或改写所有 monorepo 路径假设：
 
 ```text
-packages/codex-provider-relay
+packages/codex-provider
 packages/codex-native-api
 packages/mission-control
 apps
@@ -302,19 +304,19 @@ src/store
 从当前包复制：
 
 ```text
-packages/codex-provider-relay/src
-packages/codex-provider-relay/test
-packages/codex-provider-relay/docs
-packages/codex-provider-relay/examples
-packages/codex-provider-relay/README.md
-packages/codex-provider-relay/package.json
-packages/codex-provider-relay/tsconfig.json
+packages/codex-provider/src
+packages/codex-provider/test
+packages/codex-provider/docs
+packages/codex-provider/examples
+packages/codex-provider/README.md
+packages/codex-provider/package.json
+packages/codex-provider/tsconfig.json
 ```
 
 从根复制/改造：
 
 ```text
-scripts/check-codex-provider-relay-boundary.mjs -> scripts/check-boundary.mjs
+scripts/check-codex-provider-boundary.mjs -> scripts/check-boundary.mjs
 ```
 
 新增：
@@ -339,7 +341,7 @@ CHANGELOG.md
 
 `@codex-provider/core` is a provider compatibility SDK for Codex app-server integrations. It lets non-OpenAI models participate in the Codex native tool-call loop by exposing a Responses-compatible surface over provider-specific Chat Completions APIs.
 
-Historical names such as `CodexProviderRelay*` and `CodexGateway*` remain as deprecated aliases during the stabilization cycle.
+Historical names such as `CodexProvider*` and `CodexProvider*` remain as deprecated aliases during the stabilization cycle.
 
 This project is not affiliated with OpenAI.
 ```
@@ -443,7 +445,7 @@ import {
 
 - 可以 import root entrypoint。
 - 可以 new `CodexProviderRuntime`。
-- 可以 register relay-emulated `file_search` executor。
+- 可以 register adapter-emulated `file_search` executor。
 - 可以 start / stop runtime。
 - 不需要 CodexBridge。
 - 不需要 CodexNext。
@@ -492,9 +494,9 @@ codex-provider-server
 而不是旧的：
 
 ```text
-@codexbridge/codex-provider-relay
-CodexProviderRelayRuntime
-codex-provider-relay-server
+@codexbridge/codex-provider
+CodexProviderRuntime
+codex-provider-server
 ```
 
 ---
@@ -513,7 +515,7 @@ codex-provider-relay-server
 最终 CodexBridge 应该删除或冻结：
 
 ```text
-packages/codex-provider-relay
+packages/codex-provider
 ```
 
 并改为依赖：
@@ -581,13 +583,13 @@ docs: document extraction source and release gates
 
 ## 给 AI 的执行 prompt
 
-请把当前 CodexBridge 中的 `packages/codex-provider-relay` 抽成一个独立私有项目 `CodexProvider`。
+请把当前 CodexBridge 中的 `packages/codex-provider` 抽成一个独立私有项目 `CodexProvider`。
 注意：当前包已经改名为 `@codex-provider/core`，产品名是 `CodexProvider`，但仍然 `private: true`。本任务不是发布 npm，而是创建独立仓库结构并验证它能脱离 CodexBridge 构建和测试。
 
 执行要求：
 
 1. 不要发布 npm。
-2. 不要删除 `CodexProviderRelay*` / `CodexGateway*` deprecated aliases。
+2. 不要删除 `CodexProvider*` / `CodexProvider*` deprecated aliases。
 3. 不要引入新 runtime dependency。
 4. 不要复制 CodexBridge 的 WeChat/Telegram/Web UI/session/store/codex-native-api。
 5. 不要新增外部 vector DB adapter。
@@ -596,8 +598,8 @@ docs: document extraction source and release gates
 
 操作：
 
-- 从 `packages/codex-provider-relay` 复制 `src/test/docs/examples/README.md/package.json/tsconfig.json`。
-- 从根复制并改造 `scripts/check-codex-provider-relay-boundary.mjs` 为 `scripts/check-boundary.mjs`。
+- 从 `packages/codex-provider` 复制 `src/test/docs/examples/README.md/package.json/tsconfig.json`。
+- 从根复制并改造 `scripts/check-codex-provider-boundary.mjs` 为 `scripts/check-boundary.mjs`。
 - 新增 `LICENSE`、`CHANGELOG.md`、`.gitignore`、`.github/workflows/ci.yml`。
 - 修改 package scripts，确保独立仓库可运行：
   - `pnpm test`

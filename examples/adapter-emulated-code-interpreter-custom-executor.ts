@@ -9,7 +9,7 @@ const codeInterpreter = createCodexProviderCodeInterpreterExecutor({
     return {
       stdout: `language=${request.language ?? 'unknown'}\n`,
       result: {
-        // Replace this with a real host-owned sandbox. The relay package does
+        // Replace this with a real host-owned sandbox. The provider adapter package does
         // not execute arbitrary code by default.
         accepted: true,
         codeBytes: Buffer.byteLength(request.code, 'utf8'),
@@ -25,8 +25,8 @@ const runtime = new CodexProviderRuntime({
   defaultModel: process.env.OPENROUTER_MODEL ?? 'deepseek/deepseek-chat',
   providerLabel: 'openrouter',
   profileMode: 'mixed',
-  toolStrategy: 'relay-emulated',
-  hostedTools: [{ name: 'code_interpreter', mode: 'relay-emulated' }],
+  toolStrategy: 'adapter-emulated',
+  hostedTools: [{ name: 'code_interpreter', mode: 'adapter-emulated' }],
   hostedToolExecutors: { code_interpreter: codeInterpreter },
   emitHostedToolSseEvents: true,
 });

@@ -1,6 +1,5 @@
 export * from './codex_config.js';
 export * from './builtin-tools/index.js';
-export * from './codex_provider_aliases.js';
 export * from './code_interpreter_executor.js';
 export * from './computer_executor.js';
 export * from './file_search_executor.js';
@@ -38,10 +37,10 @@ export type {
   CliproxyModelCatalogEntry,
   CliproxyModelCategory,
 } from './capabilities/cliproxy_model_catalog.js';
-export { assessCodexGatewayProtocolBoundary } from './capabilities/protocol_boundary.js';
+export { assessCodexProviderProtocolBoundary } from './capabilities/protocol_boundary.js';
 export type {
-  CodexGatewayProtocolBoundaryDecision,
-  CodexGatewayTargetProtocol,
+  CodexProviderProtocolBoundaryDecision,
+  CodexProviderTargetProtocol,
 } from './capabilities/protocol_boundary.js';
 export {
   applyThinkingPolicyToOpenAIChatRequest,
@@ -89,24 +88,17 @@ export {
   reserveLocalPort,
 } from './server/responses_adapter_server.js';
 export type {
-  CodexProviderRelayTraceEvent,
-  CodexProviderRelayTraceSink,
-  CodexGatewayTraceEvent,
-  CodexGatewayTraceSink,
+  CodexProviderTraceEvent,
+  CodexProviderTraceSink,
   OpenAICompatibleResponsesAdapterServerOptions,
 } from './server/responses_adapter_server.js';
 export {
-  createCodexProviderRelayStandaloneServerConfigFromEnv,
-  createCodexProviderRelayStandaloneServerFromEnv,
-  createCodexGatewayStandaloneServerConfigFromEnv,
-  createCodexGatewayStandaloneServerFromEnv,
-  loadCodexProviderRelayStandaloneEnvFile,
-  loadCodexGatewayStandaloneEnvFile,
-  resolveCodexProviderRelayStandaloneServerEnv,
-  resolveCodexGatewayStandaloneServerEnv,
+  createCodexProviderStandaloneServerConfigFromEnv,
+  createCodexProviderStandaloneServerFromEnv,
+  loadCodexProviderStandaloneEnvFile,
+  resolveCodexProviderStandaloneServerEnv,
 } from './server/standalone_server.js';
 export type {
-  CodexProviderRelayStandaloneServerConfig,
-  CodexGatewayStandaloneServerConfig,
+  CodexProviderStandaloneServerConfig,
 } from './server/standalone_server.js';
 export type * from './types.js';

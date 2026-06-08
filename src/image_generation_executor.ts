@@ -1,64 +1,64 @@
 import type {
-  CodexProviderRelayHostedToolExecutionRequest,
-  CodexProviderRelayHostedToolExecutionResult,
-  CodexProviderRelayHostedToolExecutor,
+  CodexProviderHostedToolExecutionRequest,
+  CodexProviderHostedToolExecutionResult,
+  CodexProviderHostedToolExecutor,
   JsonRecord,
 } from './hosted_tool_executors.js';
 
-export interface CodexProviderRelayImageGenerationExecutorOptions {
-  generate: CodexProviderRelayImageGenerationProvider;
+export interface CodexProviderImageGenerationExecutorOptions {
+  generate: CodexProviderImageGenerationProvider;
 }
 
-export interface CodexProviderRelayOpenAICompatibleImageGenerationProviderOptions {
+export interface CodexProviderOpenAICompatibleImageGenerationProviderOptions {
   apiKey: string;
   model?: string | null;
   endpoint?: string | null;
   fetchImpl?: typeof fetch;
 }
 
-export interface CodexProviderRelayImageGenerationRequest {
+export interface CodexProviderImageGenerationRequest {
   prompt: string;
   size?: string | null;
   quality?: string | null;
   background?: string | null;
   output_format?: string | null;
   n?: number | null;
-  toolRequest: CodexProviderRelayHostedToolExecutionRequest;
+  toolRequest: CodexProviderHostedToolExecutionRequest;
 }
 
-export interface CodexProviderRelayImageGenerationResult {
+export interface CodexProviderImageGenerationResult {
   b64_json?: string | null;
   url?: string | null;
   mime_type?: string | null;
   revised_prompt?: string | null;
 }
 
-export interface CodexProviderRelayImageGenerationExecutorContent {
+export interface CodexProviderImageGenerationExecutorContent {
   prompt: string;
   size?: string | null;
   quality?: string | null;
   background?: string | null;
   output_format?: string | null;
   n?: number | null;
-  images: CodexProviderRelayImageGenerationResult[];
+  images: CodexProviderImageGenerationResult[];
   generated_at: string;
 }
 
-export type CodexProviderRelayImageGenerationProvider = (
-  request: CodexProviderRelayImageGenerationRequest,
-) => CodexProviderRelayImageGenerationResult[] | Promise<CodexProviderRelayImageGenerationResult[]>;
+export type CodexProviderImageGenerationProvider = (
+  request: CodexProviderImageGenerationRequest,
+) => CodexProviderImageGenerationResult[] | Promise<CodexProviderImageGenerationResult[]>;
 
 const DEFAULT_OPENAI_COMPATIBLE_IMAGE_ENDPOINT = 'https://api.openai.com/v1/images/generations';
 
-export function createCodexProviderRelayImageGenerationExecutor(
-  options: CodexProviderRelayImageGenerationExecutorOptions,
-): CodexProviderRelayHostedToolExecutor {
+export function createCodexProviderImageGenerationExecutor(
+  options: CodexProviderImageGenerationExecutorOptions,
+): CodexProviderHostedToolExecutor {
   if (typeof options?.generate !== 'function') {
     throw new Error('image_generation executor requires an explicit image generation provider.');
   }
   return async (
-    request: CodexProviderRelayHostedToolExecutionRequest,
-  ): Promise<CodexProviderRelayHostedToolExecutionResult> => {
+    request: CodexProviderHostedToolExecutionRequest,
+  ): Promise<CodexProviderHostedToolExecutionResult> => {
     const normalizedRequest = normalizeImageGenerationRequest(request);
     if (!normalizedRequest.prompt) {
       throw new Error('image_generation executor requires a non-empty prompt argument.');
@@ -74,7 +74,7 @@ export function createCodexProviderRelayImageGenerationExecutor(
         n: normalizedRequest.n ?? null,
         images,
         generated_at: new Date().toISOString(),
-      } satisfies CodexProviderRelayImageGenerationExecutorContent,
+      } satisfies CodexProviderImageGenerationExecutorContent,
       metadata: {
         imageCount: images.length,
         outputFormat: normalizedRequest.output_format ?? null,
@@ -83,9 +83,9 @@ export function createCodexProviderRelayImageGenerationExecutor(
   };
 }
 
-export function createCodexProviderRelayOpenAICompatibleImageGenerationProvider(
-  options: CodexProviderRelayOpenAICompatibleImageGenerationProviderOptions,
-): CodexProviderRelayImageGenerationProvider {
+export function createCodexProviderOpenAICompatibleImageGenerationProvider(
+  options: CodexProviderOpenAICompatibleImageGenerationProviderOptions,
+): CodexProviderImageGenerationProvider {
   const apiKey = normalizeString(options.apiKey);
   if (!apiKey) {
     throw new Error('OpenAI-compatible image generation provider requires an API key.');
@@ -127,8 +127,8 @@ export function createCodexProviderRelayOpenAICompatibleImageGenerationProvider(
 }
 
 function normalizeImageGenerationRequest(
-  request: CodexProviderRelayHostedToolExecutionRequest,
-): CodexProviderRelayImageGenerationRequest {
+  request: CodexProviderHostedToolExecutionRequest,
+): CodexProviderImageGenerationRequest {
   const args = request.arguments ?? {};
   const outputFormat = normalizeString(args.output_format ?? args.outputFormat);
   return {
@@ -142,16 +142,16 @@ function normalizeImageGenerationRequest(
   };
 }
 
-function normalizeImageGenerationResults(value: unknown): CodexProviderRelayImageGenerationResult[] {
+function normalizeImageGenerationResults(value: unknown): CodexProviderImageGenerationResult[] {
   if (!Array.isArray(value)) {
     return [];
   }
   return value
     .map(normalizeImageGenerationResult)
-    .filter(Boolean) as CodexProviderRelayImageGenerationResult[];
+    .filter(Boolean) as CodexProviderImageGenerationResult[];
 }
 
-function normalizeImageGenerationResult(value: unknown): CodexProviderRelayImageGenerationResult | null {
+function normalizeImageGenerationResult(value: unknown): CodexProviderImageGenerationResult | null {
   if (!value || typeof value !== 'object') {
     return null;
   }

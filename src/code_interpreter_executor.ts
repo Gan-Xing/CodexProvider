@@ -1,77 +1,77 @@
 import type {
-  CodexProviderRelayHostedToolDeltaEmitter,
-  CodexProviderRelayHostedToolExecutionRequest,
-  CodexProviderRelayHostedToolExecutionResult,
-  CodexProviderRelayHostedToolExecutor,
+  CodexProviderHostedToolDeltaEmitter,
+  CodexProviderHostedToolExecutionRequest,
+  CodexProviderHostedToolExecutionResult,
+  CodexProviderHostedToolExecutor,
   JsonRecord,
 } from './hosted_tool_executors.js';
 
-export interface CodexProviderRelayCodeInterpreterExecutorOptions {
-  execute: CodexProviderRelayCodeInterpreterProvider;
+export interface CodexProviderCodeInterpreterExecutorOptions {
+  execute: CodexProviderCodeInterpreterProvider;
 }
 
-export type CodexProviderRelayCodeInterpreterContainer =
+export type CodexProviderCodeInterpreterContainer =
   | string
   | JsonRecord
   | null;
 
-export interface CodexProviderRelayCodeInterpreterInputFile {
+export interface CodexProviderCodeInterpreterInputFile {
   file_id?: string | null;
   filename?: string | null;
   content?: string | null;
 }
 
-export interface CodexProviderRelayCodeInterpreterOutputFile {
+export interface CodexProviderCodeInterpreterOutputFile {
   filename: string;
   mime_type?: string | null;
   b64_data?: string | null;
   uri?: string | null;
 }
 
-export interface CodexProviderRelayCodeInterpreterRequest {
+export interface CodexProviderCodeInterpreterRequest {
   code: string;
   language: string | null;
-  container: CodexProviderRelayCodeInterpreterContainer;
-  files: CodexProviderRelayCodeInterpreterInputFile[];
-  emitStdout: CodexProviderRelayCodeInterpreterStreamEmitter;
-  emitStderr: CodexProviderRelayCodeInterpreterStreamEmitter;
-  toolRequest: CodexProviderRelayHostedToolExecutionRequest;
+  container: CodexProviderCodeInterpreterContainer;
+  files: CodexProviderCodeInterpreterInputFile[];
+  emitStdout: CodexProviderCodeInterpreterStreamEmitter;
+  emitStderr: CodexProviderCodeInterpreterStreamEmitter;
+  toolRequest: CodexProviderHostedToolExecutionRequest;
 }
 
-export interface CodexProviderRelayCodeInterpreterExecutionResult {
+export interface CodexProviderCodeInterpreterExecutionResult {
   stdout?: string | null;
   stderr?: string | null;
   result?: unknown;
-  files?: CodexProviderRelayCodeInterpreterOutputFile[] | null;
+  files?: CodexProviderCodeInterpreterOutputFile[] | null;
   metadata?: JsonRecord | null;
 }
 
-export interface CodexProviderRelayCodeInterpreterExecutorContent {
+export interface CodexProviderCodeInterpreterExecutorContent {
   stdout?: string | null;
   stderr?: string | null;
   result?: unknown;
-  files: CodexProviderRelayCodeInterpreterOutputFile[];
+  files: CodexProviderCodeInterpreterOutputFile[];
   executed_at: string;
 }
 
-export type CodexProviderRelayCodeInterpreterProvider = (
-  request: CodexProviderRelayCodeInterpreterRequest,
-) => CodexProviderRelayCodeInterpreterExecutionResult | Promise<CodexProviderRelayCodeInterpreterExecutionResult>;
+export type CodexProviderCodeInterpreterProvider = (
+  request: CodexProviderCodeInterpreterRequest,
+) => CodexProviderCodeInterpreterExecutionResult | Promise<CodexProviderCodeInterpreterExecutionResult>;
 
-export type CodexProviderRelayCodeInterpreterStreamEmitter = (
+export type CodexProviderCodeInterpreterStreamEmitter = (
   text: string,
   metadata?: JsonRecord | null,
 ) => Promise<void>;
 
-export function createCodexProviderRelayCodeInterpreterExecutor(
-  options: CodexProviderRelayCodeInterpreterExecutorOptions,
-): CodexProviderRelayHostedToolExecutor {
+export function createCodexProviderCodeInterpreterExecutor(
+  options: CodexProviderCodeInterpreterExecutorOptions,
+): CodexProviderHostedToolExecutor {
   if (typeof options?.execute !== 'function') {
     throw new Error('code_interpreter executor requires an explicit sandboxed execution provider.');
   }
   return async (
-    request: CodexProviderRelayHostedToolExecutionRequest,
-  ): Promise<CodexProviderRelayHostedToolExecutionResult> => {
+    request: CodexProviderHostedToolExecutionRequest,
+  ): Promise<CodexProviderHostedToolExecutionResult> => {
     const normalizedRequest = normalizeCodeInterpreterRequest(request);
     if (!normalizedRequest.code) {
       throw new Error('code_interpreter executor requires a non-empty code argument.');
@@ -88,7 +88,7 @@ export function createCodexProviderRelayCodeInterpreterExecutor(
         result: result.result,
         files: result.files,
         executed_at: new Date().toISOString(),
-      } satisfies CodexProviderRelayCodeInterpreterExecutorContent,
+      } satisfies CodexProviderCodeInterpreterExecutorContent,
       metadata: {
         stdoutBytes: Buffer.byteLength(result.stdout ?? '', 'utf8'),
         stderrBytes: Buffer.byteLength(result.stderr ?? '', 'utf8'),
@@ -100,8 +100,8 @@ export function createCodexProviderRelayCodeInterpreterExecutor(
 }
 
 function normalizeCodeInterpreterRequest(
-  request: CodexProviderRelayHostedToolExecutionRequest,
-): Omit<CodexProviderRelayCodeInterpreterRequest, 'emitStdout' | 'emitStderr'> {
+  request: CodexProviderHostedToolExecutionRequest,
+): Omit<CodexProviderCodeInterpreterRequest, 'emitStdout' | 'emitStderr'> {
   const args = request.arguments ?? {};
   return {
     code: firstNonEmptyString([args.code, args.input, args.source]),
@@ -114,7 +114,7 @@ function normalizeCodeInterpreterRequest(
 
 function normalizeCodeInterpreterExecutionResult(
   value: unknown,
-): Required<Pick<CodexProviderRelayCodeInterpreterExecutionResult, 'stdout' | 'stderr' | 'result' | 'files' | 'metadata'>> {
+): Required<Pick<CodexProviderCodeInterpreterExecutionResult, 'stdout' | 'stderr' | 'result' | 'files' | 'metadata'>> {
   if (!value || typeof value !== 'object') {
     return {
       stdout: '',
@@ -136,7 +136,7 @@ function normalizeCodeInterpreterExecutionResult(
   };
 }
 
-function normalizeContainer(value: unknown): CodexProviderRelayCodeInterpreterContainer {
+function normalizeContainer(value: unknown): CodexProviderCodeInterpreterContainer {
   if (typeof value === 'string') {
     return normalizeString(value) || null;
   }
@@ -146,7 +146,7 @@ function normalizeContainer(value: unknown): CodexProviderRelayCodeInterpreterCo
   return null;
 }
 
-function normalizeInputFiles(value: unknown): CodexProviderRelayCodeInterpreterInputFile[] {
+function normalizeInputFiles(value: unknown): CodexProviderCodeInterpreterInputFile[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -163,10 +163,10 @@ function normalizeInputFiles(value: unknown): CodexProviderRelayCodeInterpreterI
       };
       return file.file_id || file.filename || file.content ? file : null;
     })
-    .filter(Boolean) as CodexProviderRelayCodeInterpreterInputFile[];
+    .filter(Boolean) as CodexProviderCodeInterpreterInputFile[];
 }
 
-function normalizeOutputFiles(value: unknown): CodexProviderRelayCodeInterpreterOutputFile[] {
+function normalizeOutputFiles(value: unknown): CodexProviderCodeInterpreterOutputFile[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -187,13 +187,13 @@ function normalizeOutputFiles(value: unknown): CodexProviderRelayCodeInterpreter
         uri: normalizeString(record.uri ?? record.url) || undefined,
       };
     })
-    .filter(Boolean) as CodexProviderRelayCodeInterpreterOutputFile[];
+    .filter(Boolean) as CodexProviderCodeInterpreterOutputFile[];
 }
 
 function buildCodeInterpreterStreamEmitter(
-  emitDelta: CodexProviderRelayHostedToolDeltaEmitter | null | undefined,
+  emitDelta: CodexProviderHostedToolDeltaEmitter | null | undefined,
   stream: 'stdout' | 'stderr',
-): CodexProviderRelayCodeInterpreterStreamEmitter {
+): CodexProviderCodeInterpreterStreamEmitter {
   return async (text, metadata = null) => {
     const normalizedText = normalizeString(text);
     if (!normalizedText) {

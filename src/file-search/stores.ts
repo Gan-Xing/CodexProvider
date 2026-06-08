@@ -1,10 +1,10 @@
 import type {
-  CodexProviderRelayLocalVectorIndexChunk,
-  CodexProviderRelayLocalVectorIndexDocument,
-  CodexProviderRelayLocalVectorIndexStore,
-  CodexProviderRelaySqliteLocalVectorIndexStoreOptions,
-  CodexProviderRelaySqliteLocalVectorIndexStoreQueryFunction,
-  CodexProviderRelaySqliteLocalVectorIndexStoreQueryRequest,
+  CodexProviderLocalVectorIndexChunk,
+  CodexProviderLocalVectorIndexDocument,
+  CodexProviderLocalVectorIndexStore,
+  CodexProviderSqliteLocalVectorIndexStoreOptions,
+  CodexProviderSqliteLocalVectorIndexStoreQueryFunction,
+  CodexProviderSqliteLocalVectorIndexStoreQueryRequest,
   JsonRecord,
 } from './types.js';
 import {
@@ -18,22 +18,22 @@ import {
   parseJsonRecordOrNull,
 } from './shared.js';
 
-export function createCodexProviderRelayMemoryLocalVectorIndexStore(): CodexProviderRelayLocalVectorIndexStore {
-  const documents = new Map<string, CodexProviderRelayLocalVectorIndexDocument>();
-  const chunksByDocument = new Map<string, CodexProviderRelayLocalVectorIndexChunk[]>();
+export function createCodexProviderMemoryLocalVectorIndexStore(): CodexProviderLocalVectorIndexStore {
+  const documents = new Map<string, CodexProviderLocalVectorIndexDocument>();
+  const chunksByDocument = new Map<string, CodexProviderLocalVectorIndexChunk[]>();
   return {
-    getDocument(id: string): CodexProviderRelayLocalVectorIndexDocument | null {
+    getDocument(id: string): CodexProviderLocalVectorIndexDocument | null {
       return documents.get(id) ?? null;
     },
     upsertDocument(
-      document: CodexProviderRelayLocalVectorIndexDocument,
-      chunks: CodexProviderRelayLocalVectorIndexChunk[],
+      document: CodexProviderLocalVectorIndexDocument,
+      chunks: CodexProviderLocalVectorIndexChunk[],
     ): void {
       documents.set(document.id, document);
       chunksByDocument.set(document.id, chunks);
     },
-    listChunks(sourceName: string): CodexProviderRelayLocalVectorIndexChunk[] {
-      const chunks: CodexProviderRelayLocalVectorIndexChunk[] = [];
+    listChunks(sourceName: string): CodexProviderLocalVectorIndexChunk[] {
+      const chunks: CodexProviderLocalVectorIndexChunk[] = [];
       for (const document of documents.values()) {
         if (document.sourceName === sourceName) {
           chunks.push(...(chunksByDocument.get(document.id) ?? []));
@@ -41,7 +41,7 @@ export function createCodexProviderRelayMemoryLocalVectorIndexStore(): CodexProv
       }
       return chunks;
     },
-    listDocuments(sourceName: string): CodexProviderRelayLocalVectorIndexDocument[] {
+    listDocuments(sourceName: string): CodexProviderLocalVectorIndexDocument[] {
       return [...documents.values()]
         .filter((document) => document.sourceName === sourceName)
         .sort((left, right) => left.path.localeCompare(right.path));
@@ -66,11 +66,11 @@ export function createCodexProviderRelayMemoryLocalVectorIndexStore(): CodexProv
   };
 }
 
-export function createCodexProviderRelaySqliteLocalVectorIndexStore(
-  options: CodexProviderRelaySqliteLocalVectorIndexStoreOptions,
-): CodexProviderRelayLocalVectorIndexStore {
+export function createCodexProviderSqliteLocalVectorIndexStore(
+  options: CodexProviderSqliteLocalVectorIndexStoreOptions,
+): CodexProviderLocalVectorIndexStore {
   const query = normalizeSqliteLocalVectorIndexStoreQuery(options);
-  const tablePrefix = normalizeSqliteTablePrefix(options.tablePrefix, 'codex_provider_relay_local_vector');
+  const tablePrefix = normalizeSqliteTablePrefix(options.tablePrefix, 'codex_provider_local_vector');
   const documentsTable = normalizeSqlIdentifier(`${tablePrefix}_documents`, 'sqlite local-vector documents table');
   const chunksTable = normalizeSqlIdentifier(`${tablePrefix}_chunks`, 'sqlite local-vector chunks table');
   const chunksSourceIndex = normalizeSqlIdentifier(`${tablePrefix}_chunks_source_path_idx`, 'sqlite local-vector source index');
@@ -93,7 +93,7 @@ export function createCodexProviderRelaySqliteLocalVectorIndexStore(
   }
 
   return {
-    async getDocument(id: string): Promise<CodexProviderRelayLocalVectorIndexDocument | null> {
+    async getDocument(id: string): Promise<CodexProviderLocalVectorIndexDocument | null> {
       await ensureInitialized();
       const rows = await sqliteLocalVectorAll(query, {
         sql: [
@@ -107,8 +107,8 @@ export function createCodexProviderRelaySqliteLocalVectorIndexStore(
       return sqliteLocalVectorDocumentFromRow(rows[0]);
     },
     async upsertDocument(
-      document: CodexProviderRelayLocalVectorIndexDocument,
-      chunks: CodexProviderRelayLocalVectorIndexChunk[],
+      document: CodexProviderLocalVectorIndexDocument,
+      chunks: CodexProviderLocalVectorIndexChunk[],
     ): Promise<void> {
       await ensureInitialized();
       await sqliteLocalVectorRun(query, {
@@ -204,7 +204,7 @@ export function createCodexProviderRelaySqliteLocalVectorIndexStore(
         });
       }
     },
-    async listChunks(sourceName: string): Promise<CodexProviderRelayLocalVectorIndexChunk[]> {
+    async listChunks(sourceName: string): Promise<CodexProviderLocalVectorIndexChunk[]> {
       await ensureInitialized();
       const rows = await sqliteLocalVectorAll(query, {
         sql: [
@@ -215,9 +215,9 @@ export function createCodexProviderRelaySqliteLocalVectorIndexStore(
         ].join(' '),
         params: [sourceName],
       });
-      return rows.map(sqliteLocalVectorChunkFromRow).filter(Boolean) as CodexProviderRelayLocalVectorIndexChunk[];
+      return rows.map(sqliteLocalVectorChunkFromRow).filter(Boolean) as CodexProviderLocalVectorIndexChunk[];
     },
-    async listDocuments(sourceName: string): Promise<CodexProviderRelayLocalVectorIndexDocument[]> {
+    async listDocuments(sourceName: string): Promise<CodexProviderLocalVectorIndexDocument[]> {
       await ensureInitialized();
       const rows = await sqliteLocalVectorAll(query, {
         sql: [
@@ -228,7 +228,7 @@ export function createCodexProviderRelaySqliteLocalVectorIndexStore(
         ].join(' '),
         params: [sourceName],
       });
-      return rows.map(sqliteLocalVectorDocumentFromRow).filter(Boolean) as CodexProviderRelayLocalVectorIndexDocument[];
+      return rows.map(sqliteLocalVectorDocumentFromRow).filter(Boolean) as CodexProviderLocalVectorIndexDocument[];
     },
     async deleteDocuments(ids: string[]): Promise<void> {
       await ensureInitialized();
@@ -255,7 +255,7 @@ export function createCodexProviderRelaySqliteLocalVectorIndexStore(
         ].join(' '),
         params: [sourceName],
       });
-      const documents = rows.map(sqliteLocalVectorDocumentFromRow).filter(Boolean) as CodexProviderRelayLocalVectorIndexDocument[];
+      const documents = rows.map(sqliteLocalVectorDocumentFromRow).filter(Boolean) as CodexProviderLocalVectorIndexDocument[];
       const staleIds = documents
         .map((document) => document.id)
         .filter((id) => !liveIds.has(id));
@@ -277,8 +277,8 @@ export function createCodexProviderRelaySqliteLocalVectorIndexStore(
 }
 
 function normalizeSqliteLocalVectorIndexStoreQuery(
-  options: CodexProviderRelaySqliteLocalVectorIndexStoreOptions,
-): CodexProviderRelaySqliteLocalVectorIndexStoreQueryFunction {
+  options: CodexProviderSqliteLocalVectorIndexStoreOptions,
+): CodexProviderSqliteLocalVectorIndexStoreQueryFunction {
   if (typeof options.query === 'function') {
     return options.query;
   }
@@ -301,7 +301,7 @@ async function initializeSqliteLocalVectorIndexStore({
   chunksSourceIndex,
   chunksDocumentIndex,
 }: {
-  query: CodexProviderRelaySqliteLocalVectorIndexStoreQueryFunction;
+  query: CodexProviderSqliteLocalVectorIndexStoreQueryFunction;
   documentsTable: string;
   chunksTable: string;
   chunksSourceIndex: string;
@@ -371,7 +371,7 @@ async function initializeSqliteLocalVectorIndexStore({
 }
 
 async function addSqliteLocalVectorDocumentColumnIfMissing(
-  query: CodexProviderRelaySqliteLocalVectorIndexStoreQueryFunction,
+  query: CodexProviderSqliteLocalVectorIndexStoreQueryFunction,
   documentsTable: string,
   columnDefinition: string,
 ): Promise<void> {
@@ -387,8 +387,8 @@ async function addSqliteLocalVectorDocumentColumnIfMissing(
 }
 
 async function sqliteLocalVectorAll(
-  query: CodexProviderRelaySqliteLocalVectorIndexStoreQueryFunction,
-  request: Omit<CodexProviderRelaySqliteLocalVectorIndexStoreQueryRequest, 'operation'>,
+  query: CodexProviderSqliteLocalVectorIndexStoreQueryFunction,
+  request: Omit<CodexProviderSqliteLocalVectorIndexStoreQueryRequest, 'operation'>,
 ): Promise<JsonRecord[]> {
   const result = await query({
     operation: 'all',
@@ -401,8 +401,8 @@ async function sqliteLocalVectorAll(
 }
 
 async function sqliteLocalVectorRun(
-  query: CodexProviderRelaySqliteLocalVectorIndexStoreQueryFunction,
-  request: Omit<CodexProviderRelaySqliteLocalVectorIndexStoreQueryRequest, 'operation'>,
+  query: CodexProviderSqliteLocalVectorIndexStoreQueryFunction,
+  request: Omit<CodexProviderSqliteLocalVectorIndexStoreQueryRequest, 'operation'>,
 ): Promise<void> {
   await query({
     operation: 'run',
@@ -413,7 +413,7 @@ async function sqliteLocalVectorRun(
 
 function sqliteLocalVectorDocumentFromRow(
   row: JsonRecord | undefined,
-): CodexProviderRelayLocalVectorIndexDocument | null {
+): CodexProviderLocalVectorIndexDocument | null {
   if (!row) {
     return null;
   }
@@ -445,7 +445,7 @@ function sqliteLocalVectorDocumentFromRow(
 
 function sqliteLocalVectorChunkFromRow(
   row: JsonRecord | undefined,
-): CodexProviderRelayLocalVectorIndexChunk | null {
+): CodexProviderLocalVectorIndexChunk | null {
   if (!row) {
     return null;
   }

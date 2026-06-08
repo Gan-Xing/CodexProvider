@@ -1,9 +1,9 @@
 import type {
-  CodexProviderRelayEmbeddingProvider,
-  CodexProviderRelayEmbeddingProviderEmbedOptions,
-  CodexProviderRelayEmbeddingProviderResult,
-  CodexProviderRelayEmbeddingsApiProviderOptions,
-  CodexProviderRelayOpenRouterEmbeddingProviderOptions,
+  CodexProviderEmbeddingProvider,
+  CodexProviderEmbeddingProviderEmbedOptions,
+  CodexProviderEmbeddingProviderResult,
+  CodexProviderEmbeddingsApiProviderOptions,
+  CodexProviderOpenRouterEmbeddingProviderOptions,
   JsonRecord,
 } from './types.js';
 import {
@@ -19,9 +19,9 @@ const DEFAULT_EMBEDDINGS_API_ENDPOINT = 'https://openrouter.ai/api/v1/embeddings
 const DEFAULT_OPENROUTER_EMBEDDING_MODEL = DEFAULT_EMBEDDINGS_API_MODEL;
 const DEFAULT_OPENROUTER_EMBEDDINGS_ENDPOINT = DEFAULT_EMBEDDINGS_API_ENDPOINT;
 
-export function createCodexProviderRelayEmbeddingsApiProvider(
-  options: CodexProviderRelayEmbeddingsApiProviderOptions,
-): CodexProviderRelayEmbeddingProvider {
+export function createCodexProviderEmbeddingsApiProvider(
+  options: CodexProviderEmbeddingsApiProviderOptions,
+): CodexProviderEmbeddingProvider {
   const apiKey = normalizeString(options.apiKey);
   const model = normalizeString(options.model) || DEFAULT_EMBEDDINGS_API_MODEL;
   const endpoint = normalizeString(options.endpoint) || DEFAULT_EMBEDDINGS_API_ENDPOINT;
@@ -33,8 +33,8 @@ export function createCodexProviderRelayEmbeddingsApiProvider(
     model,
     async embed(
       input: string[],
-      embedOptions: CodexProviderRelayEmbeddingProviderEmbedOptions = {},
-    ): Promise<CodexProviderRelayEmbeddingProviderResult> {
+      embedOptions: CodexProviderEmbeddingProviderEmbedOptions = {},
+    ): Promise<CodexProviderEmbeddingProviderResult> {
       const texts = input.map(normalizeString).filter(Boolean);
       if (texts.length === 0) {
         return {
@@ -72,14 +72,14 @@ export function createCodexProviderRelayEmbeddingsApiProvider(
   };
 }
 
-export function createCodexProviderRelayOpenRouterEmbeddingProvider(
-  options: CodexProviderRelayOpenRouterEmbeddingProviderOptions,
-): CodexProviderRelayEmbeddingProvider {
+export function createCodexProviderOpenRouterEmbeddingProvider(
+  options: CodexProviderOpenRouterEmbeddingProviderOptions,
+): CodexProviderEmbeddingProvider {
   const apiKey = normalizeString(options.apiKey);
   if (!apiKey) {
     throw new Error('OpenRouter embedding provider requires an API key.');
   }
-  return createCodexProviderRelayEmbeddingsApiProvider({
+  return createCodexProviderEmbeddingsApiProvider({
     ...options,
     apiKey,
     model: normalizeString(options.model) || DEFAULT_OPENROUTER_EMBEDDING_MODEL,

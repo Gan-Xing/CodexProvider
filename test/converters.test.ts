@@ -32,7 +32,7 @@ test('responses request conversion is available from the package boundary', () =
   assert.equal(chat.response_format.type, 'json_schema');
 });
 
-test('responses conversion exposes relay-emulated web_search as a Chat function tool', () => {
+test('responses conversion exposes adapter-emulated web_search as a Chat function tool', () => {
   const chat = responsesRequestToChatCompletions({
     model: 'example-model',
     input: 'search the web',
@@ -46,25 +46,25 @@ test('responses conversion exposes relay-emulated web_search as a Chat function 
     },
     hostedTools: [{
       name: 'web_search',
-      mode: 'relay-emulated',
+      mode: 'adapter-emulated',
       providerToolName: null,
-      relayToolName: 'relay_web_search',
-      description: 'Search through the relay.',
+      emulatedToolName: 'adapter_web_search',
+      description: 'Search through the adapter.',
     }],
   });
 
   assert.equal(chat.tools[0].type, 'function');
-  assert.equal(chat.tools[0].function.name, 'relay_web_search');
+  assert.equal(chat.tools[0].function.name, 'adapter_web_search');
   assert.equal(chat.tools[0].function.parameters.required[0], 'query');
   assert.deepEqual(chat.tool_choice, {
     type: 'function',
     function: {
-      name: 'relay_web_search',
+      name: 'adapter_web_search',
     },
   });
 });
 
-test('responses conversion exposes relay-emulated file_search as a Chat function tool', () => {
+test('responses conversion exposes adapter-emulated file_search as a Chat function tool', () => {
   const chat = responsesRequestToChatCompletions({
     model: 'example-model',
     input: 'search configured files',
@@ -78,15 +78,15 @@ test('responses conversion exposes relay-emulated file_search as a Chat function
     },
     hostedTools: [{
       name: 'file_search',
-      mode: 'relay-emulated',
+      mode: 'adapter-emulated',
       providerToolName: null,
-      relayToolName: 'relay_file_search',
+      emulatedToolName: 'adapter_file_search',
       description: 'Search local configured files.',
     }],
   });
 
   assert.equal(chat.tools[0].type, 'function');
-  assert.equal(chat.tools[0].function.name, 'relay_file_search');
+  assert.equal(chat.tools[0].function.name, 'adapter_file_search');
   assert.equal(chat.tools[0].function.parameters.required[0], 'query');
   assert.equal(chat.tools[0].function.parameters.properties.path_glob.type, 'string');
   assert.equal(chat.tools[0].function.parameters.properties.max_num_results.type, 'integer');
@@ -96,12 +96,12 @@ test('responses conversion exposes relay-emulated file_search as a Chat function
   assert.deepEqual(chat.tool_choice, {
     type: 'function',
     function: {
-      name: 'relay_file_search',
+      name: 'adapter_file_search',
     },
   });
 });
 
-test('responses conversion exposes relay-emulated tool_search as a deferred Chat function tool', () => {
+test('responses conversion exposes adapter-emulated tool_search as a deferred Chat function tool', () => {
   const chat = responsesRequestToChatCompletions({
     model: 'example-model',
     input: 'find the right tool',
@@ -115,26 +115,26 @@ test('responses conversion exposes relay-emulated tool_search as a deferred Chat
     },
     hostedTools: [{
       name: 'tool_search',
-      mode: 'relay-emulated',
+      mode: 'adapter-emulated',
       providerToolName: null,
-      relayToolName: 'relay_tool_search',
+      emulatedToolName: 'adapter_tool_search',
       description: 'Discover deferred tools.',
     }],
   });
 
   assert.equal(chat.tools[0].type, 'function');
-  assert.equal(chat.tools[0].function.name, 'relay_tool_search');
+  assert.equal(chat.tools[0].function.name, 'adapter_tool_search');
   assert.equal(chat.tools[0].function.parameters.properties.query.type, 'string');
   assert.equal(chat.tools[0].function.parameters.properties.goal.type, 'string');
   assert.deepEqual(chat.tool_choice, {
     type: 'function',
     function: {
-      name: 'relay_tool_search',
+      name: 'adapter_tool_search',
     },
   });
 });
 
-test('responses conversion exposes relay-emulated image_generation as a Chat function tool', () => {
+test('responses conversion exposes adapter-emulated image_generation as a Chat function tool', () => {
   const chat = responsesRequestToChatCompletions({
     model: 'example-model',
     input: 'generate an image',
@@ -148,26 +148,26 @@ test('responses conversion exposes relay-emulated image_generation as a Chat fun
     },
     hostedTools: [{
       name: 'image_generation',
-      mode: 'relay-emulated',
+      mode: 'adapter-emulated',
       providerToolName: null,
-      relayToolName: 'relay_image_generation',
-      description: 'Generate images through the relay.',
+      emulatedToolName: 'adapter_image_generation',
+      description: 'Generate images through the adapter.',
     }],
   });
 
   assert.equal(chat.tools[0].type, 'function');
-  assert.equal(chat.tools[0].function.name, 'relay_image_generation');
+  assert.equal(chat.tools[0].function.name, 'adapter_image_generation');
   assert.equal(chat.tools[0].function.parameters.required[0], 'prompt');
   assert.equal(chat.tools[0].function.parameters.properties.output_format.type, 'string');
   assert.deepEqual(chat.tool_choice, {
     type: 'function',
     function: {
-      name: 'relay_image_generation',
+      name: 'adapter_image_generation',
     },
   });
 });
 
-test('responses conversion does not expose image_generation without a relay declaration', () => {
+test('responses conversion does not expose image_generation without an adapter declaration', () => {
   const chat = responsesRequestToChatCompletions({
     model: 'example-model',
     input: 'generate an image',
@@ -186,7 +186,7 @@ test('responses conversion does not expose image_generation without a relay decl
   assert.equal(chat.tool_choice, undefined);
 });
 
-test('responses conversion exposes relay-emulated code_interpreter as a Chat function tool', () => {
+test('responses conversion exposes adapter-emulated code_interpreter as a Chat function tool', () => {
   const chat = responsesRequestToChatCompletions({
     model: 'example-model',
     input: 'run code',
@@ -200,27 +200,27 @@ test('responses conversion exposes relay-emulated code_interpreter as a Chat fun
     },
     hostedTools: [{
       name: 'code_interpreter',
-      mode: 'relay-emulated',
+      mode: 'adapter-emulated',
       providerToolName: null,
-      relayToolName: 'relay_code_interpreter',
+      emulatedToolName: 'adapter_code_interpreter',
       description: 'Run code through an explicit sandbox.',
     }],
   });
 
   assert.equal(chat.tools[0].type, 'function');
-  assert.equal(chat.tools[0].function.name, 'relay_code_interpreter');
+  assert.equal(chat.tools[0].function.name, 'adapter_code_interpreter');
   assert.equal(chat.tools[0].function.parameters.required[0], 'code');
   assert.equal(chat.tools[0].function.parameters.properties.language.type, 'string');
   assert.equal(chat.tools[0].function.parameters.properties.files.type, 'array');
   assert.deepEqual(chat.tool_choice, {
     type: 'function',
     function: {
-      name: 'relay_code_interpreter',
+      name: 'adapter_code_interpreter',
     },
   });
 });
 
-test('responses conversion does not expose code_interpreter without a relay declaration', () => {
+test('responses conversion does not expose code_interpreter without an adapter declaration', () => {
   const chat = responsesRequestToChatCompletions({
     model: 'example-model',
     input: 'run code',
@@ -239,7 +239,7 @@ test('responses conversion does not expose code_interpreter without a relay decl
   assert.equal(chat.tool_choice, undefined);
 });
 
-test('responses conversion exposes relay-emulated computer aliases as a Chat function tool', () => {
+test('responses conversion exposes adapter-emulated computer aliases as a Chat function tool', () => {
   const chat = responsesRequestToChatCompletions({
     model: 'example-model',
     input: 'use computer',
@@ -253,27 +253,27 @@ test('responses conversion exposes relay-emulated computer aliases as a Chat fun
     },
     hostedTools: [{
       name: 'computer',
-      mode: 'relay-emulated',
+      mode: 'adapter-emulated',
       providerToolName: null,
-      relayToolName: 'relay_computer',
+      emulatedToolName: 'adapter_computer',
       description: 'Use an explicit host computer adapter.',
     }],
   });
 
   assert.equal(chat.tools[0].type, 'function');
-  assert.equal(chat.tools[0].function.name, 'relay_computer');
+  assert.equal(chat.tools[0].function.name, 'adapter_computer');
   assert.equal(chat.tools[0].function.parameters.required[0], 'actions');
   assert.equal(chat.tools[0].function.parameters.properties.actions.type, 'array');
   assert.equal(chat.tools[0].function.parameters.properties.display.type, 'object');
   assert.deepEqual(chat.tool_choice, {
     type: 'function',
     function: {
-      name: 'relay_computer',
+      name: 'adapter_computer',
     },
   });
 });
 
-test('responses conversion does not expose computer without a relay declaration', () => {
+test('responses conversion does not expose computer without an adapter declaration', () => {
   const chat = responsesRequestToChatCompletions({
     model: 'example-model',
     input: 'use computer',

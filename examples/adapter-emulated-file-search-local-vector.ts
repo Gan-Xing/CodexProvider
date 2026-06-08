@@ -30,8 +30,8 @@ const runtime = new CodexProviderRuntime({
   defaultModel: process.env.OPENROUTER_MODEL ?? 'deepseek/deepseek-chat',
   providerLabel: 'openrouter',
   profileMode: 'mixed',
-  toolStrategy: 'relay-emulated',
-  hostedTools: [{ name: 'file_search', mode: 'relay-emulated' }],
+  toolStrategy: 'adapter-emulated',
+  hostedTools: [{ name: 'file_search', mode: 'adapter-emulated' }],
   hostedToolExecutors: { file_search: fileSearch },
   emitHostedToolSseEvents: true,
 });

@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  assessCodexGatewayProtocolBoundary,
-  type CodexGatewayTargetProtocol,
+  assessCodexProviderProtocolBoundary,
+  type CodexProviderTargetProtocol,
 } from '../src/index.js';
 
 test('protocol boundary keeps OpenAI-compatible Chat on the direct adapter path', () => {
-  const decision = assessCodexGatewayProtocolBoundary('openai-chat-compatible');
+  const decision = assessCodexProviderProtocolBoundary('openai-chat-compatible');
 
   assert.equal(decision.directAdapterSupported, true);
   assert.equal(decision.requiresIntermediateRepresentation, false);
@@ -15,8 +15,8 @@ test('protocol boundary keeps OpenAI-compatible Chat on the direct adapter path'
 });
 
 test('protocol boundary marks Anthropic and Google native protocols as future IR work', () => {
-  for (const target of ['anthropic-messages', 'google-genai'] as CodexGatewayTargetProtocol[]) {
-    const decision = assessCodexGatewayProtocolBoundary(target);
+  for (const target of ['anthropic-messages', 'google-genai'] as CodexProviderTargetProtocol[]) {
+    const decision = assessCodexProviderProtocolBoundary(target);
     assert.equal(decision.directAdapterSupported, false);
     assert.equal(decision.requiresIntermediateRepresentation, true);
     assert.equal(decision.strategy, 'future-ir-required');
@@ -25,7 +25,7 @@ test('protocol boundary marks Anthropic and Google native protocols as future IR
 });
 
 test('protocol boundary treats unknown native protocols as IR-gated by default', () => {
-  const decision = assessCodexGatewayProtocolBoundary('unknown-native');
+  const decision = assessCodexProviderProtocolBoundary('unknown-native');
 
   assert.equal(decision.directAdapterSupported, false);
   assert.equal(decision.requiresIntermediateRepresentation, true);

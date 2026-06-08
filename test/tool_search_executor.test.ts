@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  createCodexProviderRelayToolSearchExecutor,
-  type CodexProviderRelayToolSearchExecutorContent,
+  createCodexProviderToolSearchExecutor,
+  type CodexProviderToolSearchExecutorContent,
 } from '../src/index.js';
 
 function baseRequest(argumentsValue: Record<string, any>) {
   return {
     toolName: 'tool_search' as const,
-    relayToolName: 'relay_tool_search',
+    emulatedToolName: 'adapter_tool_search',
     callId: 'call_tool_search_1',
     arguments: argumentsValue,
     rawArguments: JSON.stringify(argumentsValue),
@@ -19,7 +19,7 @@ function baseRequest(argumentsValue: Record<string, any>) {
 }
 
 test('tool_search executor returns matching static function tools', async () => {
-  const executor = createCodexProviderRelayToolSearchExecutor({
+  const executor = createCodexProviderToolSearchExecutor({
     tools: [{
       type: 'function',
       name: 'lookup_docs',
@@ -45,7 +45,7 @@ test('tool_search executor returns matching static function tools', async () => 
   const result = await executor(baseRequest({
     query: 'documentation',
   }));
-  const content = result.content as CodexProviderRelayToolSearchExecutorContent;
+  const content = result.content as CodexProviderToolSearchExecutorContent;
 
   assert.equal(content.query, 'documentation');
   assert.equal(content.tools.length, 1);
@@ -55,7 +55,7 @@ test('tool_search executor returns matching static function tools', async () => 
 });
 
 test('tool_search executor supports request-level tools and namespaces', async () => {
-  const executor = createCodexProviderRelayToolSearchExecutor({
+  const executor = createCodexProviderToolSearchExecutor({
     maxResults: 5,
   });
 
@@ -74,7 +74,7 @@ test('tool_search executor supports request-level tools and namespaces', async (
       }],
     }],
   }));
-  const content = result.content as CodexProviderRelayToolSearchExecutorContent;
+  const content = result.content as CodexProviderToolSearchExecutorContent;
 
   assert.equal(content.goal, 'search the workspace');
   assert.equal(content.tools[0].function.name, 'search_workspace');
@@ -84,7 +84,7 @@ test('tool_search executor supports request-level tools and namespaces', async (
 
 test('tool_search executor can delegate discovery to a custom resolver', async () => {
   const seen: any[] = [];
-  const executor = createCodexProviderRelayToolSearchExecutor({
+  const executor = createCodexProviderToolSearchExecutor({
     search(request) {
       seen.push(JSON.parse(JSON.stringify({
         query: request.query,
@@ -115,7 +115,7 @@ test('tool_search executor can delegate discovery to a custom resolver', async (
     goal: 'use custom resolver',
     max_results: 1,
   }));
-  const content = result.content as CodexProviderRelayToolSearchExecutorContent;
+  const content = result.content as CodexProviderToolSearchExecutorContent;
 
   assert.deepEqual(seen[0], {
     query: 'resolved',

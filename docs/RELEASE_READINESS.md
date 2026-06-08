@@ -14,9 +14,9 @@ This package is still internal-only.
 
 - Keep `private: true`.
 - Keep root `exports` limited to `.` and `./package.json`.
-- Keep `CodexGateway*` aliases as deprecated compatibility names.
+- Keep `CodexProvider*` aliases as deprecated compatibility names.
 - Prefer `CodexProvider*` names for new consumers.
-- Keep `CodexProviderRelay*` aliases as deprecated compatibility names during the stabilization cycle.
+- Keep `CodexProvider*` aliases as deprecated compatibility names during the stabilization cycle.
 - Do not introduce subpath exports until the root API is stable.
 
 ## Open Decisions

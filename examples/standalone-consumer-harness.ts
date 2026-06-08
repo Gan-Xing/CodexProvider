@@ -29,7 +29,7 @@ const fileSearch = createCodexProviderFileSearchExecutor({
 
 const searchResult = await fileSearch({
   toolName: 'file_search',
-  relayToolName: 'relay_file_search',
+  emulatedToolName: 'adapter_file_search',
   callId: 'call_standalone_file_search',
   arguments: {
     query: 'Codex native tool-call loop',
@@ -60,8 +60,8 @@ const runtime = new CodexProviderRuntime({
   providerLabel: 'standalone_provider',
   providerName: 'Standalone Provider',
   profileMode: 'mixed',
-  toolStrategy: 'relay-emulated',
-  hostedTools: [{ name: 'file_search', mode: 'relay-emulated', relayToolName: 'relay_file_search' }],
+  toolStrategy: 'adapter-emulated',
+  hostedTools: [{ name: 'file_search', mode: 'adapter-emulated', emulatedToolName: 'adapter_file_search' }],
   hostedToolExecutors: { file_search: fileSearch },
   adapterServerFactory: (options) => {
     receivedAdapterOptions.push(options);
@@ -83,13 +83,13 @@ assert.equal(startCount, 1);
 assert.equal(runtime.isStarted(), true);
 assert.equal(state.adapterBaseUrl, 'http://127.0.0.1:45454/v1');
 assert.equal(state.codexBaseUrl, 'http://127.0.0.1:45454/v1');
-assert.equal(state.relayProfile.mode, 'mixed');
-assert.equal(state.relayProfile.toolStrategy, 'relay-emulated');
-assert.deepEqual(state.relayProfile.hostedTools, [{
+assert.equal(state.profile.mode, 'mixed');
+assert.equal(state.profile.toolStrategy, 'adapter-emulated');
+assert.deepEqual(state.profile.hostedTools, [{
   name: 'file_search',
-  mode: 'relay-emulated',
+  mode: 'adapter-emulated',
   providerToolName: null,
-  relayToolName: 'relay_file_search',
+  emulatedToolName: 'adapter_file_search',
   description: null,
 }]);
 const hostedToolExecutors = receivedAdapterOptions[0]?.hostedToolExecutors as Record<string, unknown> | undefined;

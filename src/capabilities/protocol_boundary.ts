@@ -1,20 +1,20 @@
-export type CodexGatewayTargetProtocol =
+export type CodexProviderTargetProtocol =
   | 'openai-chat-compatible'
   | 'anthropic-messages'
   | 'google-genai'
   | 'unknown-native';
 
-export interface CodexGatewayProtocolBoundaryDecision {
-  targetProtocol: CodexGatewayTargetProtocol;
+export interface CodexProviderProtocolBoundaryDecision {
+  targetProtocol: CodexProviderTargetProtocol;
   directAdapterSupported: boolean;
   requiresIntermediateRepresentation: boolean;
   strategy: 'responses-to-chat-direct' | 'future-ir-required';
   reasons: string[];
 }
 
-export function assessCodexGatewayProtocolBoundary(
-  targetProtocol: CodexGatewayTargetProtocol,
-): CodexGatewayProtocolBoundaryDecision {
+export function assessCodexProviderProtocolBoundary(
+  targetProtocol: CodexProviderTargetProtocol,
+): CodexProviderProtocolBoundaryDecision {
   switch (targetProtocol) {
     case 'openai-chat-compatible':
       return {
@@ -24,7 +24,7 @@ export function assessCodexGatewayProtocolBoundary(
         strategy: 'responses-to-chat-direct',
         reasons: [
           'OpenAI-compatible Chat providers preserve the active production path.',
-          'Current Codex Provider Relay capability, payload, SSE, and tool-call rules already target this family.',
+          'Current Codex Provider capability, payload, SSE, and tool-call rules already target this family.',
         ],
       };
     case 'anthropic-messages':

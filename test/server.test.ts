@@ -3,8 +3,8 @@ import test from 'node:test';
 import {
   buildOpenAICompatibleChatCompletionsUrl,
   buildOpenAICompatibleModelsUrl,
-  createCodexProviderRelayCodeInterpreterExecutor,
-  createCodexProviderRelayComputerExecutor,
+  createCodexProviderCodeInterpreterExecutor,
+  createCodexProviderComputerExecutor,
   isOpenAICompatibleChatCompletionsProxyPath,
   isOpenAICompatibleModelsProxyPath,
   isOpenAICompatibleResponsesProxyPath,
@@ -914,7 +914,7 @@ test('adapter server completes a custom tool-call loop over Chat Completions', a
   }
 });
 
-test('adapter server executes relay-emulated web_search inside the Chat Completions loop', async () => {
+test('adapter server executes adapter-emulated web_search inside the Chat Completions loop', async () => {
   const upstreamRequests: any[] = [];
   const executedRequests: any[] = [];
   const traceEvents: any[] = [];
@@ -925,8 +925,8 @@ test('adapter server executes relay-emulated web_search inside the Chat Completi
     },
     hostedTools: [{
       name: 'web_search',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_web_search',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_web_search',
     }],
     hostedToolExecutors: {
       web_search: async (request) => {
@@ -934,9 +934,9 @@ test('adapter server executes relay-emulated web_search inside the Chat Completi
         return {
           content: {
             results: [{
-              title: 'Codex Relay Result',
-              url: 'https://example.com/codex-relay',
-              snippet: 'Relay executed web search locally.',
+              title: 'Codex Adapter Result',
+              url: 'https://example.com/codex-adapter',
+              snippet: 'Adapter executed web search locally.',
             }],
           },
         };
@@ -949,25 +949,25 @@ test('adapter server executes relay-emulated web_search inside the Chat Completi
       const requestBody = JSON.parse(String(init?.body ?? '{}'));
       upstreamRequests.push(requestBody);
       if (upstreamRequests.length === 1) {
-        assert.equal(requestBody.tools[0].function.name, 'relay_web_search');
+        assert.equal(requestBody.tools[0].function.name, 'adapter_web_search');
         assert.deepEqual(requestBody.tool_choice, {
           type: 'function',
           function: {
-            name: 'relay_web_search',
+            name: 'adapter_web_search',
           },
         });
         return new Response(JSON.stringify({
-          id: 'chatcmpl_relay_search_1',
+          id: 'chatcmpl_adapter_search_1',
           created: 1_700_000_451,
-          model: 'relay-search-model',
+          model: 'adapter-search-model',
           choices: [{
             message: {
               tool_calls: [{
                 id: 'call_search_1',
                 type: 'function',
                 function: {
-                  name: 'relay_web_search',
-                  arguments: '{"query":"codex relay web search"}',
+                  name: 'adapter_web_search',
+                  arguments: '{"query":"codex adapter web search"}',
                 },
               }],
             },
@@ -980,17 +980,17 @@ test('adapter server executes relay-emulated web_search inside the Chat Completi
       }
 
       assert.equal(requestBody.messages.at(-2).role, 'assistant');
-      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'relay_web_search');
+      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'adapter_web_search');
       assert.equal(requestBody.messages.at(-1).role, 'tool');
       assert.equal(requestBody.messages.at(-1).tool_call_id, 'call_search_1');
-      assert.match(requestBody.messages.at(-1).content, /Codex Relay Result/u);
+      assert.match(requestBody.messages.at(-1).content, /Codex Adapter Result/u);
       return new Response(JSON.stringify({
-        id: 'chatcmpl_relay_search_2',
+        id: 'chatcmpl_adapter_search_2',
         created: 1_700_000_452,
-        model: 'relay-search-model',
+        model: 'adapter-search-model',
         choices: [{
           message: {
-            content: 'I searched through the relay.',
+            content: 'I searched through the adapter.',
           },
         }],
       }), {
@@ -1006,8 +1006,8 @@ test('adapter server executes relay-emulated web_search inside the Chat Completi
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-search-model',
-        input: 'Find current relay info.',
+        model: 'adapter-search-model',
+        input: 'Find current adapter info.',
         tools: [{
           type: 'web_search_preview',
         }],
@@ -1019,9 +1019,9 @@ test('adapter server executes relay-emulated web_search inside the Chat Completi
     assert.equal(upstreamRequests.length, 2);
     assert.equal(executedRequests.length, 1);
     assert.equal(executedRequests[0].toolName, 'web_search');
-    assert.equal(executedRequests[0].relayToolName, 'relay_web_search');
-    assert.equal(executedRequests[0].arguments.query, 'codex relay web search');
-    assert.equal(body.output[0].content[0].text, 'I searched through the relay.');
+    assert.equal(executedRequests[0].emulatedToolName, 'adapter_web_search');
+    assert.equal(executedRequests[0].arguments.query, 'codex adapter web search');
+    assert.equal(body.output[0].content[0].text, 'I searched through the adapter.');
     assert.equal(traceEvents.some((event) => event.type === 'hosted_tool.executed'), true);
     assert.equal(traceEvents.some((event) => (
       event.type === 'request.adjusted'
@@ -1032,7 +1032,7 @@ test('adapter server executes relay-emulated web_search inside the Chat Completi
   }
 });
 
-test('adapter server appends deferred tools returned by relay-emulated tool_search', async () => {
+test('adapter server appends deferred tools returned by adapter-emulated tool_search', async () => {
   const upstreamRequests: any[] = [];
   const executedRequests: any[] = [];
   const server = new OpenAICompatibleResponsesAdapterServer({
@@ -1042,8 +1042,8 @@ test('adapter server appends deferred tools returned by relay-emulated tool_sear
     },
     hostedTools: [{
       name: 'tool_search',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_tool_search',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_tool_search',
     }],
     hostedToolExecutors: {
       tool_search: async (request) => {
@@ -1073,24 +1073,24 @@ test('adapter server appends deferred tools returned by relay-emulated tool_sear
       upstreamRequests.push(requestBody);
       if (upstreamRequests.length === 1) {
         assert.equal(requestBody.tools.length, 1);
-        assert.equal(requestBody.tools[0].function.name, 'relay_tool_search');
+        assert.equal(requestBody.tools[0].function.name, 'adapter_tool_search');
         assert.deepEqual(requestBody.tool_choice, {
           type: 'function',
           function: {
-            name: 'relay_tool_search',
+            name: 'adapter_tool_search',
           },
         });
         return new Response(JSON.stringify({
           id: 'chatcmpl_tool_search_1',
           created: 1_700_000_491,
-          model: 'relay-tool-search-model',
+          model: 'adapter-tool-search-model',
           choices: [{
             message: {
               tool_calls: [{
                 id: 'call_tool_search_1',
                 type: 'function',
                 function: {
-                  name: 'relay_tool_search',
+                  name: 'adapter_tool_search',
                   arguments: '{"query":"documentation"}',
                 },
               }],
@@ -1103,16 +1103,16 @@ test('adapter server appends deferred tools returned by relay-emulated tool_sear
         });
       }
 
-      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'relay_tool_search');
+      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'adapter_tool_search');
       assert.equal(requestBody.messages.at(-1).role, 'tool');
       assert.equal(requestBody.messages.at(-1).tool_call_id, 'call_tool_search_1');
-      assert.equal(requestBody.tools.some((tool: any) => tool.function?.name === 'relay_tool_search'), true);
+      assert.equal(requestBody.tools.some((tool: any) => tool.function?.name === 'adapter_tool_search'), true);
       assert.equal(requestBody.tools.some((tool: any) => tool.function?.name === 'lookup_docs'), true);
       assert.equal(requestBody.tool_choice, undefined);
       return new Response(JSON.stringify({
         id: 'chatcmpl_tool_search_2',
         created: 1_700_000_492,
-        model: 'relay-tool-search-model',
+        model: 'adapter-tool-search-model',
         choices: [{
           message: {
             tool_calls: [{
@@ -1139,7 +1139,7 @@ test('adapter server appends deferred tools returned by relay-emulated tool_sear
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-tool-search-model',
+        model: 'adapter-tool-search-model',
         input: 'Find a documentation tool.',
         tools: [{
           type: 'tool_search',
@@ -1160,7 +1160,7 @@ test('adapter server appends deferred tools returned by relay-emulated tool_sear
   }
 });
 
-test('adapter server executes relay-emulated image_generation and can expose image output', async () => {
+test('adapter server executes adapter-emulated image_generation and can expose image output', async () => {
   const upstreamRequests: any[] = [];
   const executedRequests: any[] = [];
   const server = new OpenAICompatibleResponsesAdapterServer({
@@ -1170,8 +1170,8 @@ test('adapter server executes relay-emulated image_generation and can expose ima
     },
     hostedTools: [{
       name: 'image_generation',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_image_generation',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_image_generation',
     }],
     hostedToolExecutors: {
       image_generation: async (request) => {
@@ -1182,7 +1182,7 @@ test('adapter server executes relay-emulated image_generation and can expose ima
             images: [{
               b64_json: 'aW1hZ2U=',
               mime_type: 'image/png',
-              revised_prompt: 'A relay bridge over water.',
+              revised_prompt: 'An adapter bridge over water.',
             }],
           },
         };
@@ -1192,25 +1192,25 @@ test('adapter server executes relay-emulated image_generation and can expose ima
       const requestBody = JSON.parse(String(init?.body ?? '{}'));
       upstreamRequests.push(requestBody);
       if (upstreamRequests.length === 1) {
-        assert.equal(requestBody.tools[0].function.name, 'relay_image_generation');
+        assert.equal(requestBody.tools[0].function.name, 'adapter_image_generation');
         assert.deepEqual(requestBody.tool_choice, {
           type: 'function',
           function: {
-            name: 'relay_image_generation',
+            name: 'adapter_image_generation',
           },
         });
         return new Response(JSON.stringify({
           id: 'chatcmpl_image_1',
           created: 1_700_000_501,
-          model: 'relay-image-model',
+          model: 'adapter-image-model',
           choices: [{
             message: {
               tool_calls: [{
                 id: 'call_image_1',
                 type: 'function',
                 function: {
-                  name: 'relay_image_generation',
-                  arguments: '{"prompt":"a relay bridge","size":"1024x1024","output_format":"png","n":1}',
+                  name: 'adapter_image_generation',
+                  arguments: '{"prompt":"an adapter bridge","size":"1024x1024","output_format":"png","n":1}',
                 },
               }],
             },
@@ -1222,17 +1222,17 @@ test('adapter server executes relay-emulated image_generation and can expose ima
         });
       }
 
-      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'relay_image_generation');
+      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'adapter_image_generation');
       assert.equal(requestBody.messages.at(-1).role, 'tool');
       assert.equal(requestBody.messages.at(-1).tool_call_id, 'call_image_1');
       assert.match(requestBody.messages.at(-1).content, /aW1hZ2U=/u);
       return new Response(JSON.stringify({
         id: 'chatcmpl_image_2',
         created: 1_700_000_502,
-        model: 'relay-image-model',
+        model: 'adapter-image-model',
         choices: [{
           message: {
-            content: 'Generated the image through the relay.',
+            content: 'Generated the image through the adapter.',
           },
         }],
       }), {
@@ -1248,7 +1248,7 @@ test('adapter server executes relay-emulated image_generation and can expose ima
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-image-model',
+        model: 'adapter-image-model',
         input: 'Generate an image.',
         tools: [{
           type: 'image_generation',
@@ -1262,8 +1262,8 @@ test('adapter server executes relay-emulated image_generation and can expose ima
     assert.equal(upstreamRequests.length, 2);
     assert.equal(executedRequests.length, 1);
     assert.equal(executedRequests[0].toolName, 'image_generation');
-    assert.equal(executedRequests[0].arguments.prompt, 'a relay bridge');
-    assert.equal(body.output[0].content[0].text, 'Generated the image through the relay.');
+    assert.equal(executedRequests[0].arguments.prompt, 'an adapter bridge');
+    assert.equal(body.output[0].content[0].text, 'Generated the image through the adapter.');
     assert.equal(body.output[1].type, 'image_generation_call');
     assert.equal(body.output[1].result[0].b64_json, 'aW1hZ2U=');
     assert.equal(body.output[1].result[0].mime_type, 'image/png');
@@ -1272,7 +1272,7 @@ test('adapter server executes relay-emulated image_generation and can expose ima
   }
 });
 
-test('adapter server executes relay-emulated code_interpreter inside the Chat Completions loop', async () => {
+test('adapter server executes adapter-emulated code_interpreter inside the Chat Completions loop', async () => {
   const upstreamRequests: any[] = [];
   const executedRequests: any[] = [];
   const server = new OpenAICompatibleResponsesAdapterServer({
@@ -1282,11 +1282,11 @@ test('adapter server executes relay-emulated code_interpreter inside the Chat Co
     },
     hostedTools: [{
       name: 'code_interpreter',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_code_interpreter',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_code_interpreter',
     }],
     hostedToolExecutors: {
-      code_interpreter: createCodexProviderRelayCodeInterpreterExecutor({
+      code_interpreter: createCodexProviderCodeInterpreterExecutor({
         async execute(request) {
           executedRequests.push(JSON.parse(JSON.stringify({
             code: request.code,
@@ -1307,24 +1307,24 @@ test('adapter server executes relay-emulated code_interpreter inside the Chat Co
       const requestBody = JSON.parse(String(init?.body ?? '{}'));
       upstreamRequests.push(requestBody);
       if (upstreamRequests.length === 1) {
-        assert.equal(requestBody.tools[0].function.name, 'relay_code_interpreter');
+        assert.equal(requestBody.tools[0].function.name, 'adapter_code_interpreter');
         assert.deepEqual(requestBody.tool_choice, {
           type: 'function',
           function: {
-            name: 'relay_code_interpreter',
+            name: 'adapter_code_interpreter',
           },
         });
         return new Response(JSON.stringify({
           id: 'chatcmpl_code_1',
           created: 1_700_000_511,
-          model: 'relay-code-model',
+          model: 'adapter-code-model',
           choices: [{
             message: {
               tool_calls: [{
                 id: 'call_code_1',
                 type: 'function',
                 function: {
-                  name: 'relay_code_interpreter',
+                  name: 'adapter_code_interpreter',
                   arguments: '{"code":"print(1 + 2)","language":"python","container":{"type":"auto"},"files":[{"filename":"input.txt","content":"1,2"}]}',
                 },
               }],
@@ -1337,7 +1337,7 @@ test('adapter server executes relay-emulated code_interpreter inside the Chat Co
         });
       }
 
-      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'relay_code_interpreter');
+      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'adapter_code_interpreter');
       assert.equal(requestBody.messages.at(-1).role, 'tool');
       assert.equal(requestBody.messages.at(-1).tool_call_id, 'call_code_1');
       assert.match(requestBody.messages.at(-1).content, /total=3/u);
@@ -1345,10 +1345,10 @@ test('adapter server executes relay-emulated code_interpreter inside the Chat Co
       return new Response(JSON.stringify({
         id: 'chatcmpl_code_2',
         created: 1_700_000_512,
-        model: 'relay-code-model',
+        model: 'adapter-code-model',
         choices: [{
           message: {
-            content: 'Executed code through the relay.',
+            content: 'Executed code through the adapter.',
           },
         }],
       }), {
@@ -1364,7 +1364,7 @@ test('adapter server executes relay-emulated code_interpreter inside the Chat Co
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-code-model',
+        model: 'adapter-code-model',
         input: 'Run this code.',
         tools: [{
           type: 'code_interpreter',
@@ -1387,13 +1387,13 @@ test('adapter server executes relay-emulated code_interpreter inside the Chat Co
         content: '1,2',
       }],
     });
-    assert.equal(body.output[0].content[0].text, 'Executed code through the relay.');
+    assert.equal(body.output[0].content[0].text, 'Executed code through the adapter.');
   } finally {
     await server.stop();
   }
 });
 
-test('adapter server does not expose relay-emulated code_interpreter without an executor', async () => {
+test('adapter server does not expose adapter-emulated code_interpreter without an executor', async () => {
   const upstreamRequests: any[] = [];
   const server = new OpenAICompatibleResponsesAdapterServer({
     apiKey: 'test-key',
@@ -1402,8 +1402,8 @@ test('adapter server does not expose relay-emulated code_interpreter without an 
     },
     hostedTools: [{
       name: 'code_interpreter',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_code_interpreter',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_code_interpreter',
     }],
     hostedToolExecutors: {},
     fetchImpl: (async (_url, init) => {
@@ -1414,7 +1414,7 @@ test('adapter server does not expose relay-emulated code_interpreter without an 
       return new Response(JSON.stringify({
         id: 'chatcmpl_code_no_executor',
         created: 1_700_000_513,
-        model: 'relay-code-model',
+        model: 'adapter-code-model',
         choices: [{
           message: {
             content: 'No code tool was exposed.',
@@ -1433,7 +1433,7 @@ test('adapter server does not expose relay-emulated code_interpreter without an 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-code-model',
+        model: 'adapter-code-model',
         input: 'Run this code.',
         tools: [{
           type: 'code_interpreter',
@@ -1450,7 +1450,7 @@ test('adapter server does not expose relay-emulated code_interpreter without an 
   }
 });
 
-test('adapter server executes relay-emulated computer actions inside the Chat Completions loop', async () => {
+test('adapter server executes adapter-emulated computer actions inside the Chat Completions loop', async () => {
   const upstreamRequests: any[] = [];
   const executedRequests: any[] = [];
   const server = new OpenAICompatibleResponsesAdapterServer({
@@ -1460,11 +1460,11 @@ test('adapter server executes relay-emulated computer actions inside the Chat Co
     },
     hostedTools: [{
       name: 'computer',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_computer',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_computer',
     }],
     hostedToolExecutors: {
-      computer: createCodexProviderRelayComputerExecutor({
+      computer: createCodexProviderComputerExecutor({
         async execute(request) {
           executedRequests.push(JSON.parse(JSON.stringify({
             actions: request.actions,
@@ -1484,24 +1484,24 @@ test('adapter server executes relay-emulated computer actions inside the Chat Co
       const requestBody = JSON.parse(String(init?.body ?? '{}'));
       upstreamRequests.push(requestBody);
       if (upstreamRequests.length === 1) {
-        assert.equal(requestBody.tools[0].function.name, 'relay_computer');
+        assert.equal(requestBody.tools[0].function.name, 'adapter_computer');
         assert.deepEqual(requestBody.tool_choice, {
           type: 'function',
           function: {
-            name: 'relay_computer',
+            name: 'adapter_computer',
           },
         });
         return new Response(JSON.stringify({
           id: 'chatcmpl_computer_1',
           created: 1_700_000_521,
-          model: 'relay-computer-model',
+          model: 'adapter-computer-model',
           choices: [{
             message: {
               tool_calls: [{
                 id: 'call_computer_1',
                 type: 'function',
                 function: {
-                  name: 'relay_computer',
+                  name: 'adapter_computer',
                   arguments: '{"actions":[{"type":"click","x":10,"y":20},{"type":"screenshot"}],"display":{"width":1280,"height":720,"environment":"browser"}}',
                 },
               }],
@@ -1514,7 +1514,7 @@ test('adapter server executes relay-emulated computer actions inside the Chat Co
         });
       }
 
-      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'relay_computer');
+      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'adapter_computer');
       assert.equal(requestBody.messages.at(-1).role, 'tool');
       assert.equal(requestBody.messages.at(-1).tool_call_id, 'call_computer_1');
       assert.match(requestBody.messages.at(-1).content, /Screenshot captured/u);
@@ -1522,10 +1522,10 @@ test('adapter server executes relay-emulated computer actions inside the Chat Co
       return new Response(JSON.stringify({
         id: 'chatcmpl_computer_2',
         created: 1_700_000_522,
-        model: 'relay-computer-model',
+        model: 'adapter-computer-model',
         choices: [{
           message: {
-            content: 'Used the computer through the relay.',
+            content: 'Used the computer through the adapter.',
           },
         }],
       }), {
@@ -1541,7 +1541,7 @@ test('adapter server executes relay-emulated computer actions inside the Chat Co
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-computer-model',
+        model: 'adapter-computer-model',
         input: 'Use the computer.',
         tools: [{
           type: 'computer_use_preview',
@@ -1567,13 +1567,13 @@ test('adapter server executes relay-emulated computer actions inside the Chat Co
         environment: 'browser',
       },
     });
-    assert.equal(body.output[0].content[0].text, 'Used the computer through the relay.');
+    assert.equal(body.output[0].content[0].text, 'Used the computer through the adapter.');
   } finally {
     await server.stop();
   }
 });
 
-test('adapter server does not expose relay-emulated computer without an executor', async () => {
+test('adapter server does not expose adapter-emulated computer without an executor', async () => {
   const upstreamRequests: any[] = [];
   const server = new OpenAICompatibleResponsesAdapterServer({
     apiKey: 'test-key',
@@ -1582,8 +1582,8 @@ test('adapter server does not expose relay-emulated computer without an executor
     },
     hostedTools: [{
       name: 'computer',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_computer',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_computer',
     }],
     hostedToolExecutors: {},
     fetchImpl: (async (_url, init) => {
@@ -1594,7 +1594,7 @@ test('adapter server does not expose relay-emulated computer without an executor
       return new Response(JSON.stringify({
         id: 'chatcmpl_computer_no_executor',
         created: 1_700_000_523,
-        model: 'relay-computer-model',
+        model: 'adapter-computer-model',
         choices: [{
           message: {
             content: 'No computer tool was exposed.',
@@ -1613,7 +1613,7 @@ test('adapter server does not expose relay-emulated computer without an executor
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-computer-model',
+        model: 'adapter-computer-model',
         input: 'Use the computer.',
         tools: [{
           type: 'computer',
@@ -1630,7 +1630,7 @@ test('adapter server does not expose relay-emulated computer without an executor
   }
 });
 
-test('adapter server streams final answer after relay-emulated web_search execution', async () => {
+test('adapter server streams final answer after adapter-emulated web_search execution', async () => {
   const upstreamRequests: any[] = [];
   const server = new OpenAICompatibleResponsesAdapterServer({
     apiKey: 'test-key',
@@ -1639,15 +1639,15 @@ test('adapter server streams final answer after relay-emulated web_search execut
     },
     hostedTools: [{
       name: 'web_search',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_web_search',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_web_search',
     }],
     hostedToolExecutors: {
       web_search: async () => ({
         content: {
           results: [{
-            title: 'Streaming Relay Result',
-            url: 'https://example.com/streaming-relay',
+            title: 'Streaming Adapter Result',
+            url: 'https://example.com/streaming-adapter',
           }],
         },
       }),
@@ -1659,9 +1659,9 @@ test('adapter server streams final answer after relay-emulated web_search execut
       if (upstreamRequests.length === 1) {
         return createEventStreamResponse([
           {
-            id: 'chatcmpl_stream_relay_search_1',
+            id: 'chatcmpl_stream_adapter_search_1',
             created: 1_700_000_461,
-            model: 'relay-search-model',
+            model: 'adapter-search-model',
             choices: [{
               index: 0,
               delta: {
@@ -1670,7 +1670,7 @@ test('adapter server streams final answer after relay-emulated web_search execut
                   id: 'call_search_stream_1',
                   type: 'function',
                   function: {
-                    name: 'relay_web_search',
+                    name: 'adapter_web_search',
                     arguments: '{"query"',
                   },
                 }],
@@ -1678,25 +1678,25 @@ test('adapter server streams final answer after relay-emulated web_search execut
             }],
           },
           {
-            id: 'chatcmpl_stream_relay_search_1',
+            id: 'chatcmpl_stream_adapter_search_1',
             created: 1_700_000_461,
-            model: 'relay-search-model',
+            model: 'adapter-search-model',
             choices: [{
               index: 0,
               delta: {
                 tool_calls: [{
                   index: 0,
                   function: {
-                    arguments: ':"stream relay search"}',
+                    arguments: ':"stream adapter search"}',
                   },
                 }],
               },
             }],
           },
           {
-            id: 'chatcmpl_stream_relay_search_1',
+            id: 'chatcmpl_stream_adapter_search_1',
             created: 1_700_000_461,
-            model: 'relay-search-model',
+            model: 'adapter-search-model',
             choices: [{
               index: 0,
               finish_reason: 'tool_calls',
@@ -1706,14 +1706,14 @@ test('adapter server streams final answer after relay-emulated web_search execut
       }
       assert.equal(requestBody.messages.at(-2).role, 'assistant');
       assert.equal(requestBody.messages.at(-2).tool_calls[0].id, 'call_search_stream_1');
-      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'relay_web_search');
+      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'adapter_web_search');
       assert.equal(requestBody.messages.at(-1).role, 'tool');
-      assert.match(requestBody.messages.at(-1).content, /Streaming Relay Result/u);
+      assert.match(requestBody.messages.at(-1).content, /Streaming Adapter Result/u);
       return createEventStreamResponse([
         {
-          id: 'chatcmpl_stream_relay_search_2',
+          id: 'chatcmpl_stream_adapter_search_2',
           created: 1_700_000_462,
-          model: 'relay-search-model',
+          model: 'adapter-search-model',
           choices: [{
             index: 0,
             delta: {
@@ -1722,9 +1722,9 @@ test('adapter server streams final answer after relay-emulated web_search execut
           }],
         },
         {
-          id: 'chatcmpl_stream_relay_search_2',
+          id: 'chatcmpl_stream_adapter_search_2',
           created: 1_700_000_462,
-          model: 'relay-search-model',
+          model: 'adapter-search-model',
           choices: [{
             index: 0,
             delta: {
@@ -1733,9 +1733,9 @@ test('adapter server streams final answer after relay-emulated web_search execut
           }],
         },
         {
-          id: 'chatcmpl_stream_relay_search_2',
+          id: 'chatcmpl_stream_adapter_search_2',
           created: 1_700_000_462,
-          model: 'relay-search-model',
+          model: 'adapter-search-model',
           choices: [{
             index: 0,
             finish_reason: 'stop',
@@ -1751,8 +1751,8 @@ test('adapter server streams final answer after relay-emulated web_search execut
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-search-model',
-        input: 'Find current relay info.',
+        model: 'adapter-search-model',
+        input: 'Find current adapter info.',
         stream: true,
         tools: [{
           type: 'web_search_preview',
@@ -1772,7 +1772,7 @@ test('adapter server streams final answer after relay-emulated web_search execut
   }
 });
 
-test('adapter server streams final answer after relay-emulated file_search execution', async () => {
+test('adapter server streams final answer after adapter-emulated file_search execution', async () => {
   const upstreamRequests: any[] = [];
   const executedRequests: any[] = [];
   const server = new OpenAICompatibleResponsesAdapterServer({
@@ -1782,8 +1782,8 @@ test('adapter server streams final answer after relay-emulated file_search execu
     },
     hostedTools: [{
       name: 'file_search',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_file_search',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_file_search',
     }],
     hostedToolExecutors: {
       file_search: async (request) => {
@@ -1837,12 +1837,12 @@ test('adapter server streams final answer after relay-emulated file_search execu
       upstreamRequests.push(requestBody);
       assert.equal(requestBody.stream, true);
       if (upstreamRequests.length === 1) {
-        assert.equal(requestBody.tools[0].function.name, 'relay_file_search');
+        assert.equal(requestBody.tools[0].function.name, 'adapter_file_search');
         return createEventStreamResponse([
           {
             id: 'chatcmpl_stream_file_search_1',
             created: 1_700_000_467,
-            model: 'relay-search-model',
+            model: 'adapter-search-model',
             choices: [{
               index: 0,
               delta: {
@@ -1851,7 +1851,7 @@ test('adapter server streams final answer after relay-emulated file_search execu
                   id: 'call_file_search_1',
                   type: 'function',
                   function: {
-                    name: 'relay_file_search',
+                    name: 'adapter_file_search',
                     arguments: '{"query":"file search target","path_glob":"src/*"}',
                   },
                 }],
@@ -1861,7 +1861,7 @@ test('adapter server streams final answer after relay-emulated file_search execu
           {
             id: 'chatcmpl_stream_file_search_1',
             created: 1_700_000_467,
-            model: 'relay-search-model',
+            model: 'adapter-search-model',
             choices: [{
               index: 0,
               finish_reason: 'tool_calls',
@@ -1869,14 +1869,14 @@ test('adapter server streams final answer after relay-emulated file_search execu
           },
         ]);
       }
-      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'relay_file_search');
+      assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'adapter_file_search');
       assert.equal(requestBody.messages.at(-1).role, 'tool');
       assert.match(requestBody.messages.at(-1).content, /src\/agent\.ts/u);
       return createEventStreamResponse([
         {
           id: 'chatcmpl_stream_file_search_2',
           created: 1_700_000_468,
-          model: 'relay-search-model',
+          model: 'adapter-search-model',
           choices: [{
             index: 0,
             delta: {
@@ -1887,7 +1887,7 @@ test('adapter server streams final answer after relay-emulated file_search execu
         {
           id: 'chatcmpl_stream_file_search_2',
           created: 1_700_000_468,
-          model: 'relay-search-model',
+          model: 'adapter-search-model',
           choices: [{
             index: 0,
             finish_reason: 'stop',
@@ -1903,7 +1903,7 @@ test('adapter server streams final answer after relay-emulated file_search execu
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-search-model',
+        model: 'adapter-search-model',
         input: 'Search configured files.',
         stream: true,
         tools: [{
@@ -1922,7 +1922,7 @@ test('adapter server streams final answer after relay-emulated file_search execu
   }
 });
 
-test('adapter server exposes relay-emulated file_search results when include requests them', async () => {
+test('adapter server exposes adapter-emulated file_search results when include requests them', async () => {
   const upstreamRequests: any[] = [];
   const server = new OpenAICompatibleResponsesAdapterServer({
     apiKey: 'test-key',
@@ -1931,8 +1931,8 @@ test('adapter server exposes relay-emulated file_search results when include req
     },
     hostedTools: [{
       name: 'file_search',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_file_search',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_file_search',
     }],
     hostedToolExecutors: {
       file_search: async (request) => ({
@@ -1969,14 +1969,14 @@ test('adapter server exposes relay-emulated file_search results when include req
         return new Response(JSON.stringify({
           id: 'chatcmpl_file_search_include_1',
           created: 1_700_000_469,
-          model: 'relay-search-model',
+          model: 'adapter-search-model',
           choices: [{
             message: {
               tool_calls: [{
                 id: 'call_file_search_include_1',
                 type: 'function',
                 function: {
-                  name: 'relay_file_search',
+                  name: 'adapter_file_search',
                   arguments: '{"query":"file search include target"}',
                 },
               }],
@@ -1991,7 +1991,7 @@ test('adapter server exposes relay-emulated file_search results when include req
       return new Response(JSON.stringify({
         id: 'chatcmpl_file_search_include_2',
         created: 1_700_000_470,
-        model: 'relay-search-model',
+        model: 'adapter-search-model',
         choices: [{
           message: {
             content: 'file search answer with exposed results',
@@ -2010,7 +2010,7 @@ test('adapter server exposes relay-emulated file_search results when include req
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-search-model',
+        model: 'adapter-search-model',
         input: 'Search configured files.',
         include: ['file_search_call.results'],
         tools: [{
@@ -2044,8 +2044,8 @@ test('adapter server can expose hosted file_search results through server option
     exposeHostedToolResultsInResponsesOutput: true,
     hostedTools: [{
       name: 'file_search',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_file_search',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_file_search',
     }],
     hostedToolExecutors: {
       file_search: async () => ({
@@ -2071,7 +2071,7 @@ test('adapter server can expose hosted file_search results through server option
         return new Response(JSON.stringify({
           id: 'chatcmpl_file_search_option_2',
           created: 1_700_000_472,
-          model: 'relay-search-model',
+          model: 'adapter-search-model',
           choices: [{
             message: {
               content: 'option final answer',
@@ -2085,14 +2085,14 @@ test('adapter server can expose hosted file_search results through server option
       return new Response(JSON.stringify({
         id: 'chatcmpl_file_search_option_1',
         created: 1_700_000_471,
-        model: 'relay-search-model',
+        model: 'adapter-search-model',
         choices: [{
           message: {
             tool_calls: [{
               id: 'call_file_search_option_1',
               type: 'function',
               function: {
-                name: 'relay_file_search',
+                name: 'adapter_file_search',
                 arguments: '{"query":"option file search"}',
               },
             }],
@@ -2112,7 +2112,7 @@ test('adapter server can expose hosted file_search results through server option
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-search-model',
+        model: 'adapter-search-model',
         input: 'Search configured files.',
         tools: [{
           type: 'file_search',
@@ -2138,8 +2138,8 @@ test('adapter server emits opt-in hosted tool SSE lifecycle events', async () =>
     },
     hostedTools: [{
       name: 'web_search',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_web_search',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_web_search',
     }],
     hostedToolExecutors: {
       web_search: async (request) => {
@@ -2147,8 +2147,8 @@ test('adapter server emits opt-in hosted tool SSE lifecycle events', async () =>
         return {
           content: {
             results: [{
-              title: 'Observable Relay Result',
-              url: 'https://example.com/observable-relay',
+              title: 'Observable Adapter Result',
+              url: 'https://example.com/observable-adapter',
             }],
           },
           metadata: {
@@ -2165,7 +2165,7 @@ test('adapter server emits opt-in hosted tool SSE lifecycle events', async () =>
           {
             id: 'chatcmpl_observable_search_2',
             created: 1_700_000_464,
-            model: 'relay-search-model',
+            model: 'adapter-search-model',
             choices: [{
               index: 0,
               delta: {
@@ -2176,7 +2176,7 @@ test('adapter server emits opt-in hosted tool SSE lifecycle events', async () =>
           {
             id: 'chatcmpl_observable_search_2',
             created: 1_700_000_464,
-            model: 'relay-search-model',
+            model: 'adapter-search-model',
             choices: [{
               index: 0,
               finish_reason: 'stop',
@@ -2188,7 +2188,7 @@ test('adapter server emits opt-in hosted tool SSE lifecycle events', async () =>
         {
           id: 'chatcmpl_observable_search_1',
           created: 1_700_000_464,
-          model: 'relay-search-model',
+          model: 'adapter-search-model',
           choices: [{
             index: 0,
             delta: {
@@ -2197,7 +2197,7 @@ test('adapter server emits opt-in hosted tool SSE lifecycle events', async () =>
                 id: 'call_observable_search_1',
                 type: 'function',
                 function: {
-                  name: 'relay_web_search',
+                  name: 'adapter_web_search',
                   arguments: '{"query":"observable search"}',
                 },
               }],
@@ -2207,7 +2207,7 @@ test('adapter server emits opt-in hosted tool SSE lifecycle events', async () =>
         {
           id: 'chatcmpl_observable_search_1',
           created: 1_700_000_464,
-          model: 'relay-search-model',
+          model: 'adapter-search-model',
           choices: [{
             index: 0,
             finish_reason: 'tool_calls',
@@ -2223,8 +2223,8 @@ test('adapter server emits opt-in hosted tool SSE lifecycle events', async () =>
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-search-model',
-        input: 'Find observable relay info.',
+        model: 'adapter-search-model',
+        input: 'Find observable adapter info.',
         stream: true,
         tools: [{
           type: 'web_search_preview',
@@ -2243,7 +2243,7 @@ test('adapter server emits opt-in hosted tool SSE lifecycle events', async () =>
     assert.equal(events[1].data.hosted_tool.delta, 'querying search provider');
     assert.equal(events[1].data.hosted_tool.metadata.phase, 'query');
     assert.equal(events[2].data.hosted_tool.metadata.provider, 'test-search');
-    assert.match(events[2].data.hosted_tool.output_preview, /Observable Relay Result/u);
+    assert.match(events[2].data.hosted_tool.output_preview, /Observable Adapter Result/u);
     assert.equal(events.some((event) => event.event === 'response.output_text.delta'), true);
     assert.equal(events.at(-1)?.event, 'response.completed');
   } finally {
@@ -2259,11 +2259,11 @@ test('adapter server emits code_interpreter stdout and stderr hosted tool deltas
     },
     hostedTools: [{
       name: 'code_interpreter',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_code_interpreter',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_code_interpreter',
     }],
     hostedToolExecutors: {
-      code_interpreter: createCodexProviderRelayCodeInterpreterExecutor({
+      code_interpreter: createCodexProviderCodeInterpreterExecutor({
         async execute(request) {
           await request.emitStdout('stdout line\n', { phase: 'run' });
           await request.emitStderr('stderr line\n', { phase: 'warn' });
@@ -2282,7 +2282,7 @@ test('adapter server emits code_interpreter stdout and stderr hosted tool deltas
           {
             id: 'chatcmpl_observable_code_2',
             created: 1_700_000_514,
-            model: 'relay-code-model',
+            model: 'adapter-code-model',
             choices: [{
               index: 0,
               delta: {
@@ -2293,7 +2293,7 @@ test('adapter server emits code_interpreter stdout and stderr hosted tool deltas
           {
             id: 'chatcmpl_observable_code_2',
             created: 1_700_000_514,
-            model: 'relay-code-model',
+            model: 'adapter-code-model',
             choices: [{
               index: 0,
               finish_reason: 'stop',
@@ -2305,7 +2305,7 @@ test('adapter server emits code_interpreter stdout and stderr hosted tool deltas
         {
           id: 'chatcmpl_observable_code_1',
           created: 1_700_000_514,
-          model: 'relay-code-model',
+          model: 'adapter-code-model',
           choices: [{
             index: 0,
             delta: {
@@ -2314,7 +2314,7 @@ test('adapter server emits code_interpreter stdout and stderr hosted tool deltas
                 id: 'call_observable_code_1',
                 type: 'function',
                 function: {
-                  name: 'relay_code_interpreter',
+                  name: 'adapter_code_interpreter',
                   arguments: '{"code":"print(1)","language":"python"}',
                 },
               }],
@@ -2324,7 +2324,7 @@ test('adapter server emits code_interpreter stdout and stderr hosted tool deltas
         {
           id: 'chatcmpl_observable_code_1',
           created: 1_700_000_514,
-          model: 'relay-code-model',
+          model: 'adapter-code-model',
           choices: [{
             index: 0,
             finish_reason: 'tool_calls',
@@ -2340,7 +2340,7 @@ test('adapter server emits code_interpreter stdout and stderr hosted tool deltas
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-code-model',
+        model: 'adapter-code-model',
         input: 'Run observable code.',
         stream: true,
         tools: [{
@@ -2379,8 +2379,8 @@ test('adapter server emits hosted tool failed SSE events when an executor throws
     },
     hostedTools: [{
       name: 'web_search',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_web_search',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_web_search',
     }],
     hostedToolExecutors: {
       web_search: async () => {
@@ -2396,7 +2396,7 @@ test('adapter server emits hosted tool failed SSE events when an executor throws
           {
             id: 'chatcmpl_failed_search_1',
             created: 1_700_000_465,
-            model: 'relay-search-model',
+            model: 'adapter-search-model',
             choices: [{
               index: 0,
               delta: {
@@ -2405,7 +2405,7 @@ test('adapter server emits hosted tool failed SSE events when an executor throws
                   id: 'call_failed_search_1',
                   type: 'function',
                   function: {
-                    name: 'relay_web_search',
+                    name: 'adapter_web_search',
                     arguments: '{"query":"failed search"}',
                   },
                 }],
@@ -2415,7 +2415,7 @@ test('adapter server emits hosted tool failed SSE events when an executor throws
           {
             id: 'chatcmpl_failed_search_1',
             created: 1_700_000_465,
-            model: 'relay-search-model',
+            model: 'adapter-search-model',
             choices: [{
               index: 0,
               finish_reason: 'tool_calls',
@@ -2428,7 +2428,7 @@ test('adapter server emits hosted tool failed SSE events when an executor throws
         {
           id: 'chatcmpl_failed_search_2',
           created: 1_700_000_466,
-          model: 'relay-search-model',
+          model: 'adapter-search-model',
           choices: [{
             index: 0,
             delta: {
@@ -2439,7 +2439,7 @@ test('adapter server emits hosted tool failed SSE events when an executor throws
         {
           id: 'chatcmpl_failed_search_2',
           created: 1_700_000_466,
-          model: 'relay-search-model',
+          model: 'adapter-search-model',
           choices: [{
             index: 0,
             finish_reason: 'stop',
@@ -2455,8 +2455,8 @@ test('adapter server emits hosted tool failed SSE events when an executor throws
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-search-model',
-        input: 'Find failed relay info.',
+        model: 'adapter-search-model',
+        input: 'Find failed adapter info.',
         stream: true,
         tools: [{
           type: 'web_search_preview',
@@ -2476,7 +2476,7 @@ test('adapter server emits hosted tool failed SSE events when an executor throws
   }
 });
 
-test('adapter server rejects streamed turns that mix relay and non-relay tool calls', async () => {
+test('adapter server rejects streamed turns that mix adapter and non-adapter tool calls', async () => {
   const server = new OpenAICompatibleResponsesAdapterServer({
     apiKey: 'test-key',
     providerCapabilities: {
@@ -2484,8 +2484,8 @@ test('adapter server rejects streamed turns that mix relay and non-relay tool ca
     },
     hostedTools: [{
       name: 'web_search',
-      mode: 'relay-emulated',
-      relayToolName: 'relay_web_search',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_web_search',
     }],
     hostedToolExecutors: {
       web_search: async () => ({
@@ -2498,7 +2498,7 @@ test('adapter server rejects streamed turns that mix relay and non-relay tool ca
       {
         id: 'chatcmpl_mixed_tool_stream_1',
         created: 1_700_000_463,
-        model: 'relay-search-model',
+        model: 'adapter-search-model',
         choices: [{
           index: 0,
           delta: {
@@ -2508,8 +2508,8 @@ test('adapter server rejects streamed turns that mix relay and non-relay tool ca
                 index: 0,
                 type: 'function',
                 function: {
-                  name: 'relay_web_search',
-                  arguments: '{"query":"stream relay search"}',
+                  name: 'adapter_web_search',
+                  arguments: '{"query":"stream adapter search"}',
                 },
               },
               {
@@ -2528,7 +2528,7 @@ test('adapter server rejects streamed turns that mix relay and non-relay tool ca
       {
         id: 'chatcmpl_mixed_tool_stream_1',
         created: 1_700_000_463,
-        model: 'relay-search-model',
+        model: 'adapter-search-model',
         choices: [{
           index: 0,
           finish_reason: 'tool_calls',
@@ -2543,8 +2543,8 @@ test('adapter server rejects streamed turns that mix relay and non-relay tool ca
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'relay-search-model',
-        input: 'Find current relay info.',
+        model: 'adapter-search-model',
+        input: 'Find current adapter info.',
         stream: true,
         tools: [{
           type: 'web_search_preview',
@@ -2557,7 +2557,7 @@ test('adapter server rejects streamed turns that mix relay and non-relay tool ca
     });
     const body = await response.json() as any;
     assert.equal(response.status, 502);
-    assert.equal(body.error.code, 'relay_hosted_streaming_tool_mix_unsupported');
+    assert.equal(body.error.code, 'adapter_hosted_streaming_tool_mix_unsupported');
   } finally {
     await server.stop();
   }

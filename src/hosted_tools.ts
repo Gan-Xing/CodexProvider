@@ -1,43 +1,43 @@
 import type {
-  CodexProviderRelayToolStrategy,
+  CodexProviderToolStrategy,
 } from './types.js';
 import {
-  defaultCodexProviderRelayBuiltinRelayToolName,
-  normalizeCodexProviderRelayBuiltinToolName,
-  type CodexProviderRelayBuiltinToolName,
+  defaultCodexProviderBuiltinEmulatedToolName,
+  normalizeCodexProviderBuiltinToolName,
+  type CodexProviderBuiltinToolName,
 } from './builtin-tools/index.js';
 
-export type CodexProviderRelayHostedToolName =
-  | CodexProviderRelayBuiltinToolName
+export type CodexProviderHostedToolName =
+  | CodexProviderBuiltinToolName
   | 'web_search_preview'
   | 'web_search_preview_2025_03_11'
   | 'computer_use'
   | 'computer_use_preview'
   | `custom:${string}`;
 
-export type CodexProviderRelayHostedToolMode =
+export type CodexProviderHostedToolMode =
   | 'provider-native'
-  | 'relay-emulated';
+  | 'adapter-emulated';
 
-export interface CodexProviderRelayHostedToolDeclaration {
-  name: CodexProviderRelayHostedToolName;
-  mode: CodexProviderRelayHostedToolMode;
+export interface CodexProviderHostedToolDeclaration {
+  name: CodexProviderHostedToolName;
+  mode: CodexProviderHostedToolMode;
   providerToolName?: string | null;
-  relayToolName?: string | null;
+  emulatedToolName?: string | null;
   description?: string | null;
 }
 
-export interface NormalizedCodexProviderRelayHostedToolDeclaration {
-  name: CodexProviderRelayHostedToolName;
-  mode: CodexProviderRelayHostedToolMode;
+export interface NormalizedCodexProviderHostedToolDeclaration {
+  name: CodexProviderHostedToolName;
+  mode: CodexProviderHostedToolMode;
   providerToolName: string | null;
-  relayToolName: string | null;
+  emulatedToolName: string | null;
   description: string | null;
 }
 
-export function normalizeCodexProviderRelayHostedTools(
-  declarations: CodexProviderRelayHostedToolDeclaration[] | null | undefined,
-): NormalizedCodexProviderRelayHostedToolDeclaration[] {
+export function normalizeCodexProviderHostedTools(
+  declarations: CodexProviderHostedToolDeclaration[] | null | undefined,
+): NormalizedCodexProviderHostedToolDeclaration[] {
   if (!Array.isArray(declarations)) {
     return [];
   }
@@ -45,8 +45,8 @@ export function normalizeCodexProviderRelayHostedTools(
 }
 
 export function assertHostedToolDeclarationsForStrategy(
-  toolStrategy: CodexProviderRelayToolStrategy,
-  hostedTools: NormalizedCodexProviderRelayHostedToolDeclaration[],
+  toolStrategy: CodexProviderToolStrategy,
+  hostedTools: NormalizedCodexProviderHostedToolDeclaration[],
 ): void {
   if (toolStrategy === 'codex-local-first') {
     return;
@@ -62,28 +62,28 @@ export function assertHostedToolDeclarationsForStrategy(
 }
 
 function normalizeHostedToolDeclaration(
-  declaration: CodexProviderRelayHostedToolDeclaration,
-): NormalizedCodexProviderRelayHostedToolDeclaration {
+  declaration: CodexProviderHostedToolDeclaration,
+): NormalizedCodexProviderHostedToolDeclaration {
   if (!declaration || typeof declaration !== 'object') {
     throw new Error('Hosted tool declaration must be an object.');
   }
   const name = normalizeHostedToolName(declaration.name);
   const mode = normalizeHostedToolMode(declaration.mode);
   const providerToolName = normalizeString(declaration.providerToolName) || (mode === 'provider-native' ? name : '');
-  const relayToolName = normalizeString(declaration.relayToolName)
-    || (mode === 'relay-emulated' ? defaultHostedRelayToolName(name) : '');
+  const emulatedToolName = normalizeString(declaration.emulatedToolName)
+    || (mode === 'adapter-emulated' ? defaultHostedEmulatedToolName(name) : '');
   return {
     name,
     mode,
     providerToolName: providerToolName || null,
-    relayToolName: relayToolName || null,
+    emulatedToolName: emulatedToolName || null,
     description: normalizeString(declaration.description) || null,
   };
 }
 
-function normalizeHostedToolName(name: unknown): CodexProviderRelayHostedToolName {
+function normalizeHostedToolName(name: unknown): CodexProviderHostedToolName {
   const normalized = normalizeString(name);
-  const builtinName = normalizeCodexProviderRelayBuiltinToolName(normalized);
+  const builtinName = normalizeCodexProviderBuiltinToolName(normalized);
   if (builtinName) {
     return builtinName;
   }
@@ -93,14 +93,14 @@ function normalizeHostedToolName(name: unknown): CodexProviderRelayHostedToolNam
   throw new Error(`Unsupported hosted tool name: ${String(name)}`);
 }
 
-function defaultHostedRelayToolName(name: CodexProviderRelayHostedToolName): string {
+function defaultHostedEmulatedToolName(name: CodexProviderHostedToolName): string {
   return name.startsWith('custom:')
     ? name.slice('custom:'.length)
-    : defaultCodexProviderRelayBuiltinRelayToolName(name);
+    : defaultCodexProviderBuiltinEmulatedToolName(name);
 }
 
-function normalizeHostedToolMode(mode: unknown): CodexProviderRelayHostedToolMode {
-  if (mode === 'provider-native' || mode === 'relay-emulated') {
+function normalizeHostedToolMode(mode: unknown): CodexProviderHostedToolMode {
+  if (mode === 'provider-native' || mode === 'adapter-emulated') {
     return mode;
   }
   throw new Error(`Unsupported hosted tool mode: ${String(mode)}`);

@@ -1,50 +1,50 @@
 import {
-  CODEX_PROVIDER_RELAY_BUILTIN_TOOL_ALIASES,
-  CODEX_PROVIDER_RELAY_BUILTIN_TOOL_DEFINITIONS,
+  CODEX_PROVIDER_BUILTIN_TOOL_ALIASES,
+  CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS,
 } from './catalog.js';
 import type {
-  CodexProviderRelayBuiltinToolDefinition,
-  CodexProviderRelayBuiltinToolName,
+  CodexProviderBuiltinToolDefinition,
+  CodexProviderBuiltinToolName,
   JsonRecord,
 } from './types.js';
 
-export function normalizeCodexProviderRelayBuiltinToolName(
+export function normalizeCodexProviderBuiltinToolName(
   value: unknown,
-): CodexProviderRelayBuiltinToolName | null {
+): CodexProviderBuiltinToolName | null {
   const normalized = normalizeString(value);
-  return CODEX_PROVIDER_RELAY_BUILTIN_TOOL_ALIASES[normalized] ?? null;
+  return CODEX_PROVIDER_BUILTIN_TOOL_ALIASES[normalized] ?? null;
 }
 
-export function getCodexProviderRelayBuiltinToolDefinition(
+export function getCodexProviderBuiltinToolDefinition(
   value: unknown,
-): CodexProviderRelayBuiltinToolDefinition | null {
-  const name = normalizeCodexProviderRelayBuiltinToolName(value);
-  return name ? CODEX_PROVIDER_RELAY_BUILTIN_TOOL_DEFINITIONS[name] : null;
+): CodexProviderBuiltinToolDefinition | null {
+  const name = normalizeCodexProviderBuiltinToolName(value);
+  return name ? CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS[name] : null;
 }
 
-export function isCodexProviderRelayBuiltinToolType(value: unknown): boolean {
-  return Boolean(normalizeCodexProviderRelayBuiltinToolName(value));
+export function isCodexProviderBuiltinToolType(value: unknown): boolean {
+  return Boolean(normalizeCodexProviderBuiltinToolName(value));
 }
 
-export function isCodexProviderRelayRelayEmulatedBuiltinToolType(value: unknown): boolean {
-  return Boolean(getCodexProviderRelayBuiltinToolDefinition(value)?.relayEmulatedSupported);
+export function isCodexProviderAdapterEmulatedBuiltinToolType(value: unknown): boolean {
+  return Boolean(getCodexProviderBuiltinToolDefinition(value)?.adapterEmulatedSupported);
 }
 
-export function isCodexProviderRelayProviderNativeBuiltinToolType(value: unknown): boolean {
-  return Boolean(getCodexProviderRelayBuiltinToolDefinition(value)?.providerNativeSupported);
+export function isCodexProviderProviderNativeBuiltinToolType(value: unknown): boolean {
+  return Boolean(getCodexProviderBuiltinToolDefinition(value)?.providerNativeSupported);
 }
 
-export function isCodexProviderRelayUnsafeBuiltinToolType(value: unknown): boolean {
-  return Boolean(getCodexProviderRelayBuiltinToolDefinition(value)?.unsafeByDefault);
+export function isCodexProviderUnsafeBuiltinToolType(value: unknown): boolean {
+  return Boolean(getCodexProviderBuiltinToolDefinition(value)?.unsafeByDefault);
 }
 
-export function defaultCodexProviderRelayBuiltinToolDescription(value: unknown): string {
-  return getCodexProviderRelayBuiltinToolDefinition(value)?.description
-    ?? 'Execute a relay-hosted built-in tool.';
+export function defaultCodexProviderBuiltinToolDescription(value: unknown): string {
+  return getCodexProviderBuiltinToolDefinition(value)?.description
+    ?? 'Execute an adapter-hosted built-in tool.';
 }
 
-export function codexProviderRelayBuiltinToolParameters(value: unknown): JsonRecord {
-  return getCodexProviderRelayBuiltinToolDefinition(value)?.parameters
+export function codexProviderBuiltinToolParameters(value: unknown): JsonRecord {
+  return getCodexProviderBuiltinToolDefinition(value)?.parameters
     ?? {
       type: 'object',
       properties: {},
@@ -52,8 +52,8 @@ export function codexProviderRelayBuiltinToolParameters(value: unknown): JsonRec
     };
 }
 
-export function defaultCodexProviderRelayBuiltinRelayToolName(value: unknown): string {
-  return getCodexProviderRelayBuiltinToolDefinition(value)?.defaultRelayToolName
+export function defaultCodexProviderBuiltinEmulatedToolName(value: unknown): string {
+  return getCodexProviderBuiltinToolDefinition(value)?.defaultEmulatedToolName
     ?? normalizeString(value);
 }
 

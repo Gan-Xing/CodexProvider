@@ -1,11 +1,11 @@
 import path from 'node:path';
 import type {
-  CodexProviderRelayFileSearchSource,
-  CodexProviderRelayFileSearchSourceMatch,
-  CodexProviderRelayFileSearchSourceRequest,
-  CodexProviderRelayFileSearchSourceResult,
-  CodexProviderRelaySqliteFtsFileSearchSourceOptions,
-  CodexProviderRelaySqliteFtsQueryFunction,
+  CodexProviderFileSearchSource,
+  CodexProviderFileSearchSourceMatch,
+  CodexProviderFileSearchSourceRequest,
+  CodexProviderFileSearchSourceResult,
+  CodexProviderSqliteFtsFileSearchSourceOptions,
+  CodexProviderSqliteFtsQueryFunction,
   JsonRecord,
   NormalizedMemoryFileSearchDocument,
   NormalizedSqliteFtsFileSearchOptions,
@@ -22,14 +22,14 @@ import {
 } from '../shared.js';
 import { searchTextContent } from './local-shared.js';
 
-export function createCodexProviderRelaySqliteFtsFileSearchSource(
-  options: CodexProviderRelaySqliteFtsFileSearchSourceOptions,
-): CodexProviderRelayFileSearchSource {
+export function createCodexProviderSqliteFtsFileSearchSource(
+  options: CodexProviderSqliteFtsFileSearchSourceOptions,
+): CodexProviderFileSearchSource {
   const normalizedOptions = normalizeSqliteFtsFileSearchOptions(options);
   return {
     name: normalizedOptions.name,
     type: 'sqlite-fts',
-    async search(request: CodexProviderRelayFileSearchSourceRequest): Promise<CodexProviderRelayFileSearchSourceResult> {
+    async search(request: CodexProviderFileSearchSourceRequest): Promise<CodexProviderFileSearchSourceResult> {
       const maxResults = request.maxResults;
       const includeContent = typeof request.includeContent === 'boolean'
         ? request.includeContent
@@ -67,7 +67,7 @@ export function createCodexProviderRelaySqliteFtsFileSearchSource(
         terms: request.terms,
       });
 
-      const results: CodexProviderRelayFileSearchSourceMatch[] = [];
+      const results: CodexProviderFileSearchSourceMatch[] = [];
       let scannedRows = 0;
       let skippedRows = 0;
       for (const row of Array.isArray(rows) ? rows : []) {
@@ -131,7 +131,7 @@ export function createCodexProviderRelaySqliteFtsFileSearchSource(
 }
 
 function normalizeSqliteFtsFileSearchOptions(
-  options: CodexProviderRelaySqliteFtsFileSearchSourceOptions,
+  options: CodexProviderSqliteFtsFileSearchSourceOptions,
 ): NormalizedSqliteFtsFileSearchOptions {
   const table = normalizeSqlIdentifier(options.table, 'sqlite-fts table');
   const query = normalizeSqliteFtsQuery(options);
@@ -161,8 +161,8 @@ function normalizeSqliteFtsFileSearchOptions(
 }
 
 function normalizeSqliteFtsQuery(
-  options: CodexProviderRelaySqliteFtsFileSearchSourceOptions,
-): CodexProviderRelaySqliteFtsQueryFunction {
+  options: CodexProviderSqliteFtsFileSearchSourceOptions,
+): CodexProviderSqliteFtsQueryFunction {
   if (typeof options.query === 'function') {
     return options.query;
   }

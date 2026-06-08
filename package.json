@@ -12,9 +12,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "codex-provider-server": "./dist/cli.js",
-    "codex-provider-relay-server": "./dist/cli.js",
-    "codex-gateway-server": "./dist/cli.js"
+    "codex-provider-server": "./dist/cli.js"
   },
   "files": [
     "dist",

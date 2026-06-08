@@ -1,16 +1,16 @@
 import type {
-  CodexProviderRelayFileSearchSource,
-  CodexProviderRelayFileSearchSourceRequest,
-  CodexProviderRelayFileSearchSourceResult,
-  CodexProviderRelayVectorStoreFileSearchSourceOptions,
+  CodexProviderFileSearchSource,
+  CodexProviderFileSearchSourceRequest,
+  CodexProviderFileSearchSourceResult,
+  CodexProviderVectorStoreFileSearchSourceOptions,
 } from '../types.js';
 import {
   normalizeString,
 } from '../shared.js';
 
-export function createCodexProviderRelayVectorStoreFileSearchSource(
-  options: CodexProviderRelayVectorStoreFileSearchSourceOptions,
-): CodexProviderRelayFileSearchSource {
+export function createCodexProviderVectorStoreFileSearchSource(
+  options: CodexProviderVectorStoreFileSearchSourceOptions,
+): CodexProviderFileSearchSource {
   const store = options.store;
   if (!store || typeof store.search !== 'function') {
     throw new Error('vector-store file_search source requires a store adapter with search().');
@@ -19,7 +19,7 @@ export function createCodexProviderRelayVectorStoreFileSearchSource(
   return {
     name,
     type: 'vector-store',
-    async search(request: CodexProviderRelayFileSearchSourceRequest): Promise<CodexProviderRelayFileSearchSourceResult> {
+    async search(request: CodexProviderFileSearchSourceRequest): Promise<CodexProviderFileSearchSourceResult> {
       await request.emitDelta?.('querying vector store adapter', {
         source: name,
         vectorStoreIds: request.vectorStoreIds,

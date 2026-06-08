@@ -1,35 +1,35 @@
 import type {
-  CodexProviderRelayHostedToolExecutionRequest,
-  CodexProviderRelayHostedToolExecutionResult,
-  CodexProviderRelayHostedToolExecutor,
+  CodexProviderHostedToolExecutionRequest,
+  CodexProviderHostedToolExecutionResult,
+  CodexProviderHostedToolExecutor,
   JsonRecord,
 } from './hosted_tool_executors.js';
 
-export type CodexProviderRelayWebSearchProvider =
+export type CodexProviderWebSearchProvider =
   | 'tavily'
   | 'brave'
   | 'serper';
 
-export type CodexProviderRelayWebSearchContextSize = 'low' | 'medium' | 'high';
+export type CodexProviderWebSearchContextSize = 'low' | 'medium' | 'high';
 
-export interface CodexProviderRelayWebSearchExecutorOptions {
-  provider?: CodexProviderRelayWebSearchProvider | null;
+export interface CodexProviderWebSearchExecutorOptions {
+  provider?: CodexProviderWebSearchProvider | null;
   apiKey?: string | null;
   endpoint?: string | null;
   fetchImpl?: typeof fetch;
   maxResults?: number | null;
   country?: string | null;
   language?: string | null;
-  sources?: CodexProviderRelayWebSearchSourceInput[] | null;
+  sources?: CodexProviderWebSearchSourceInput[] | null;
 }
 
-export type CodexProviderRelayWebSearchSourceInput =
-  | CodexProviderRelayWebSearchSource
-  | CodexProviderRelayProviderWebSearchSourceOptions;
+export type CodexProviderWebSearchSourceInput =
+  | CodexProviderWebSearchSource
+  | CodexProviderProviderWebSearchSourceOptions;
 
-export interface CodexProviderRelayProviderWebSearchSourceOptions {
+export interface CodexProviderProviderWebSearchSourceOptions {
   type?: 'provider' | null;
-  provider: CodexProviderRelayWebSearchProvider;
+  provider: CodexProviderWebSearchProvider;
   apiKey: string;
   endpoint?: string | null;
   fetchImpl?: typeof fetch;
@@ -38,41 +38,41 @@ export interface CodexProviderRelayProviderWebSearchSourceOptions {
   language?: string | null;
 }
 
-export interface CodexProviderRelayWebSearchSource {
+export interface CodexProviderWebSearchSource {
   name: string;
   type?: string | null;
   live?: boolean | null;
   search(
-    request: CodexProviderRelayWebSearchSourceRequest,
-  ): Promise<CodexProviderRelayWebSearchSourceResult> | CodexProviderRelayWebSearchSourceResult;
+    request: CodexProviderWebSearchSourceRequest,
+  ): Promise<CodexProviderWebSearchSourceResult> | CodexProviderWebSearchSourceResult;
 }
 
-export interface CodexProviderRelayWebSearchSourceRequest {
+export interface CodexProviderWebSearchSourceRequest {
   query: string;
   maxResults: number;
-  searchContextSize: CodexProviderRelayWebSearchContextSize;
+  searchContextSize: CodexProviderWebSearchContextSize;
   userLocation: JsonRecord | null;
-  filters: CodexProviderRelayWebSearchFilters | null;
+  filters: CodexProviderWebSearchFilters | null;
   externalWebAccess: boolean;
   returnTokenBudget: number | null;
-  toolRequest: CodexProviderRelayHostedToolExecutionRequest;
+  toolRequest: CodexProviderHostedToolExecutionRequest;
 }
 
-export interface CodexProviderRelayWebSearchFilters {
+export interface CodexProviderWebSearchFilters {
   allowedDomains: string[];
   blockedDomains: string[];
   raw: JsonRecord | null;
 }
 
-export interface CodexProviderRelayWebSearchSourceResult {
+export interface CodexProviderWebSearchSourceResult {
   answer?: string | null;
-  results: CodexProviderRelayWebSearchResult[];
-  sources?: CodexProviderRelayWebSearchSourceReference[] | null;
-  citations?: CodexProviderRelayWebSearchCitation[] | null;
+  results: CodexProviderWebSearchResult[];
+  sources?: CodexProviderWebSearchSourceReference[] | null;
+  citations?: CodexProviderWebSearchCitation[] | null;
   metadata?: JsonRecord | null;
 }
 
-export interface CodexProviderRelayWebSearchResult {
+export interface CodexProviderWebSearchResult {
   title: string;
   url: string;
   snippet: string;
@@ -81,14 +81,14 @@ export interface CodexProviderRelayWebSearchResult {
   score?: number | null;
 }
 
-export interface CodexProviderRelayWebSearchSourceReference {
+export interface CodexProviderWebSearchSourceReference {
   title?: string | null;
   url: string;
   source?: string | null;
   snippet?: string | null;
 }
 
-export interface CodexProviderRelayWebSearchCitation {
+export interface CodexProviderWebSearchCitation {
   type?: string | null;
   title?: string | null;
   url: string;
@@ -96,16 +96,16 @@ export interface CodexProviderRelayWebSearchCitation {
   end_index?: number | null;
 }
 
-export interface CodexProviderRelayWebSearchExecutorContent {
+export interface CodexProviderWebSearchExecutorContent {
   query: string;
   provider: string;
   answer?: string | null;
-  results: CodexProviderRelayWebSearchResult[];
-  sources?: CodexProviderRelayWebSearchSourceReference[];
-  citations?: CodexProviderRelayWebSearchCitation[];
+  results: CodexProviderWebSearchResult[];
+  sources?: CodexProviderWebSearchSourceReference[];
+  citations?: CodexProviderWebSearchCitation[];
   retrieved_at: string;
   external_web_access: boolean;
-  search_context_size: CodexProviderRelayWebSearchContextSize;
+  search_context_size: CodexProviderWebSearchContextSize;
   return_token_budget?: number | null;
 }
 
@@ -113,14 +113,14 @@ const DEFAULT_TAVILY_ENDPOINT = 'https://api.tavily.com/search';
 const DEFAULT_BRAVE_ENDPOINT = 'https://api.search.brave.com/res/v1/web/search';
 const DEFAULT_SERPER_ENDPOINT = 'https://google.serper.dev/search';
 
-export function createCodexProviderRelayWebSearchExecutor(
-  options: CodexProviderRelayWebSearchExecutorOptions,
-): CodexProviderRelayHostedToolExecutor {
+export function createCodexProviderWebSearchExecutor(
+  options: CodexProviderWebSearchExecutorOptions,
+): CodexProviderHostedToolExecutor {
   const sources = normalizeWebSearchSources(options);
   if (sources.length === 0) {
     throw new Error('web_search executor requires at least one source or provider API key.');
   }
-  return async (request: CodexProviderRelayHostedToolExecutionRequest): Promise<CodexProviderRelayHostedToolExecutionResult> => {
+  return async (request: CodexProviderHostedToolExecutionRequest): Promise<CodexProviderHostedToolExecutionResult> => {
     const normalizedRequest = normalizeWebSearchRequest(request, options.maxResults);
     if (!normalizedRequest.query) {
       throw new Error('web_search executor requires a non-empty query argument.');
@@ -132,9 +132,9 @@ export function createCodexProviderRelayWebSearchExecutor(
       throw new Error('web_search external_web_access=false requires a cache/offline source; live providers were not called.');
     }
 
-    const aggregatedResults: CodexProviderRelayWebSearchResult[] = [];
-    const aggregatedSources: CodexProviderRelayWebSearchSourceReference[] = [];
-    const aggregatedCitations: CodexProviderRelayWebSearchCitation[] = [];
+    const aggregatedResults: CodexProviderWebSearchResult[] = [];
+    const aggregatedSources: CodexProviderWebSearchSourceReference[] = [];
+    const aggregatedCitations: CodexProviderWebSearchCitation[] = [];
     const answers: string[] = [];
     for (const source of searchableSources) {
       const result = await source.search({
@@ -183,7 +183,7 @@ export function createCodexProviderRelayWebSearchExecutor(
         external_web_access: normalizedRequest.externalWebAccess,
         search_context_size: normalizedRequest.searchContextSize,
         return_token_budget: normalizedRequest.returnTokenBudget,
-      } satisfies CodexProviderRelayWebSearchExecutorContent,
+      } satisfies CodexProviderWebSearchExecutorContent,
       metadata: {
         provider: searchableSources.length === 1 ? searchableSources[0].name : 'multi-source',
         sourceCount: searchableSources.length,
@@ -196,9 +196,9 @@ export function createCodexProviderRelayWebSearchExecutor(
   };
 }
 
-export function createCodexProviderRelayProviderWebSearchSource(
-  options: CodexProviderRelayProviderWebSearchSourceOptions,
-): CodexProviderRelayWebSearchSource {
+export function createCodexProviderProviderWebSearchSource(
+  options: CodexProviderProviderWebSearchSourceOptions,
+): CodexProviderWebSearchSource {
   const provider = normalizeWebSearchProvider(options.provider);
   const apiKey = normalizeString(options.apiKey);
   if (!apiKey) {
@@ -261,8 +261,8 @@ async function executeTavilySearch({
   endpoint: string;
   fetchImpl: typeof fetch;
   maxResults: number;
-  request: CodexProviderRelayWebSearchSourceRequest;
-}): Promise<CodexProviderRelayWebSearchSourceResult> {
+  request: CodexProviderWebSearchSourceRequest;
+}): Promise<CodexProviderWebSearchSourceResult> {
   const response = await fetchJson(fetchImpl, endpoint, {
     method: 'POST',
     headers: {
@@ -310,10 +310,10 @@ async function executeBraveSearch({
   endpoint: string;
   fetchImpl: typeof fetch;
   maxResults: number;
-  request: CodexProviderRelayWebSearchSourceRequest;
+  request: CodexProviderWebSearchSourceRequest;
   country: string;
   language: string;
-}): Promise<CodexProviderRelayWebSearchSourceResult> {
+}): Promise<CodexProviderWebSearchSourceResult> {
   const url = new URL(endpoint);
   url.searchParams.set('q', request.query);
   url.searchParams.set('count', String(maxResults));
@@ -361,10 +361,10 @@ async function executeSerperSearch({
   endpoint: string;
   fetchImpl: typeof fetch;
   maxResults: number;
-  request: CodexProviderRelayWebSearchSourceRequest;
+  request: CodexProviderWebSearchSourceRequest;
   country: string;
   language: string;
-}): Promise<CodexProviderRelayWebSearchSourceResult> {
+}): Promise<CodexProviderWebSearchSourceResult> {
   const response = await fetchJson(fetchImpl, endpoint, {
     method: 'POST',
     headers: {
@@ -418,16 +418,16 @@ async function fetchJson(
 }
 
 function normalizeWebSearchSources(
-  options: CodexProviderRelayWebSearchExecutorOptions,
-): CodexProviderRelayWebSearchSource[] {
-  const sources: CodexProviderRelayWebSearchSource[] = [];
+  options: CodexProviderWebSearchExecutorOptions,
+): CodexProviderWebSearchSource[] {
+  const sources: CodexProviderWebSearchSource[] = [];
   if (Array.isArray(options.sources)) {
     for (const source of options.sources) {
       sources.push(normalizeWebSearchSource(source));
     }
   }
   if (normalizeString(options.provider) || normalizeString(options.apiKey)) {
-    sources.push(createCodexProviderRelayProviderWebSearchSource({
+    sources.push(createCodexProviderProviderWebSearchSource({
       provider: options.provider ?? 'tavily',
       apiKey: options.apiKey ?? '',
       endpoint: options.endpoint,
@@ -440,9 +440,9 @@ function normalizeWebSearchSources(
   return sources;
 }
 
-function normalizeWebSearchSource(source: CodexProviderRelayWebSearchSourceInput): CodexProviderRelayWebSearchSource {
-  if (source && typeof (source as CodexProviderRelayWebSearchSource).search === 'function') {
-    const adapter = source as CodexProviderRelayWebSearchSource;
+function normalizeWebSearchSource(source: CodexProviderWebSearchSourceInput): CodexProviderWebSearchSource {
+  if (source && typeof (source as CodexProviderWebSearchSource).search === 'function') {
+    const adapter = source as CodexProviderWebSearchSource;
     const name = normalizeString(adapter.name);
     if (!name) {
       throw new Error('web_search source adapters require a non-empty name.');
@@ -454,13 +454,13 @@ function normalizeWebSearchSource(source: CodexProviderRelayWebSearchSourceInput
       live: adapter.live !== false,
     };
   }
-  return createCodexProviderRelayProviderWebSearchSource(source as CodexProviderRelayProviderWebSearchSourceOptions);
+  return createCodexProviderProviderWebSearchSource(source as CodexProviderProviderWebSearchSourceOptions);
 }
 
 function normalizeWebSearchRequest(
-  request: CodexProviderRelayHostedToolExecutionRequest,
+  request: CodexProviderHostedToolExecutionRequest,
   fallbackMaxResults: unknown,
-): Omit<CodexProviderRelayWebSearchSourceRequest, 'toolRequest'> {
+): Omit<CodexProviderWebSearchSourceRequest, 'toolRequest'> {
   return {
     query: webSearchQueryFromRequest(request),
     maxResults: clampInteger(
@@ -477,7 +477,7 @@ function normalizeWebSearchRequest(
   };
 }
 
-function webSearchQueryFromRequest(request: CodexProviderRelayHostedToolExecutionRequest): string {
+function webSearchQueryFromRequest(request: CodexProviderHostedToolExecutionRequest): string {
   return firstNonEmptyString([
     request.arguments.query,
     request.arguments.q,
@@ -487,7 +487,7 @@ function webSearchQueryFromRequest(request: CodexProviderRelayHostedToolExecutio
   ]);
 }
 
-function normalizeSearchContextSize(value: unknown): CodexProviderRelayWebSearchContextSize {
+function normalizeSearchContextSize(value: unknown): CodexProviderWebSearchContextSize {
   const normalized = normalizeString(value).toLowerCase();
   if (normalized === 'low' || normalized === 'medium' || normalized === 'high') {
     return normalized;
@@ -496,7 +496,7 @@ function normalizeSearchContextSize(value: unknown): CodexProviderRelayWebSearch
 }
 
 function tavilySearchDepthFromContextSize(
-  contextSize: CodexProviderRelayWebSearchContextSize,
+  contextSize: CodexProviderWebSearchContextSize,
 ): 'basic' | 'advanced' | 'fast' {
   if (contextSize === 'high') {
     return 'advanced';
@@ -525,7 +525,7 @@ function normalizeUserLocation(value: unknown): JsonRecord | null {
   return Object.fromEntries(Object.entries(normalized).filter(([, entry]) => Boolean(entry)));
 }
 
-function normalizeWebSearchFilters(value: unknown): CodexProviderRelayWebSearchFilters | null {
+function normalizeWebSearchFilters(value: unknown): CodexProviderWebSearchFilters | null {
   if (!value || typeof value !== 'object') {
     return null;
   }
@@ -556,15 +556,15 @@ function normalizeDomainList(value: unknown): string[] {
 }
 
 function webSearchResultMatchesFilters(
-  result: CodexProviderRelayWebSearchResult,
-  filters: CodexProviderRelayWebSearchFilters | null,
+  result: CodexProviderWebSearchResult,
+  filters: CodexProviderWebSearchFilters | null,
 ): boolean {
   return webSearchUrlMatchesFilters(result.url, filters);
 }
 
 function webSearchUrlMatchesFilters(
   url: string,
-  filters: CodexProviderRelayWebSearchFilters | null,
+  filters: CodexProviderWebSearchFilters | null,
 ): boolean {
   if (!filters) {
     return true;
@@ -595,9 +595,9 @@ function hostnameFromUrl(value: string): string {
 }
 
 function normalizeWebSearchResult(
-  result: CodexProviderRelayWebSearchResult,
+  result: CodexProviderWebSearchResult,
   fallbackSource: string,
-): CodexProviderRelayWebSearchResult | null {
+): CodexProviderWebSearchResult | null {
   const url = normalizeString(result.url);
   if (!url) {
     return null;
@@ -613,9 +613,9 @@ function normalizeWebSearchResult(
 }
 
 function normalizeWebSearchSourceReference(
-  source: CodexProviderRelayWebSearchSourceReference,
+  source: CodexProviderWebSearchSourceReference,
   fallbackSource: string,
-): CodexProviderRelayWebSearchSourceReference | null {
+): CodexProviderWebSearchSourceReference | null {
   const url = normalizeString(source.url);
   if (!url) {
     return null;
@@ -629,8 +629,8 @@ function normalizeWebSearchSourceReference(
 }
 
 function normalizeWebSearchCitation(
-  citation: CodexProviderRelayWebSearchCitation,
-): CodexProviderRelayWebSearchCitation | null {
+  citation: CodexProviderWebSearchCitation,
+): CodexProviderWebSearchCitation | null {
   const url = normalizeString(citation.url);
   if (!url) {
     return null;
@@ -644,7 +644,7 @@ function normalizeWebSearchCitation(
   };
 }
 
-function resultToSourceReference(result: CodexProviderRelayWebSearchResult): CodexProviderRelayWebSearchSourceReference {
+function resultToSourceReference(result: CodexProviderWebSearchResult): CodexProviderWebSearchSourceReference {
   return {
     title: result.title,
     url: result.url,
@@ -653,7 +653,7 @@ function resultToSourceReference(result: CodexProviderRelayWebSearchResult): Cod
   };
 }
 
-function resultToCitation(result: CodexProviderRelayWebSearchResult): CodexProviderRelayWebSearchCitation {
+function resultToCitation(result: CodexProviderWebSearchResult): CodexProviderWebSearchCitation {
   return {
     type: 'url_citation',
     title: result.title,
@@ -662,10 +662,10 @@ function resultToCitation(result: CodexProviderRelayWebSearchResult): CodexProvi
 }
 
 function dedupeWebSearchSources(
-  sources: CodexProviderRelayWebSearchSourceReference[],
-): CodexProviderRelayWebSearchSourceReference[] {
+  sources: CodexProviderWebSearchSourceReference[],
+): CodexProviderWebSearchSourceReference[] {
   const seen = new Set<string>();
-  const deduped: CodexProviderRelayWebSearchSourceReference[] = [];
+  const deduped: CodexProviderWebSearchSourceReference[] = [];
   for (const source of sources) {
     const key = source.url;
     if (seen.has(key)) {
@@ -678,10 +678,10 @@ function dedupeWebSearchSources(
 }
 
 function dedupeWebSearchCitations(
-  citations: CodexProviderRelayWebSearchCitation[],
-): CodexProviderRelayWebSearchCitation[] {
+  citations: CodexProviderWebSearchCitation[],
+): CodexProviderWebSearchCitation[] {
   const seen = new Set<string>();
-  const deduped: CodexProviderRelayWebSearchCitation[] = [];
+  const deduped: CodexProviderWebSearchCitation[] = [];
   for (const citation of citations) {
     const key = `${citation.url}:${citation.start_index ?? ''}:${citation.end_index ?? ''}`;
     if (seen.has(key)) {
@@ -693,7 +693,7 @@ function dedupeWebSearchCitations(
   return deduped;
 }
 
-function defaultEndpointForWebSearchProvider(provider: CodexProviderRelayWebSearchProvider): string {
+function defaultEndpointForWebSearchProvider(provider: CodexProviderWebSearchProvider): string {
   switch (provider) {
     case 'tavily':
       return DEFAULT_TAVILY_ENDPOINT;
@@ -706,7 +706,7 @@ function defaultEndpointForWebSearchProvider(provider: CodexProviderRelayWebSear
   }
 }
 
-function normalizeWebSearchProvider(value: unknown): CodexProviderRelayWebSearchProvider {
+function normalizeWebSearchProvider(value: unknown): CodexProviderWebSearchProvider {
   const normalized = normalizeString(value).toLowerCase();
   if (normalized === 'tavily' || normalized === 'brave' || normalized === 'serper') {
     return normalized;

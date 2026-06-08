@@ -1,36 +1,36 @@
 import {
-  normalizeRelayBaseUrl,
+  normalizeProviderBaseUrl,
 } from './codex_config.js';
 import {
   authModeForProfileMode,
-  buildCodexProviderRelayProfile,
-  type CodexProviderRelayProfile,
-  type CodexProviderRelayProfileMode,
+  buildCodexProviderProfile,
+  type CodexProviderProfile,
+  type CodexProviderProfileMode,
 } from './profiles.js';
 import type {
-  CodexProviderRelayHostedToolDeclaration,
+  CodexProviderHostedToolDeclaration,
 } from './hosted_tools.js';
 import type {
-  CodexProviderRelayHostedToolExecutorRegistryInput,
+  CodexProviderHostedToolExecutorRegistryInput,
 } from './hosted_tool_executors.js';
 import type {
-  CodexProviderRelayAuthMode,
-  CodexProviderRelayConfig,
-  CodexProviderRelayToolStrategy,
-  CodexProviderRelayTomlPrimitive,
+  CodexProviderAuthMode,
+  CodexProviderConfig,
+  CodexProviderToolStrategy,
+  CodexProviderTomlPrimitive,
 } from './types.js';
 import {
   OpenAICompatibleResponsesAdapterServer,
   type OpenAICompatibleResponsesAdapterServerOptions,
 } from './server/responses_adapter_server.js';
 
-export interface CodexProviderRelayAdapterServer {
+export interface CodexProviderAdapterServer {
   readonly baseUrl: string;
   start(): Promise<void>;
   stop(): Promise<void>;
 }
 
-export type CodexProviderRelayAdapterServerOptions = {
+export type CodexProviderAdapterServerOptions = {
   apiKey: string;
   upstreamBaseUrl: string;
   defaultModel: string;
@@ -38,55 +38,55 @@ export type CodexProviderRelayAdapterServerOptions = {
   port?: number;
 } & OpenAICompatibleResponsesAdapterServerOptions & Record<string, unknown>;
 
-export type CodexProviderRelayAdapterServerFactory = (
-  options: CodexProviderRelayAdapterServerOptions,
-) => CodexProviderRelayAdapterServer;
+export type CodexProviderAdapterServerFactory = (
+  options: CodexProviderAdapterServerOptions,
+) => CodexProviderAdapterServer;
 
-export interface CodexProviderRelayRuntimeOptions {
+export interface CodexProviderRuntimeOptions {
   apiKey: string;
   upstreamBaseUrl: string;
   defaultModel: string;
   providerLabel: string;
   providerName?: string | null;
-  profileMode?: CodexProviderRelayProfileMode | null;
-  authMode?: CodexProviderRelayAuthMode | null;
+  profileMode?: CodexProviderProfileMode | null;
+  authMode?: CodexProviderAuthMode | null;
   experimentalBearerToken?: string | null;
   apiKeyEnv?: string | null;
   supportsWebsockets?: boolean | null;
-  toolStrategy?: CodexProviderRelayToolStrategy | null;
-  hostedTools?: CodexProviderRelayHostedToolDeclaration[] | null;
-  hostedToolExecutors?: CodexProviderRelayHostedToolExecutorRegistryInput;
+  toolStrategy?: CodexProviderToolStrategy | null;
+  hostedTools?: CodexProviderHostedToolDeclaration[] | null;
+  hostedToolExecutors?: CodexProviderHostedToolExecutorRegistryInput;
   maxHostedToolIterations?: number | null;
   emitHostedToolSseEvents?: boolean | null;
-  extraProviderFields?: Record<string, CodexProviderRelayTomlPrimitive | null | undefined> | null;
+  extraProviderFields?: Record<string, CodexProviderTomlPrimitive | null | undefined> | null;
   adapterHost?: string | null;
   adapterPort?: number | null;
   adapterOptions?: Record<string, unknown> | null;
-  adapterServerFactory?: CodexProviderRelayAdapterServerFactory | null;
+  adapterServerFactory?: CodexProviderAdapterServerFactory | null;
 }
 
-export interface CodexProviderRelayRuntimeState {
+export interface CodexProviderRuntimeState {
   adapterBaseUrl: string | null;
   codexBaseUrl: string;
   codexCliArgs: string[];
-  codexConfig: CodexProviderRelayConfig;
-  relayProfile: CodexProviderRelayProfile;
+  codexConfig: CodexProviderConfig;
+  profile: CodexProviderProfile;
 }
 
-export class CodexProviderRelayRuntime {
-  private readonly options: CodexProviderRelayRuntimeOptions;
+export class CodexProviderRuntime {
+  private readonly options: CodexProviderRuntimeOptions;
 
-  private adapterServer: CodexProviderRelayAdapterServer | null;
+  private adapterServer: CodexProviderAdapterServer | null;
 
-  private currentState: CodexProviderRelayRuntimeState | null;
+  private currentState: CodexProviderRuntimeState | null;
 
-  constructor(options: CodexProviderRelayRuntimeOptions) {
+  constructor(options: CodexProviderRuntimeOptions) {
     this.options = options;
     this.adapterServer = null;
     this.currentState = null;
   }
 
-  get state(): CodexProviderRelayRuntimeState | null {
+  get state(): CodexProviderRuntimeState | null {
     return this.currentState;
   }
 
@@ -94,42 +94,42 @@ export class CodexProviderRelayRuntime {
     return Boolean(this.adapterServer && this.currentState);
   }
 
-  async start(): Promise<CodexProviderRelayRuntimeState> {
+  async start(): Promise<CodexProviderRuntimeState> {
     if (this.adapterServer && this.currentState) {
       return this.currentState;
     }
     const profileMode = this.resolveProfileMode();
     const apiKey = normalizeString(this.options.apiKey);
     if (profileMode !== 'official' && !apiKey) {
-      throw new Error('Codex provider relay runtime requires an upstream API key.');
+      throw new Error('Codex provider runtime requires an upstream API key.');
     }
-    const upstreamBaseUrl = normalizeRelayBaseUrl(this.options.upstreamBaseUrl);
+    const upstreamBaseUrl = normalizeProviderBaseUrl(this.options.upstreamBaseUrl);
     const defaultModel = normalizeString(this.options.defaultModel);
     if (!defaultModel) {
-      throw new Error('Codex provider relay runtime requires a default model.');
+      throw new Error('Codex provider runtime requires a default model.');
     }
 
     if (profileMode === 'official') {
-      const relayProfile = this.buildRelayProfile({
+      const profile = this.buildProfile({
         profileMode,
         upstreamBaseUrl,
         protocolProxyPort: null,
         apiKey,
         defaultModel,
       });
-      const state: CodexProviderRelayRuntimeState = {
+      const state: CodexProviderRuntimeState = {
         adapterBaseUrl: null,
-        codexBaseUrl: relayProfile.codexBaseUrl,
-        codexCliArgs: relayProfile.codexCliArgs,
-        codexConfig: relayProfile.config,
-        relayProfile,
+        codexBaseUrl: profile.codexBaseUrl,
+        codexCliArgs: profile.codexCliArgs,
+        codexConfig: profile.config,
+        profile,
       };
       this.currentState = state;
       return state;
     }
 
     const adapterServerFactory = this.options.adapterServerFactory
-      ?? createDefaultCodexProviderRelayAdapterServer;
+      ?? createDefaultCodexProviderAdapterServer;
     const server = adapterServerFactory({
       ...normalizeAdapterOptions(this.options.adapterOptions),
       apiKey,
@@ -144,21 +144,21 @@ export class CodexProviderRelayRuntime {
     });
     await server.start();
 
-    const adapterBaseUrl = normalizeRelayBaseUrl(`${server.baseUrl}/v1`);
+    const adapterBaseUrl = normalizeProviderBaseUrl(`${server.baseUrl}/v1`);
     const protocolProxyPort = protocolProxyPortFromBaseUrl(adapterBaseUrl);
-    const relayProfile = this.buildRelayProfile({
+    const profile = this.buildProfile({
       profileMode,
       upstreamBaseUrl,
       protocolProxyPort,
       apiKey,
       defaultModel,
     });
-    const state: CodexProviderRelayRuntimeState = {
+    const state: CodexProviderRuntimeState = {
       adapterBaseUrl,
-      codexBaseUrl: relayProfile.codexBaseUrl,
-      codexCliArgs: relayProfile.codexCliArgs,
-      codexConfig: relayProfile.config,
-      relayProfile,
+      codexBaseUrl: profile.codexBaseUrl,
+      codexCliArgs: profile.codexCliArgs,
+      codexConfig: profile.config,
+      profile,
     };
 
     this.adapterServer = server;
@@ -173,21 +173,21 @@ export class CodexProviderRelayRuntime {
     await server?.stop?.();
   }
 
-  private buildRelayProfile({
+  private buildProfile({
     profileMode,
     upstreamBaseUrl,
     protocolProxyPort,
     apiKey,
     defaultModel,
   }: {
-    profileMode: CodexProviderRelayProfileMode;
+    profileMode: CodexProviderProfileMode;
     upstreamBaseUrl: string;
     protocolProxyPort: number | null;
     apiKey: string;
     defaultModel: string;
-  }): CodexProviderRelayProfile {
+  }): CodexProviderProfile {
     const authMode = authModeForProfileMode(profileMode);
-    return buildCodexProviderRelayProfile({
+    return buildCodexProviderProfile({
       mode: profileMode,
       providerLabel: this.options.providerLabel,
       providerName: normalizeString(this.options.providerName) || null,
@@ -205,13 +205,13 @@ export class CodexProviderRelayRuntime {
     });
   }
 
-  private resolveProfileMode(): CodexProviderRelayProfileMode {
+  private resolveProfileMode(): CodexProviderProfileMode {
     return this.options.profileMode
       ?? profileModeForAuthMode(this.options.authMode ?? 'codex-auth-compatible');
   }
 }
 
-function profileModeForAuthMode(authMode: CodexProviderRelayAuthMode): CodexProviderRelayProfileMode {
+function profileModeForAuthMode(authMode: CodexProviderAuthMode): CodexProviderProfileMode {
   return authMode === 'api-key-compatible' ? 'pure-api' : 'mixed';
 }
 
@@ -220,7 +220,7 @@ function normalizePort(value: number | null | undefined): number | undefined {
     return undefined;
   }
   if (!Number.isInteger(value) || value < 0 || value > 65535) {
-    throw new Error('Codex provider relay adapter port must be an integer from 0 to 65535.');
+    throw new Error('Codex provider adapter port must be an integer from 0 to 65535.');
   }
   return value;
 }
@@ -251,8 +251,8 @@ function normalizeString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function createDefaultCodexProviderRelayAdapterServer(
-  options: CodexProviderRelayAdapterServerOptions,
-): CodexProviderRelayAdapterServer {
+function createDefaultCodexProviderAdapterServer(
+  options: CodexProviderAdapterServerOptions,
+): CodexProviderAdapterServer {
   return new OpenAICompatibleResponsesAdapterServer(options);
 }

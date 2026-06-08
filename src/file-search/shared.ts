@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type {
-  CodexProviderRelayFileSearchChunk,
-  CodexProviderRelayFileSearchSourceMatch,
+  CodexProviderFileSearchChunk,
+  CodexProviderFileSearchSourceMatch,
   JsonRecord,
   LocalFileSearchRoot,
   NormalizedMemoryFileSearchDocument,
@@ -179,7 +179,7 @@ export function createFileSearchSourceMatchFromDocument({
   snippetLines: number;
   terms: string[];
   attributes?: JsonRecord | null;
-}): CodexProviderRelayFileSearchSourceMatch | null {
+}): CodexProviderFileSearchSourceMatch | null {
   if (score <= 0) {
     return null;
   }
@@ -220,9 +220,9 @@ export function contentChunksForTerms({
   content: string;
   terms: string[];
   snippetLines: number;
-}): CodexProviderRelayFileSearchChunk[] {
+}): CodexProviderFileSearchChunk[] {
   const lines = content.split(/\r?\n/u);
-  const chunks: CodexProviderRelayFileSearchChunk[] = [];
+  const chunks: CodexProviderFileSearchChunk[] = [];
   for (let index = 0; index < lines.length; index += 1) {
     const lowerLine = lines[index].toLowerCase();
     const hits = terms.filter((term) => lowerLine.includes(term)).length;

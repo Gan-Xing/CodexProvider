@@ -1,11 +1,11 @@
 import path from 'node:path';
 import type {
-  CodexProviderRelayFileSearchSource,
-  CodexProviderRelayFileSearchSourceMatch,
-  CodexProviderRelayFileSearchSourceRequest,
-  CodexProviderRelayFileSearchSourceResult,
-  CodexProviderRelayRemoteDocument,
-  CodexProviderRelayRemoteDocumentsFileSearchSourceOptions,
+  CodexProviderFileSearchSource,
+  CodexProviderFileSearchSourceMatch,
+  CodexProviderFileSearchSourceRequest,
+  CodexProviderFileSearchSourceResult,
+  CodexProviderRemoteDocument,
+  CodexProviderRemoteDocumentsFileSearchSourceOptions,
   NormalizedMemoryFileSearchDocument,
   NormalizedRemoteDocumentsFileSearchOptions,
 } from '../types.js';
@@ -21,14 +21,14 @@ import {
   stableFileSearchFileId,
 } from '../shared.js';
 
-export function createCodexProviderRelayRemoteDocumentsFileSearchSource(
-  options: CodexProviderRelayRemoteDocumentsFileSearchSourceOptions,
-): CodexProviderRelayFileSearchSource {
+export function createCodexProviderRemoteDocumentsFileSearchSource(
+  options: CodexProviderRemoteDocumentsFileSearchSourceOptions,
+): CodexProviderFileSearchSource {
   const normalizedOptions = normalizeRemoteDocumentsFileSearchOptions(options);
   return {
     name: normalizedOptions.name,
     type: 'remote-documents',
-    async search(request: CodexProviderRelayFileSearchSourceRequest): Promise<CodexProviderRelayFileSearchSourceResult> {
+    async search(request: CodexProviderFileSearchSourceRequest): Promise<CodexProviderFileSearchSourceResult> {
       const maxResults = request.maxResults;
       const includeContent = typeof request.includeContent === 'boolean'
         ? request.includeContent
@@ -51,7 +51,7 @@ export function createCodexProviderRelayRemoteDocumentsFileSearchSource(
         includeContent,
         toolRequest: request.toolRequest,
       });
-      const results: CodexProviderRelayFileSearchSourceMatch[] = [];
+      const results: CodexProviderFileSearchSourceMatch[] = [];
       let scannedDocuments = 0;
       let skippedDocuments = 0;
       for (const rawDocument of Array.isArray(documents) ? documents : []) {
@@ -118,7 +118,7 @@ export function createCodexProviderRelayRemoteDocumentsFileSearchSource(
 }
 
 function normalizeRemoteDocumentsFileSearchOptions(
-  options: CodexProviderRelayRemoteDocumentsFileSearchSourceOptions,
+  options: CodexProviderRemoteDocumentsFileSearchSourceOptions,
 ): NormalizedRemoteDocumentsFileSearchOptions {
   if (!options.query || typeof options.query !== 'function') {
     throw new Error('remote-documents file_search source requires a query function.');
@@ -135,7 +135,7 @@ function normalizeRemoteDocumentsFileSearchOptions(
   };
 }
 
-function normalizeRemoteDocument(document: CodexProviderRelayRemoteDocument): NormalizedMemoryFileSearchDocument | null {
+function normalizeRemoteDocument(document: CodexProviderRemoteDocument): NormalizedMemoryFileSearchDocument | null {
   if (!document || typeof document !== 'object') {
     return null;
   }
@@ -177,9 +177,9 @@ async function hydrateRemoteDocument({
   maxResults,
 }: {
   options: NormalizedRemoteDocumentsFileSearchOptions;
-  rawDocument: CodexProviderRelayRemoteDocument;
+  rawDocument: CodexProviderRemoteDocument;
   normalizedDocument: NormalizedMemoryFileSearchDocument;
-  request: CodexProviderRelayFileSearchSourceRequest;
+  request: CodexProviderFileSearchSourceRequest;
   includeContent: boolean;
   maxResults: number;
 }): Promise<NormalizedMemoryFileSearchDocument> {
@@ -224,12 +224,12 @@ function remoteDocumentToMatch({
   snippetLines,
 }: {
   document: NormalizedMemoryFileSearchDocument;
-  rawDocument: CodexProviderRelayRemoteDocument;
+  rawDocument: CodexProviderRemoteDocument;
   sourceName: string;
   terms: string[];
   includeContent: boolean;
   snippetLines: number;
-}): CodexProviderRelayFileSearchSourceMatch | null {
+}): CodexProviderFileSearchSourceMatch | null {
   const lexicalScore = lexicalScoreForText({
     title: document.title,
     path: document.path,

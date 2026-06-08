@@ -1,35 +1,35 @@
 import path from 'node:path';
 import type {
-  CodexProviderRelayFileSearchChunk,
-  CodexProviderRelayFileSearchExecutorContent,
-  CodexProviderRelayFileSearchExecutorOptions,
-  CodexProviderRelayFileSearchFilter,
-  CodexProviderRelayFileSearchRankingOptions,
-  CodexProviderRelayFileSearchResult,
-  CodexProviderRelayFileSearchSource,
-  CodexProviderRelayFileSearchSourceInput,
-  CodexProviderRelayFileSearchSourceMatch,
-  CodexProviderRelayHostedToolExecutionRequest,
-  CodexProviderRelayHostedToolExecutionResult,
-  CodexProviderRelayHostedToolExecutor,
-  CodexProviderRelayInMemoryVectorFileSearchSourceOptions,
-  CodexProviderRelayLocalFileSearchSourceOptions,
-  CodexProviderRelayLocalVectorFileSearchSourceOptions,
-  CodexProviderRelayMemoryFileSearchSourceOptions,
-  CodexProviderRelayRemoteDocumentsFileSearchSourceOptions,
-  CodexProviderRelaySqliteFtsFileSearchSourceOptions,
-  CodexProviderRelayVectorStoreFileSearchSourceOptions,
+  CodexProviderFileSearchChunk,
+  CodexProviderFileSearchExecutorContent,
+  CodexProviderFileSearchExecutorOptions,
+  CodexProviderFileSearchFilter,
+  CodexProviderFileSearchRankingOptions,
+  CodexProviderFileSearchResult,
+  CodexProviderFileSearchSource,
+  CodexProviderFileSearchSourceInput,
+  CodexProviderFileSearchSourceMatch,
+  CodexProviderHostedToolExecutionRequest,
+  CodexProviderHostedToolExecutionResult,
+  CodexProviderHostedToolExecutor,
+  CodexProviderInMemoryVectorFileSearchSourceOptions,
+  CodexProviderLocalFileSearchSourceOptions,
+  CodexProviderLocalVectorFileSearchSourceOptions,
+  CodexProviderMemoryFileSearchSourceOptions,
+  CodexProviderRemoteDocumentsFileSearchSourceOptions,
+  CodexProviderSqliteFtsFileSearchSourceOptions,
+  CodexProviderVectorStoreFileSearchSourceOptions,
   JsonRecord,
   NormalizedFileSearchOptions,
 } from './types.js';
 import {
-  createCodexProviderRelayInMemoryVectorFileSearchSource,
-  createCodexProviderRelayLocalFileSearchSource,
-  createCodexProviderRelayLocalVectorFileSearchSource,
-  createCodexProviderRelayMemoryFileSearchSource,
-  createCodexProviderRelayRemoteDocumentsFileSearchSource,
-  createCodexProviderRelaySqliteFtsFileSearchSource,
-  createCodexProviderRelayVectorStoreFileSearchSource,
+  createCodexProviderInMemoryVectorFileSearchSource,
+  createCodexProviderLocalFileSearchSource,
+  createCodexProviderLocalVectorFileSearchSource,
+  createCodexProviderMemoryFileSearchSource,
+  createCodexProviderRemoteDocumentsFileSearchSource,
+  createCodexProviderSqliteFtsFileSearchSource,
+  createCodexProviderVectorStoreFileSearchSource,
 } from './sources.js';
 import {
   clampInteger,
@@ -45,13 +45,13 @@ import {
   tokenizeQuery,
 } from './shared.js';
 
-export function createCodexProviderRelayFileSearchExecutor(
-  options: CodexProviderRelayFileSearchExecutorOptions,
-): CodexProviderRelayHostedToolExecutor {
+export function createCodexProviderFileSearchExecutor(
+  options: CodexProviderFileSearchExecutorOptions,
+): CodexProviderHostedToolExecutor {
   const normalizedOptions = normalizeFileSearchOptions(options);
   return async (
-    request: CodexProviderRelayHostedToolExecutionRequest,
-  ): Promise<CodexProviderRelayHostedToolExecutionResult> => {
+    request: CodexProviderHostedToolExecutionRequest,
+  ): Promise<CodexProviderHostedToolExecutionResult> => {
     const query = fileSearchQueryFromRequest(request);
     if (!query) {
       throw new Error('file_search executor requires a non-empty query argument.');
@@ -76,7 +76,7 @@ export function createCodexProviderRelayFileSearchExecutor(
       vectorStoreIds,
     });
 
-    const aggregatedResults: CodexProviderRelayFileSearchSourceMatch[] = [];
+    const aggregatedResults: CodexProviderFileSearchSourceMatch[] = [];
     let scannedFiles = 0;
     let skippedFiles = 0;
     for (const source of searchSources) {
@@ -138,7 +138,7 @@ export function createCodexProviderRelayFileSearchExecutor(
         sourceCount: searchSources.length,
         scannedFiles,
         skippedFiles,
-      } satisfies CodexProviderRelayFileSearchExecutorContent,
+      } satisfies CodexProviderFileSearchExecutorContent,
       metadata: {
         provider,
         sourceCount: searchSources.length,
@@ -152,7 +152,7 @@ export function createCodexProviderRelayFileSearchExecutor(
 
 
 function normalizeFileSearchOptions(
-  options: CodexProviderRelayFileSearchExecutorOptions,
+  options: CodexProviderFileSearchExecutorOptions,
 ): NormalizedFileSearchOptions {
   const sources = normalizeFileSearchSources(options);
   if (sources.length === 0) {
@@ -169,16 +169,16 @@ function normalizeFileSearchOptions(
 }
 
 function normalizeFileSearchSources(
-  options: CodexProviderRelayFileSearchExecutorOptions,
-): CodexProviderRelayFileSearchSource[] {
-  const sources: CodexProviderRelayFileSearchSource[] = [];
+  options: CodexProviderFileSearchExecutorOptions,
+): CodexProviderFileSearchSource[] {
+  const sources: CodexProviderFileSearchSource[] = [];
   if (Array.isArray(options.sources)) {
     for (const source of options.sources) {
       sources.push(normalizeFileSearchSource(source));
     }
   }
   if (Array.isArray(options.roots) && options.roots.length > 0) {
-    sources.push(createCodexProviderRelayLocalFileSearchSource({
+    sources.push(createCodexProviderLocalFileSearchSource({
       roots: options.roots,
       maxFilesScanned: options.maxFilesScanned,
       maxBytesPerFile: options.maxBytesPerFile,
@@ -193,10 +193,10 @@ function normalizeFileSearchSources(
 }
 
 function normalizeFileSearchSource(
-  source: CodexProviderRelayFileSearchSourceInput,
-): CodexProviderRelayFileSearchSource {
-  if (source && typeof (source as CodexProviderRelayFileSearchSource).search === 'function') {
-    const adapter = source as CodexProviderRelayFileSearchSource;
+  source: CodexProviderFileSearchSourceInput,
+): CodexProviderFileSearchSource {
+  if (source && typeof (source as CodexProviderFileSearchSource).search === 'function') {
+    const adapter = source as CodexProviderFileSearchSource;
     const name = normalizeString(adapter.name);
     if (!name) {
       throw new Error('file_search source adapters require a non-empty name.');
@@ -209,44 +209,44 @@ function normalizeFileSearchSource(
   }
   if (
     source
-    && Array.isArray((source as CodexProviderRelayLocalVectorFileSearchSourceOptions).roots)
-    && (source as CodexProviderRelayLocalVectorFileSearchSourceOptions).embeddingProvider
+    && Array.isArray((source as CodexProviderLocalVectorFileSearchSourceOptions).roots)
+    && (source as CodexProviderLocalVectorFileSearchSourceOptions).embeddingProvider
   ) {
-    return createCodexProviderRelayLocalVectorFileSearchSource(source as CodexProviderRelayLocalVectorFileSearchSourceOptions);
+    return createCodexProviderLocalVectorFileSearchSource(source as CodexProviderLocalVectorFileSearchSourceOptions);
   }
-  if (source && Array.isArray((source as CodexProviderRelayLocalFileSearchSourceOptions).roots)) {
-    return createCodexProviderRelayLocalFileSearchSource(source as CodexProviderRelayLocalFileSearchSourceOptions);
+  if (source && Array.isArray((source as CodexProviderLocalFileSearchSourceOptions).roots)) {
+    return createCodexProviderLocalFileSearchSource(source as CodexProviderLocalFileSearchSourceOptions);
   }
   if (
     source
-    && Array.isArray((source as CodexProviderRelayInMemoryVectorFileSearchSourceOptions).documents)
-    && (source as CodexProviderRelayInMemoryVectorFileSearchSourceOptions).embeddingProvider
+    && Array.isArray((source as CodexProviderInMemoryVectorFileSearchSourceOptions).documents)
+    && (source as CodexProviderInMemoryVectorFileSearchSourceOptions).embeddingProvider
   ) {
-    return createCodexProviderRelayInMemoryVectorFileSearchSource(source as CodexProviderRelayInMemoryVectorFileSearchSourceOptions);
+    return createCodexProviderInMemoryVectorFileSearchSource(source as CodexProviderInMemoryVectorFileSearchSourceOptions);
   }
   if (
     source
-    && normalizeString((source as CodexProviderRelayVectorStoreFileSearchSourceOptions).type) === 'vector-store'
+    && normalizeString((source as CodexProviderVectorStoreFileSearchSourceOptions).type) === 'vector-store'
   ) {
-    return createCodexProviderRelayVectorStoreFileSearchSource(source as CodexProviderRelayVectorStoreFileSearchSourceOptions);
+    return createCodexProviderVectorStoreFileSearchSource(source as CodexProviderVectorStoreFileSearchSourceOptions);
   }
   if (
     source
-    && normalizeString((source as CodexProviderRelayRemoteDocumentsFileSearchSourceOptions).type) === 'remote-documents'
+    && normalizeString((source as CodexProviderRemoteDocumentsFileSearchSourceOptions).type) === 'remote-documents'
   ) {
-    return createCodexProviderRelayRemoteDocumentsFileSearchSource(source as CodexProviderRelayRemoteDocumentsFileSearchSourceOptions);
+    return createCodexProviderRemoteDocumentsFileSearchSource(source as CodexProviderRemoteDocumentsFileSearchSourceOptions);
   }
-  if (source && Array.isArray((source as CodexProviderRelayMemoryFileSearchSourceOptions).documents)) {
-    return createCodexProviderRelayMemoryFileSearchSource(source as CodexProviderRelayMemoryFileSearchSourceOptions);
+  if (source && Array.isArray((source as CodexProviderMemoryFileSearchSourceOptions).documents)) {
+    return createCodexProviderMemoryFileSearchSource(source as CodexProviderMemoryFileSearchSourceOptions);
   }
-  if (source && normalizeString((source as CodexProviderRelaySqliteFtsFileSearchSourceOptions).table)) {
-    return createCodexProviderRelaySqliteFtsFileSearchSource(source as CodexProviderRelaySqliteFtsFileSearchSourceOptions);
+  if (source && normalizeString((source as CodexProviderSqliteFtsFileSearchSourceOptions).table)) {
+    return createCodexProviderSqliteFtsFileSearchSource(source as CodexProviderSqliteFtsFileSearchSourceOptions);
   }
   throw new Error('file_search sources must be source adapters, local-fs source options, local-vector source options, memory-documents source options, sqlite-fts source options, in-memory-vector source options, vector-store source options, or remote-documents source options.');
 }
 
 
-function fileSearchQueryFromRequest(request: CodexProviderRelayHostedToolExecutionRequest): string {
+function fileSearchQueryFromRequest(request: CodexProviderHostedToolExecutionRequest): string {
   return firstNonEmptyString([
     request.arguments.query,
     request.arguments.q,
@@ -257,7 +257,7 @@ function fileSearchQueryFromRequest(request: CodexProviderRelayHostedToolExecuti
 }
 
 function fileSearchMaxResultsFromRequest(
-  request: CodexProviderRelayHostedToolExecutionRequest,
+  request: CodexProviderHostedToolExecutionRequest,
   fallback: number,
 ): number {
   return clampInteger(
@@ -269,9 +269,9 @@ function fileSearchMaxResultsFromRequest(
 }
 
 function selectFileSearchSources(
-  sources: CodexProviderRelayFileSearchSource[],
+  sources: CodexProviderFileSearchSource[],
   vectorStoreIds: string[],
-): CodexProviderRelayFileSearchSource[] {
+): CodexProviderFileSearchSource[] {
   if (vectorStoreIds.length === 0) {
     return sources;
   }
@@ -279,7 +279,7 @@ function selectFileSearchSources(
   return sources.filter((source) => allowed.has(source.name.toLowerCase()));
 }
 
-function normalizeFileSearchRankingOptions(value: unknown): CodexProviderRelayFileSearchRankingOptions {
+function normalizeFileSearchRankingOptions(value: unknown): CodexProviderFileSearchRankingOptions {
   const record = value && typeof value === 'object' ? value as JsonRecord : {};
   const hybridSearch = record.hybrid_search && typeof record.hybrid_search === 'object'
     ? record.hybrid_search as JsonRecord
@@ -306,14 +306,14 @@ function normalizeFileSearchRankingOptions(value: unknown): CodexProviderRelayFi
   };
 }
 
-function normalizeFileSearchFilter(value: unknown): CodexProviderRelayFileSearchFilter | null {
+function normalizeFileSearchFilter(value: unknown): CodexProviderFileSearchFilter | null {
   if (!value || typeof value !== 'object') {
     return null;
   }
   const record = value as JsonRecord;
   const type = normalizeString(record.type).toLowerCase();
   if ((type === 'and' || type === 'or') && Array.isArray(record.filters)) {
-    const filters = record.filters.map(normalizeFileSearchFilter).filter(Boolean) as CodexProviderRelayFileSearchFilter[];
+    const filters = record.filters.map(normalizeFileSearchFilter).filter(Boolean) as CodexProviderFileSearchFilter[];
     return filters.length > 0 ? { type, filters } : null;
   }
   if (['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin'].includes(type)) {
@@ -332,8 +332,8 @@ function normalizeFileSearchFilter(value: unknown): CodexProviderRelayFileSearch
 }
 
 function fileSearchResultMatchesFilter(
-  result: CodexProviderRelayFileSearchSourceMatch,
-  filter: CodexProviderRelayFileSearchFilter | null,
+  result: CodexProviderFileSearchSourceMatch,
+  filter: CodexProviderFileSearchFilter | null,
 ): boolean {
   if (!filter) {
     return true;
@@ -344,7 +344,7 @@ function fileSearchResultMatchesFilter(
   if (filter.type === 'or') {
     return filter.filters.some((entry) => fileSearchResultMatchesFilter(result, entry));
   }
-  const comparisonFilter = filter as Extract<CodexProviderRelayFileSearchFilter, { value: unknown }>;
+  const comparisonFilter = filter as Extract<CodexProviderFileSearchFilter, { value: unknown }>;
   const key = normalizeString(comparisonFilter.key ?? comparisonFilter.property);
   const actual = fileSearchResultAttributeValue(result, key);
   switch (comparisonFilter.type) {
@@ -383,7 +383,7 @@ function filterValueMatches(actual: unknown, expected: unknown): boolean {
   return compareFilterValues(actual, expected) === 0;
 }
 
-function fileSearchResultAttributeValue(result: CodexProviderRelayFileSearchSourceMatch, key: string): unknown {
+function fileSearchResultAttributeValue(result: CodexProviderFileSearchSourceMatch, key: string): unknown {
   const attributes = result.attributes && typeof result.attributes === 'object'
     ? result.attributes
     : {};
@@ -419,9 +419,9 @@ function compareFilterValues(left: unknown, right: unknown): number {
 }
 
 function applyFileSearchRankingOptions(
-  results: CodexProviderRelayFileSearchSourceMatch[],
-  rankingOptions: CodexProviderRelayFileSearchRankingOptions,
-): CodexProviderRelayFileSearchSourceMatch[] {
+  results: CodexProviderFileSearchSourceMatch[],
+  rankingOptions: CodexProviderFileSearchRankingOptions,
+): CodexProviderFileSearchSourceMatch[] {
   if (rankingOptions.scoreThreshold <= 0 || results.length === 0) {
     return results;
   }
@@ -433,23 +433,23 @@ function applyFileSearchRankingOptions(
 }
 
 function toOpenAIFileSearchResult(
-  result: CodexProviderRelayFileSearchSourceMatch,
-  rankedResults: CodexProviderRelayFileSearchSourceMatch[],
-): CodexProviderRelayFileSearchResult {
+  result: CodexProviderFileSearchSourceMatch,
+  rankedResults: CodexProviderFileSearchSourceMatch[],
+): CodexProviderFileSearchResult {
   return {
     file_id: normalizeString(result.file_id) || stableFileSearchFileId(result.source ?? 'file_search', result.path),
     filename: normalizeString(result.filename) || path.basename(result.path) || result.title,
     score: normalizeOpenAIFileSearchScore(result, rankedResults),
     attributes: normalizeFileSearchAttributes(result.attributes),
     content: Array.isArray(result.content)
-      ? result.content.map(normalizeFileSearchChunk).filter(Boolean) as CodexProviderRelayFileSearchChunk[]
+      ? result.content.map(normalizeFileSearchChunk).filter(Boolean) as CodexProviderFileSearchChunk[]
       : [],
   };
 }
 
 function normalizeOpenAIFileSearchScore(
-  result: CodexProviderRelayFileSearchSourceMatch,
-  rankedResults: CodexProviderRelayFileSearchSourceMatch[],
+  result: CodexProviderFileSearchSourceMatch,
+  rankedResults: CodexProviderFileSearchSourceMatch[],
 ): number {
   const maxScore = Math.max(...rankedResults.map((entry) => entry.score), 0);
   if (maxScore <= 0) {
@@ -458,7 +458,7 @@ function normalizeOpenAIFileSearchScore(
   return Math.max(0, Math.min(1, Number((result.score / maxScore).toFixed(6))));
 }
 
-function normalizeFileSearchChunk(value: CodexProviderRelayFileSearchChunk): CodexProviderRelayFileSearchChunk | null {
+function normalizeFileSearchChunk(value: CodexProviderFileSearchChunk): CodexProviderFileSearchChunk | null {
   if (!value || typeof value !== 'object') {
     return null;
   }
@@ -476,22 +476,22 @@ function normalizeFileSearchChunk(value: CodexProviderRelayFileSearchChunk): Cod
 }
 
 
-function normalizeSourceType(source: CodexProviderRelayFileSearchSource): string {
+function normalizeSourceType(source: CodexProviderFileSearchSource): string {
   return normalizeString(source.type) || 'custom';
 }
 
 function normalizeFileSearchResult(
-  result: CodexProviderRelayFileSearchSourceMatch,
-  source: CodexProviderRelayFileSearchSource,
+  result: CodexProviderFileSearchSourceMatch,
+  source: CodexProviderFileSearchSource,
   sourceType: string,
-): CodexProviderRelayFileSearchSourceMatch {
+): CodexProviderFileSearchSourceMatch {
   const normalizedPath = normalizeString(result.path) || normalizeString(result.title);
   const normalizedTitle = normalizeString(result.title) || normalizedPath || source.name;
   const filename = normalizeString(result.filename) || path.basename(normalizedPath) || normalizedTitle;
   const sourceName = normalizeString(result.source) || source.name;
   const normalizedSourceType = normalizeString(result.sourceType) || sourceType;
   const content = Array.isArray(result.content)
-    ? result.content.map(normalizeFileSearchChunk).filter(Boolean) as CodexProviderRelayFileSearchChunk[]
+    ? result.content.map(normalizeFileSearchChunk).filter(Boolean) as CodexProviderFileSearchChunk[]
     : [];
   const attributes = normalizeFileSearchAttributes({
     ...(result.attributes && typeof result.attributes === 'object' ? result.attributes : {}),
@@ -517,11 +517,11 @@ function normalizeFileSearchResult(
 }
 
 function limitResultsByPayload(
-  results: CodexProviderRelayFileSearchSourceMatch[],
+  results: CodexProviderFileSearchSourceMatch[],
   maxResults: number,
   maxPayloadBytes: number,
-): CodexProviderRelayFileSearchSourceMatch[] {
-  const limited: CodexProviderRelayFileSearchSourceMatch[] = [];
+): CodexProviderFileSearchSourceMatch[] {
+  const limited: CodexProviderFileSearchSourceMatch[] = [];
   let payloadBytes = 0;
   for (const result of results) {
     if (limited.length >= maxResults) {

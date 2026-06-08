@@ -1,49 +1,49 @@
-export type CodexProviderRelayAuthMode =
+export type CodexProviderAuthMode =
   | 'codex-auth-compatible'
   | 'api-key-compatible';
 
-export type CodexProviderRelayProtocol =
+export type CodexProviderProtocol =
   | 'responses'
   | 'chat-completions';
 
-export type CodexProviderRelayToolStrategy =
+export type CodexProviderToolStrategy =
   | 'codex-local-first'
   | 'provider-native'
-  | 'relay-emulated';
+  | 'adapter-emulated';
 
-export type CodexProviderRelayTomlPrimitive = string | number | boolean;
+export type CodexProviderTomlPrimitive = string | number | boolean;
 
-export interface CodexProviderRelayTokenSource {
+export interface CodexProviderTokenSource {
   experimentalBearerToken?: string | null;
   apiKeyEnv?: string | null;
 }
 
-export interface BuildCodexProviderRelayConfigInput extends CodexProviderRelayTokenSource {
+export interface BuildCodexProviderConfigInput extends CodexProviderTokenSource {
   providerLabel: string;
-  relayBaseUrl: string;
+  upstreamBaseUrl: string;
   defaultModel: string;
   providerName?: string | null;
-  authMode?: CodexProviderRelayAuthMode | null;
-  relayProtocol?: CodexProviderRelayProtocol | null;
+  authMode?: CodexProviderAuthMode | null;
+  providerProtocol?: CodexProviderProtocol | null;
   protocolProxyPort?: number | null;
   supportsWebsockets?: boolean | null;
-  toolStrategy?: CodexProviderRelayToolStrategy | null;
-  extraProviderFields?: Record<string, CodexProviderRelayTomlPrimitive | null | undefined> | null;
+  toolStrategy?: CodexProviderToolStrategy | null;
+  extraProviderFields?: Record<string, CodexProviderTomlPrimitive | null | undefined> | null;
 }
 
-export interface CodexProviderRelayConfigEntry {
+export interface CodexProviderConfigEntry {
   key: string;
-  value: CodexProviderRelayTomlPrimitive;
+  value: CodexProviderTomlPrimitive;
 }
 
-export interface CodexProviderRelayConfig {
+export interface CodexProviderConfig {
   providerLabel: string;
   providerName: string;
-  authMode: CodexProviderRelayAuthMode;
-  relayProtocol: CodexProviderRelayProtocol;
+  authMode: CodexProviderAuthMode;
+  providerProtocol: CodexProviderProtocol;
   upstreamBaseUrl: string;
   codexBaseUrl: string;
   protocolProxyPort: number;
-  toolStrategy: CodexProviderRelayToolStrategy;
-  entries: CodexProviderRelayConfigEntry[];
+  toolStrategy: CodexProviderToolStrategy;
+  entries: CodexProviderConfigEntry[];
 }

@@ -1,32 +1,34 @@
-# Codex Provider Relay file_search / Local Vector Index Handoff
+# Codex Provider file_search / Local Vector Index Handoff
+
+Archived historical naming record. This handoff preserves old repository and API names for audit context and should not be treated as current API guidance.
 
 ## 背景
 
 仓库：Gan-Xing/CodexBridge
-目标包：`packages/codex-provider-relay`
+目标包：`packages/codex-provider`
 
-当前方向是让 `file_search` 在 relay-emulated hosted tool 模式下支持本地项目文件检索，并且保持 package 可独立复用，不能依赖 CodexBridge / CodexNext 的宿主状态。
+当前方向是让 `file_search` 在 adapter-emulated hosted tool 模式下支持本地项目文件检索，并且保持 package 可独立复用，不能依赖 CodexBridge / CodexNext 的宿主状态。
 
-核心目标不是“马上接 Qdrant / LanceDB / pgvector”，而是先把本地向量索引链路稳定下来，使后续 SQLite / 外部向量库都只是替换 store 或 adapter，不改变上层 `CodexProviderRelayFileSearchSource` API。
+核心目标不是“马上接 Qdrant / LanceDB / pgvector”，而是先把本地向量索引链路稳定下来，使后续 SQLite / 外部向量库都只是替换 store 或 adapter，不改变上层 `CodexProviderFileSearchSource` API。
 
 ## 当前已实现状态
 
 当前代码已经不再是旧的单文件实现，已经拆成：
 
-- `packages/codex-provider-relay/src/file-search/types.ts`
-- `packages/codex-provider-relay/src/file-search/executor.ts`
-- `packages/codex-provider-relay/src/file-search/embeddings.ts`
-- `packages/codex-provider-relay/src/file-search/stores.ts`
-- `packages/codex-provider-relay/src/file-search/shared.ts`
-- `packages/codex-provider-relay/src/file-search/sources/local-vector.ts`
-- `packages/codex-provider-relay/src/file-search/sources/local-fs.ts`
-- `packages/codex-provider-relay/src/file-search/sources/memory.ts`
-- `packages/codex-provider-relay/src/file-search/sources/sqlite-fts.ts`
-- `packages/codex-provider-relay/src/file-search/sources/in-memory-vector.ts`
+- `packages/codex-provider/src/file-search/types.ts`
+- `packages/codex-provider/src/file-search/executor.ts`
+- `packages/codex-provider/src/file-search/embeddings.ts`
+- `packages/codex-provider/src/file-search/stores.ts`
+- `packages/codex-provider/src/file-search/shared.ts`
+- `packages/codex-provider/src/file-search/sources/local-vector.ts`
+- `packages/codex-provider/src/file-search/sources/local-fs.ts`
+- `packages/codex-provider/src/file-search/sources/memory.ts`
+- `packages/codex-provider/src/file-search/sources/sqlite-fts.ts`
+- `packages/codex-provider/src/file-search/sources/in-memory-vector.ts`
 
 已经存在的关键能力：
 
-1. `CodexProviderRelayLocalVectorFileSearchSourceOptions`
+1. `CodexProviderLocalVectorFileSearchSourceOptions`
    - 支持 `roots`
    - 支持 `embeddingProvider`
    - 支持 `indexStore`
@@ -34,15 +36,15 @@
    - 支持 `vectorWeight / textWeight`
    - 支持 `embeddingBatchSize`
 
-2. `CodexProviderRelayLocalVectorIndexStore`
+2. `CodexProviderLocalVectorIndexStore`
    - 已有 `getDocument`
    - 已有 `upsertDocument`
    - 已有 `listChunks`
    - 可选 `deleteDocuments`
 
 3. Store 实现
-   - `createCodexProviderRelayMemoryLocalVectorIndexStore`
-   - `createCodexProviderRelaySqliteLocalVectorIndexStore`
+   - `createCodexProviderMemoryLocalVectorIndexStore`
+   - `createCodexProviderSqliteLocalVectorIndexStore`
 
 4. Local vector source
    - 显式 roots 扫描
@@ -88,7 +90,7 @@
 
 不要直接接 Qdrant。
 不要大改 public API。
-不要让 `codex-provider-relay` 引入 sqlite driver、qdrant client、lancedb、pgvector 依赖。
+不要让 `codex-provider` 引入 sqlite driver、qdrant client、lancedb、pgvector 依赖。
 
 本轮目标是：
 
@@ -100,7 +102,7 @@
 
 新增文件建议：
 
-- `packages/codex-provider-relay/src/file-search/local-vector-index.ts`
+- `packages/codex-provider/src/file-search/local-vector-index.ts`
 
 把 `sources/local-vector.ts` 里的以下逻辑抽出来：
 
@@ -112,7 +114,7 @@
 - query embedding
 - chunk scoring / grouping
 
-`createCodexProviderRelayLocalVectorFileSearchSource()` 只保留 source wrapper，调用内部 `LocalVectorIndex.search()`。
+`createCodexProviderLocalVectorFileSearchSource()` 只保留 source wrapper，调用内部 `LocalVectorIndex.search()`。
 
 不要破坏已有 public exports。
 `LocalVectorIndex` 可以先不从 root public export，避免过早承诺 API。
@@ -242,7 +244,7 @@ RRF 最低实现：
 
 ### 任务 7：SQLite store 只做持久化 cache，不要现在做 ANN
 
-`createCodexProviderRelaySqliteLocalVectorIndexStore()` 当前把 embedding JSON 存在 chunks 表里，这适合作为持久化 cache。
+`createCodexProviderSqliteLocalVectorIndexStore()` 当前把 embedding JSON 存在 chunks 表里，这适合作为持久化 cache。
 
 本轮不要引入 sqlite-vec。
 本轮不要引入 sqlite driver。
@@ -298,15 +300,15 @@ RRF 最低实现：
 在仓库根目录运行：
 
 ```bash
-pnpm --filter @codexbridge/codex-provider-relay test
-pnpm --filter @codexbridge/codex-provider-relay typecheck
-pnpm --filter @codexbridge/codex-provider-relay build
+pnpm --filter @codexbridge/codex-provider test
+pnpm --filter @codexbridge/codex-provider typecheck
+pnpm --filter @codexbridge/codex-provider build
 ```
 
 如果当前 workspace 没有 filter 脚本，则进入包目录：
 
 ```bash
-cd packages/codex-provider-relay
+cd packages/codex-provider
 pnpm test
 pnpm typecheck
 pnpm build
@@ -314,24 +316,24 @@ pnpm build
 
 ## AI 执行提示词
 
-你是负责维护 `packages/codex-provider-relay` 的 TypeScript 工程师。请基于当前仓库实现，完成 local-vector file_search 的架构稳定化工作。
+你是负责维护 `packages/codex-provider` 的 TypeScript 工程师。请基于当前仓库实现，完成 local-vector file_search 的架构稳定化工作。
 
 必须先阅读这些文件：
 
-- `packages/codex-provider-relay/src/file-search/types.ts`
-- `packages/codex-provider-relay/src/file-search/executor.ts`
-- `packages/codex-provider-relay/src/file-search/sources/local-vector.ts`
-- `packages/codex-provider-relay/src/file-search/sources/local-shared.ts`
-- `packages/codex-provider-relay/src/file-search/stores.ts`
-- `packages/codex-provider-relay/src/file-search/shared.ts`
-- `packages/codex-provider-relay/src/file-search/embeddings.ts`
-- `packages/codex-provider-relay/test/file_search_executor.test.ts`
-- `packages/codex-provider-relay/src/index.ts`
+- `packages/codex-provider/src/file-search/types.ts`
+- `packages/codex-provider/src/file-search/executor.ts`
+- `packages/codex-provider/src/file-search/sources/local-vector.ts`
+- `packages/codex-provider/src/file-search/sources/local-shared.ts`
+- `packages/codex-provider/src/file-search/stores.ts`
+- `packages/codex-provider/src/file-search/shared.ts`
+- `packages/codex-provider/src/file-search/embeddings.ts`
+- `packages/codex-provider/test/file_search_executor.test.ts`
+- `packages/codex-provider/src/index.ts`
 
 请完成：
 
 1. 把 `local-vector.ts` 中的索引/搜索编排逻辑抽到内部 `local-vector-index.ts`。
-2. 扩展 `CodexProviderRelayLocalVectorIndexStore`，新增可选 `listDocuments` 和 `searchChunks`，并保持现有 store 兼容。
+2. 扩展 `CodexProviderLocalVectorIndexStore`，新增可选 `listDocuments` 和 `searchChunks`，并保持现有 store 兼容。
 3. memory store 和 sqlite store 实现 `listDocuments`。
 4. LocalVectorIndex 优先调用 `searchChunks`，否则 fallback 到 `listChunks + in-process cosine`。
 5. cache fingerprint 增加 chunking config、index version、embedding dimensions、content hash 信息。

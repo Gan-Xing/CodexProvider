@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  createCodexProviderRelayComputerExecutor,
-  type CodexProviderRelayComputerExecutorContent,
+  createCodexProviderComputerExecutor,
+  type CodexProviderComputerExecutorContent,
 } from '../src/index.js';
 
 function baseRequest(argumentsValue: Record<string, any>) {
   return {
     toolName: 'computer' as const,
-    relayToolName: 'relay_computer',
+    emulatedToolName: 'adapter_computer',
     callId: 'call_computer_1',
     arguments: argumentsValue,
     rawArguments: JSON.stringify(argumentsValue),
@@ -20,7 +20,7 @@ function baseRequest(argumentsValue: Record<string, any>) {
 
 test('computer executor sends normalized actions and display to provider', async () => {
   const seen: any[] = [];
-  const executor = createCodexProviderRelayComputerExecutor({
+  const executor = createCodexProviderComputerExecutor({
     async execute(request) {
       seen.push(JSON.parse(JSON.stringify({
         actions: request.actions,
@@ -61,7 +61,7 @@ test('computer executor sends normalized actions and display to provider', async
       environment: 'browser',
     },
   }));
-  const content = result.content as CodexProviderRelayComputerExecutorContent;
+  const content = result.content as CodexProviderComputerExecutorContent;
 
   assert.deepEqual(seen[0], {
     actions: [{
@@ -95,7 +95,7 @@ test('computer executor sends normalized actions and display to provider', async
 
 test('computer executor supports single action object arguments', async () => {
   const seen: any[] = [];
-  const executor = createCodexProviderRelayComputerExecutor({
+  const executor = createCodexProviderComputerExecutor({
     execute(request) {
       seen.push(request.actions);
       return {
@@ -118,5 +118,5 @@ test('computer executor supports single action object arguments', async () => {
 });
 
 test('computer executor requires an explicit sandbox provider', () => {
-  assert.throws(() => createCodexProviderRelayComputerExecutor({} as any), /requires an explicit/u);
+  assert.throws(() => createCodexProviderComputerExecutor({} as any), /requires an explicit/u);
 });

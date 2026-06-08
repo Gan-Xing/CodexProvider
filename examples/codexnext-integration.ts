@@ -3,7 +3,7 @@ import {
   type CodexProviderRuntimeState,
 } from '@codex-provider/core';
 
-export interface CodexNextRelayOptions {
+export interface CodexNextProviderOptions {
   apiKey: string;
   upstreamBaseUrl: string;
   model: string;
@@ -12,8 +12,8 @@ export interface CodexNextRelayOptions {
   adapterPort?: number | null;
 }
 
-export async function startCodexNextRelay(
-  options: CodexNextRelayOptions,
+export async function startCodexNextProvider(
+  options: CodexNextProviderOptions,
 ): Promise<CodexProviderRuntimeState> {
   const runtime = new CodexProviderRuntime({
     apiKey: options.apiKey,

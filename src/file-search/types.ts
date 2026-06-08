@@ -1,22 +1,22 @@
 import type {
-  CodexProviderRelayHostedToolDeltaEmitter,
-  CodexProviderRelayHostedToolExecutionRequest,
-  CodexProviderRelayHostedToolExecutionResult,
-  CodexProviderRelayHostedToolExecutor,
+  CodexProviderHostedToolDeltaEmitter,
+  CodexProviderHostedToolExecutionRequest,
+  CodexProviderHostedToolExecutionResult,
+  CodexProviderHostedToolExecutor,
   JsonRecord,
 } from '../hosted_tool_executors.js';
 
 export type {
-  CodexProviderRelayHostedToolDeltaEmitter,
-  CodexProviderRelayHostedToolExecutionRequest,
-  CodexProviderRelayHostedToolExecutionResult,
-  CodexProviderRelayHostedToolExecutor,
+  CodexProviderHostedToolDeltaEmitter,
+  CodexProviderHostedToolExecutionRequest,
+  CodexProviderHostedToolExecutionResult,
+  CodexProviderHostedToolExecutor,
   JsonRecord,
 } from '../hosted_tool_executors.js';
 
-export interface CodexProviderRelayFileSearchExecutorOptions {
+export interface CodexProviderFileSearchExecutorOptions {
   roots?: string[] | null;
-  sources?: CodexProviderRelayFileSearchSourceInput[] | null;
+  sources?: CodexProviderFileSearchSourceInput[] | null;
   maxResults?: number | null;
   maxFilesScanned?: number | null;
   maxBytesPerFile?: number | null;
@@ -28,112 +28,112 @@ export interface CodexProviderRelayFileSearchExecutorOptions {
   ignoreExtensions?: string[] | null;
 }
 
-export type CodexProviderRelayFileSearchSourceInput =
-  | CodexProviderRelayFileSearchSource
-  | CodexProviderRelayLocalFileSearchSourceOptions
-  | CodexProviderRelayLocalVectorFileSearchSourceOptions
-  | CodexProviderRelayMemoryFileSearchSourceOptions
-  | CodexProviderRelaySqliteFtsFileSearchSourceOptions
-  | CodexProviderRelayInMemoryVectorFileSearchSourceOptions
-  | CodexProviderRelayVectorStoreFileSearchSourceOptions
-  | CodexProviderRelayRemoteDocumentsFileSearchSourceOptions;
+export type CodexProviderFileSearchSourceInput =
+  | CodexProviderFileSearchSource
+  | CodexProviderLocalFileSearchSourceOptions
+  | CodexProviderLocalVectorFileSearchSourceOptions
+  | CodexProviderMemoryFileSearchSourceOptions
+  | CodexProviderSqliteFtsFileSearchSourceOptions
+  | CodexProviderInMemoryVectorFileSearchSourceOptions
+  | CodexProviderVectorStoreFileSearchSourceOptions
+  | CodexProviderRemoteDocumentsFileSearchSourceOptions;
 
-export interface CodexProviderRelayFileSearchSource {
+export interface CodexProviderFileSearchSource {
   name: string;
   type?: string | null;
   search(
-    request: CodexProviderRelayFileSearchSourceRequest,
-  ): Promise<CodexProviderRelayFileSearchSourceResult> | CodexProviderRelayFileSearchSourceResult;
+    request: CodexProviderFileSearchSourceRequest,
+  ): Promise<CodexProviderFileSearchSourceResult> | CodexProviderFileSearchSourceResult;
 }
 
-export interface CodexProviderRelayFileSearchSourceRequest {
+export interface CodexProviderFileSearchSourceRequest {
   query: string;
   terms: string[];
   pathGlob: string;
   vectorStoreIds: string[];
-  filters: CodexProviderRelayFileSearchFilter | null;
-  rankingOptions: CodexProviderRelayFileSearchRankingOptions;
+  filters: CodexProviderFileSearchFilter | null;
+  rankingOptions: CodexProviderFileSearchRankingOptions;
   maxResults: number;
   maxBytesPerFile: number;
   maxPayloadBytes: number;
   snippetLines: number;
   includeContent: boolean | null;
-  emitDelta?: CodexProviderRelayHostedToolDeltaEmitter | null;
-  toolRequest: CodexProviderRelayHostedToolExecutionRequest;
+  emitDelta?: CodexProviderHostedToolDeltaEmitter | null;
+  toolRequest: CodexProviderHostedToolExecutionRequest;
 }
 
-export interface CodexProviderRelayFileSearchSourceResult {
-  results: CodexProviderRelayFileSearchSourceMatch[];
+export interface CodexProviderFileSearchSourceResult {
+  results: CodexProviderFileSearchSourceMatch[];
   scannedFiles?: number | null;
   skippedFiles?: number | null;
   metadata?: JsonRecord | null;
 }
 
-export interface CodexProviderRelayVectorStoreFileSearchSourceOptions {
+export interface CodexProviderVectorStoreFileSearchSourceOptions {
   type?: 'vector-store' | null;
   name?: string | null;
-  store: CodexProviderRelayVectorStoreAdapter;
+  store: CodexProviderVectorStoreAdapter;
 }
 
-export interface CodexProviderRelayVectorStoreAdapter {
+export interface CodexProviderVectorStoreAdapter {
   search(
-    request: CodexProviderRelayVectorStoreSearchRequest,
-  ): Promise<CodexProviderRelayFileSearchSourceResult> | CodexProviderRelayFileSearchSourceResult;
+    request: CodexProviderVectorStoreSearchRequest,
+  ): Promise<CodexProviderFileSearchSourceResult> | CodexProviderFileSearchSourceResult;
 }
 
-export interface CodexProviderRelayVectorStoreSearchRequest {
+export interface CodexProviderVectorStoreSearchRequest {
   sourceName: string;
   query: string;
   terms: string[];
   pathGlob: string;
   vectorStoreIds: string[];
-  filters: CodexProviderRelayFileSearchFilter | null;
-  rankingOptions: CodexProviderRelayFileSearchRankingOptions;
+  filters: CodexProviderFileSearchFilter | null;
+  rankingOptions: CodexProviderFileSearchRankingOptions;
   maxResults: number;
   maxBytesPerFile: number;
   maxPayloadBytes: number;
   snippetLines: number;
   includeContent: boolean | null;
-  toolRequest: CodexProviderRelayHostedToolExecutionRequest;
+  toolRequest: CodexProviderHostedToolExecutionRequest;
 }
 
-export interface CodexProviderRelayRemoteDocumentsFileSearchSourceOptions {
+export interface CodexProviderRemoteDocumentsFileSearchSourceOptions {
   type?: 'remote-documents' | null;
   name?: string | null;
-  query: CodexProviderRelayRemoteDocumentsQueryFunction;
-  fetchDocument?: CodexProviderRelayRemoteDocumentsFetchFunction | null;
+  query: CodexProviderRemoteDocumentsQueryFunction;
+  fetchDocument?: CodexProviderRemoteDocumentsFetchFunction | null;
   maxDocumentsScanned?: number | null;
   maxBytesPerDocument?: number | null;
   snippetLines?: number | null;
   includeContent?: boolean | null;
 }
 
-export type CodexProviderRelayRemoteDocumentsQueryFunction = (
-  request: CodexProviderRelayRemoteDocumentsQueryRequest,
-) => Promise<CodexProviderRelayRemoteDocument[]> | CodexProviderRelayRemoteDocument[];
+export type CodexProviderRemoteDocumentsQueryFunction = (
+  request: CodexProviderRemoteDocumentsQueryRequest,
+) => Promise<CodexProviderRemoteDocument[]> | CodexProviderRemoteDocument[];
 
-export type CodexProviderRelayRemoteDocumentsFetchFunction = (
-  request: CodexProviderRelayRemoteDocumentsFetchRequest,
-) => Promise<string | CodexProviderRelayRemoteDocument | null> | string | CodexProviderRelayRemoteDocument | null;
+export type CodexProviderRemoteDocumentsFetchFunction = (
+  request: CodexProviderRemoteDocumentsFetchRequest,
+) => Promise<string | CodexProviderRemoteDocument | null> | string | CodexProviderRemoteDocument | null;
 
-export interface CodexProviderRelayRemoteDocumentsQueryRequest {
+export interface CodexProviderRemoteDocumentsQueryRequest {
   sourceName: string;
   query: string;
   terms: string[];
   pathGlob: string;
   vectorStoreIds: string[];
-  filters: CodexProviderRelayFileSearchFilter | null;
-  rankingOptions: CodexProviderRelayFileSearchRankingOptions;
+  filters: CodexProviderFileSearchFilter | null;
+  rankingOptions: CodexProviderFileSearchRankingOptions;
   maxResults: number;
   includeContent: boolean | null;
-  toolRequest: CodexProviderRelayHostedToolExecutionRequest;
+  toolRequest: CodexProviderHostedToolExecutionRequest;
 }
 
-export interface CodexProviderRelayRemoteDocumentsFetchRequest extends CodexProviderRelayRemoteDocumentsQueryRequest {
-  document: CodexProviderRelayRemoteDocument;
+export interface CodexProviderRemoteDocumentsFetchRequest extends CodexProviderRemoteDocumentsQueryRequest {
+  document: CodexProviderRemoteDocument;
 }
 
-export interface CodexProviderRelayRemoteDocument {
+export interface CodexProviderRemoteDocument {
   id: string;
   title?: string | null;
   uri?: string | null;
@@ -144,7 +144,7 @@ export interface CodexProviderRelayRemoteDocument {
   metadata?: JsonRecord | null;
 }
 
-export interface CodexProviderRelayLocalFileSearchSourceOptions {
+export interface CodexProviderLocalFileSearchSourceOptions {
   type?: 'local-fs' | null;
   name?: string | null;
   roots: string[];
@@ -157,17 +157,17 @@ export interface CodexProviderRelayLocalFileSearchSourceOptions {
   ignoreExtensions?: string[] | null;
 }
 
-export interface CodexProviderRelayMemoryFileSearchSourceOptions {
+export interface CodexProviderMemoryFileSearchSourceOptions {
   type?: 'memory-documents' | null;
   name?: string | null;
-  documents: CodexProviderRelayMemoryFileSearchDocument[];
+  documents: CodexProviderMemoryFileSearchDocument[];
   maxDocumentsScanned?: number | null;
   maxBytesPerDocument?: number | null;
   snippetLines?: number | null;
   includeContent?: boolean | null;
 }
 
-export interface CodexProviderRelayMemoryFileSearchDocument {
+export interface CodexProviderMemoryFileSearchDocument {
   id: string;
   title?: string | null;
   uri?: string | null;
@@ -176,13 +176,13 @@ export interface CodexProviderRelayMemoryFileSearchDocument {
   metadata?: JsonRecord | null;
 }
 
-export interface CodexProviderRelaySqliteFtsFileSearchSourceOptions {
+export interface CodexProviderSqliteFtsFileSearchSourceOptions {
   type?: 'sqlite-fts' | null;
   name?: string | null;
   table: string;
-  database?: CodexProviderRelaySqliteFtsDatabase | null;
-  query?: CodexProviderRelaySqliteFtsQueryFunction | null;
-  columns?: CodexProviderRelaySqliteFtsColumns | null;
+  database?: CodexProviderSqliteFtsDatabase | null;
+  query?: CodexProviderSqliteFtsQueryFunction | null;
+  columns?: CodexProviderSqliteFtsColumns | null;
   metadataColumns?: string[] | null;
   maxRows?: number | null;
   maxBytesPerDocument?: number | null;
@@ -190,15 +190,15 @@ export interface CodexProviderRelaySqliteFtsFileSearchSourceOptions {
   includeContent?: boolean | null;
 }
 
-export interface CodexProviderRelaySqliteFtsDatabase {
+export interface CodexProviderSqliteFtsDatabase {
   all(sql: string, params: unknown[]): Promise<JsonRecord[]> | JsonRecord[];
 }
 
-export type CodexProviderRelaySqliteFtsQueryFunction = (
-  request: CodexProviderRelaySqliteFtsQueryRequest,
+export type CodexProviderSqliteFtsQueryFunction = (
+  request: CodexProviderSqliteFtsQueryRequest,
 ) => Promise<JsonRecord[]> | JsonRecord[];
 
-export interface CodexProviderRelaySqliteFtsQueryRequest {
+export interface CodexProviderSqliteFtsQueryRequest {
   sql: string;
   params: unknown[];
   query: string;
@@ -208,7 +208,7 @@ export interface CodexProviderRelaySqliteFtsQueryRequest {
   terms: string[];
 }
 
-export interface CodexProviderRelaySqliteFtsColumns {
+export interface CodexProviderSqliteFtsColumns {
   id?: string | null;
   title?: string | null;
   uri?: string | null;
@@ -217,60 +217,60 @@ export interface CodexProviderRelaySqliteFtsColumns {
   score?: string | null;
 }
 
-export interface CodexProviderRelayEmbeddingProvider {
+export interface CodexProviderEmbeddingProvider {
   model: string;
   embed(
     input: string[],
-    options?: CodexProviderRelayEmbeddingProviderEmbedOptions,
-  ): Promise<CodexProviderRelayEmbeddingProviderResult> | CodexProviderRelayEmbeddingProviderResult;
+    options?: CodexProviderEmbeddingProviderEmbedOptions,
+  ): Promise<CodexProviderEmbeddingProviderResult> | CodexProviderEmbeddingProviderResult;
 }
 
-export interface CodexProviderRelayEmbeddingProviderEmbedOptions {
+export interface CodexProviderEmbeddingProviderEmbedOptions {
   signal?: AbortSignal | null;
 }
 
-export interface CodexProviderRelayEmbeddingProviderResult {
+export interface CodexProviderEmbeddingProviderResult {
   model: string;
   embeddings: number[][];
   dimensions?: number | null;
 }
 
-export type CodexProviderRelayEmbeddingsApiResponseParser = (body: JsonRecord) => number[][];
+export type CodexProviderEmbeddingsApiResponseParser = (body: JsonRecord) => number[][];
 
-export interface CodexProviderRelayEmbeddingsApiProviderOptions {
+export interface CodexProviderEmbeddingsApiProviderOptions {
   apiKey?: string | null;
   model?: string | null;
   endpoint?: string | null;
   fetchImpl?: typeof fetch;
   headers?: Record<string, string> | null;
   requestBody?: JsonRecord | null;
-  responseParser?: CodexProviderRelayEmbeddingsApiResponseParser | null;
+  responseParser?: CodexProviderEmbeddingsApiResponseParser | null;
 }
 
-export interface CodexProviderRelayOpenRouterEmbeddingProviderOptions
-  extends Omit<CodexProviderRelayEmbeddingsApiProviderOptions, 'endpoint' | 'model'> {
+export interface CodexProviderOpenRouterEmbeddingProviderOptions
+  extends Omit<CodexProviderEmbeddingsApiProviderOptions, 'endpoint' | 'model'> {
   model?: string | null;
   endpoint?: string | null;
 }
 
-export interface CodexProviderRelayLocalVectorChunkingOptions {
+export interface CodexProviderLocalVectorChunkingOptions {
   maxChars?: number | null;
   overlapChars?: number | null;
   maxChunksPerFile?: number | null;
 }
 
-export interface CodexProviderRelayLocalVectorFileSearchSourceOptions
-  extends Omit<CodexProviderRelayLocalFileSearchSourceOptions, 'type'> {
+export interface CodexProviderLocalVectorFileSearchSourceOptions
+  extends Omit<CodexProviderLocalFileSearchSourceOptions, 'type'> {
   type?: 'local-vector' | null;
-  embeddingProvider: CodexProviderRelayEmbeddingProvider;
-  indexStore?: CodexProviderRelayLocalVectorIndexStore | null;
-  chunking?: CodexProviderRelayLocalVectorChunkingOptions | null;
+  embeddingProvider: CodexProviderEmbeddingProvider;
+  indexStore?: CodexProviderLocalVectorIndexStore | null;
+  chunking?: CodexProviderLocalVectorChunkingOptions | null;
   vectorWeight?: number | null;
   textWeight?: number | null;
   embeddingBatchSize?: number | null;
 }
 
-export interface CodexProviderRelayLocalVectorIndexDocument {
+export interface CodexProviderLocalVectorIndexDocument {
   id: string;
   sourceName: string;
   root: string;
@@ -291,7 +291,7 @@ export interface CodexProviderRelayLocalVectorIndexDocument {
   updatedAt: string;
 }
 
-export interface CodexProviderRelayLocalVectorIndexChunk {
+export interface CodexProviderLocalVectorIndexChunk {
   id: string;
   documentId: string;
   sourceName: string;
@@ -308,64 +308,64 @@ export interface CodexProviderRelayLocalVectorIndexChunk {
   metadata?: JsonRecord | null;
 }
 
-export interface CodexProviderRelayLocalVectorIndexSearchChunksRequest {
+export interface CodexProviderLocalVectorIndexSearchChunksRequest {
   sourceName: string;
   query: string;
   terms: string[];
   pathGlob: string;
   queryEmbedding: number[];
   maxResults: number;
-  rankingOptions: CodexProviderRelayFileSearchRankingOptions;
+  rankingOptions: CodexProviderFileSearchRankingOptions;
 }
 
-export interface CodexProviderRelayLocalVectorIndexStore {
+export interface CodexProviderLocalVectorIndexStore {
   getDocument(
     id: string,
-  ): Promise<CodexProviderRelayLocalVectorIndexDocument | null> | CodexProviderRelayLocalVectorIndexDocument | null;
+  ): Promise<CodexProviderLocalVectorIndexDocument | null> | CodexProviderLocalVectorIndexDocument | null;
   upsertDocument(
-    document: CodexProviderRelayLocalVectorIndexDocument,
-    chunks: CodexProviderRelayLocalVectorIndexChunk[],
+    document: CodexProviderLocalVectorIndexDocument,
+    chunks: CodexProviderLocalVectorIndexChunk[],
   ): Promise<void> | void;
   listChunks(
     sourceName: string,
-  ): Promise<CodexProviderRelayLocalVectorIndexChunk[]> | CodexProviderRelayLocalVectorIndexChunk[];
+  ): Promise<CodexProviderLocalVectorIndexChunk[]> | CodexProviderLocalVectorIndexChunk[];
   listDocuments?(
     sourceName: string,
-  ): Promise<CodexProviderRelayLocalVectorIndexDocument[]> | CodexProviderRelayLocalVectorIndexDocument[];
+  ): Promise<CodexProviderLocalVectorIndexDocument[]> | CodexProviderLocalVectorIndexDocument[];
   searchChunks?(
-    request: CodexProviderRelayLocalVectorIndexSearchChunksRequest,
-  ): Promise<CodexProviderRelayLocalVectorIndexChunk[]> | CodexProviderRelayLocalVectorIndexChunk[];
+    request: CodexProviderLocalVectorIndexSearchChunksRequest,
+  ): Promise<CodexProviderLocalVectorIndexChunk[]> | CodexProviderLocalVectorIndexChunk[];
   deleteDocuments?(ids: string[]): Promise<void> | void;
   deleteStaleDocuments?(sourceName: string, liveDocumentIds: string[]): Promise<string[]> | string[];
 }
 
-export interface CodexProviderRelaySqliteLocalVectorIndexStoreDatabase {
+export interface CodexProviderSqliteLocalVectorIndexStoreDatabase {
   all(sql: string, params?: unknown[]): Promise<JsonRecord[]> | JsonRecord[];
   run(sql: string, params?: unknown[]): Promise<unknown> | unknown;
 }
 
-export interface CodexProviderRelaySqliteLocalVectorIndexStoreQueryRequest {
+export interface CodexProviderSqliteLocalVectorIndexStoreQueryRequest {
   operation: 'all' | 'run';
   sql: string;
   params: unknown[];
 }
 
-export type CodexProviderRelaySqliteLocalVectorIndexStoreQueryFunction = (
-  request: CodexProviderRelaySqliteLocalVectorIndexStoreQueryRequest,
+export type CodexProviderSqliteLocalVectorIndexStoreQueryFunction = (
+  request: CodexProviderSqliteLocalVectorIndexStoreQueryRequest,
 ) => Promise<unknown> | unknown;
 
-export interface CodexProviderRelaySqliteLocalVectorIndexStoreOptions {
-  database?: CodexProviderRelaySqliteLocalVectorIndexStoreDatabase | null;
-  query?: CodexProviderRelaySqliteLocalVectorIndexStoreQueryFunction | null;
+export interface CodexProviderSqliteLocalVectorIndexStoreOptions {
+  database?: CodexProviderSqliteLocalVectorIndexStoreDatabase | null;
+  query?: CodexProviderSqliteLocalVectorIndexStoreQueryFunction | null;
   tablePrefix?: string | null;
   initializeSchema?: boolean | null;
 }
 
-export interface CodexProviderRelayInMemoryVectorFileSearchSourceOptions {
+export interface CodexProviderInMemoryVectorFileSearchSourceOptions {
   type?: 'in-memory-vector' | null;
   name?: string | null;
-  documents: CodexProviderRelayMemoryFileSearchDocument[];
-  embeddingProvider: CodexProviderRelayEmbeddingProvider;
+  documents: CodexProviderMemoryFileSearchDocument[];
+  embeddingProvider: CodexProviderEmbeddingProvider;
   maxDocumentsScanned?: number | null;
   maxBytesPerDocument?: number | null;
   snippetLines?: number | null;
@@ -374,7 +374,7 @@ export interface CodexProviderRelayInMemoryVectorFileSearchSourceOptions {
   textWeight?: number | null;
 }
 
-export interface CodexProviderRelayFileSearchSourceMatch {
+export interface CodexProviderFileSearchSourceMatch {
   file_id?: string | null;
   filename?: string | null;
   title: string;
@@ -385,10 +385,10 @@ export interface CodexProviderRelayFileSearchSourceMatch {
   sourceType?: string | null;
   score: number;
   attributes?: JsonRecord | null;
-  content?: CodexProviderRelayFileSearchChunk[] | null;
+  content?: CodexProviderFileSearchChunk[] | null;
 }
 
-export interface CodexProviderRelayFileSearchDocument {
+export interface CodexProviderFileSearchDocument {
   file_id: string;
   filename: string;
   title: string;
@@ -400,7 +400,7 @@ export interface CodexProviderRelayFileSearchDocument {
   attributes: JsonRecord;
 }
 
-export interface CodexProviderRelayFileSearchChunk {
+export interface CodexProviderFileSearchChunk {
   type: 'text';
   text: string;
   line?: number | null;
@@ -408,18 +408,18 @@ export interface CodexProviderRelayFileSearchChunk {
   end_line?: number | null;
 }
 
-export interface CodexProviderRelayFileSearchResult {
+export interface CodexProviderFileSearchResult {
   file_id: string;
   filename: string;
   score: number;
   attributes: JsonRecord;
-  content: CodexProviderRelayFileSearchChunk[];
+  content: CodexProviderFileSearchChunk[];
 }
 
-export type CodexProviderRelayFileSearchFilter =
+export type CodexProviderFileSearchFilter =
   | {
     type: 'and' | 'or';
-    filters: CodexProviderRelayFileSearchFilter[];
+    filters: CodexProviderFileSearchFilter[];
   }
   | {
     type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'nin';
@@ -428,7 +428,7 @@ export type CodexProviderRelayFileSearchFilter =
     value: unknown;
   };
 
-export interface CodexProviderRelayFileSearchRankingOptions {
+export interface CodexProviderFileSearchRankingOptions {
   ranker: string;
   scoreThreshold: number;
   hybridSearch: {
@@ -437,24 +437,24 @@ export interface CodexProviderRelayFileSearchRankingOptions {
   } | null;
 }
 
-export interface CodexProviderRelayFileSearchExecutorContent {
+export interface CodexProviderFileSearchExecutorContent {
   object: 'vector_store.search_results.page';
   query: string;
   search_query: string;
   provider: string;
-  data: CodexProviderRelayFileSearchResult[];
-  search_results: CodexProviderRelayFileSearchResult[];
+  data: CodexProviderFileSearchResult[];
+  search_results: CodexProviderFileSearchResult[];
   has_more: boolean;
   next_page: string | null;
   vector_store_ids: string[];
-  ranking_options: CodexProviderRelayFileSearchRankingOptions;
+  ranking_options: CodexProviderFileSearchRankingOptions;
   sourceCount: number;
   scannedFiles: number;
   skippedFiles: number;
 }
 
 export interface NormalizedFileSearchOptions {
-  sources: CodexProviderRelayFileSearchSource[];
+  sources: CodexProviderFileSearchSource[];
   maxResults: number;
   maxBytesPerFile: number;
   maxPayloadBytes: number;
@@ -465,8 +465,8 @@ export interface NormalizedFileSearchOptions {
 export interface NormalizedRemoteDocumentsFileSearchOptions {
   name: string;
   type: 'remote-documents';
-  query: CodexProviderRelayRemoteDocumentsQueryFunction;
-  fetchDocument: CodexProviderRelayRemoteDocumentsFetchFunction | null;
+  query: CodexProviderRemoteDocumentsQueryFunction;
+  fetchDocument: CodexProviderRemoteDocumentsFetchFunction | null;
   maxDocumentsScanned: number;
   maxBytesPerDocument: number;
   snippetLines: number;
@@ -510,8 +510,8 @@ export interface NormalizedSqliteFtsFileSearchOptions {
   type: 'sqlite-fts';
   table: string;
   tableMatchTarget: string;
-  query: CodexProviderRelaySqliteFtsQueryFunction;
-  columns: Required<CodexProviderRelaySqliteFtsColumns>;
+  query: CodexProviderSqliteFtsQueryFunction;
+  columns: Required<CodexProviderSqliteFtsColumns>;
   metadataColumns: string[];
   maxRows: number;
   maxBytesPerDocument: number;
@@ -523,7 +523,7 @@ export interface NormalizedInMemoryVectorFileSearchOptions {
   name: string;
   type: 'in-memory-vector';
   documents: NormalizedMemoryFileSearchDocument[];
-  embeddingProvider: CodexProviderRelayEmbeddingProvider;
+  embeddingProvider: CodexProviderEmbeddingProvider;
   maxDocumentsScanned: number;
   maxBytesPerDocument: number;
   snippetLines: number;
@@ -536,8 +536,8 @@ export interface NormalizedLocalVectorFileSearchOptions {
   local: NormalizedLocalFileSearchOptions;
   name: string;
   type: 'local-vector';
-  embeddingProvider: CodexProviderRelayEmbeddingProvider;
-  indexStore: CodexProviderRelayLocalVectorIndexStore;
+  embeddingProvider: CodexProviderEmbeddingProvider;
+  indexStore: CodexProviderLocalVectorIndexStore;
   chunking: NormalizedLocalVectorChunkingOptions;
   vectorWeight: number;
   textWeight: number;

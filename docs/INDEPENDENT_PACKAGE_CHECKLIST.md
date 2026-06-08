@@ -6,13 +6,13 @@
 
 - [x] `private: true` is retained while the API is still stabilizing.
 - [x] Root `exports` exposes only the stable root entrypoint and `./package.json`.
-- [x] Historical `CodexGateway*` server/trace names remain available as deprecated aliases.
-- [x] Formal `CodexProviderRelay*` server/trace names are exported from the root entrypoint.
+- [x] Historical `CodexProvider*` server/trace names remain available as deprecated aliases.
+- [x] Formal `CodexProvider*` server/trace names are exported from the root entrypoint.
 - [x] Formal `CodexProvider*` public API aliases are exported from the root entrypoint.
 - [x] Package metadata uses `@codex-provider/core` and `0.1.0-alpha.0` while retaining `private: true`.
-- [x] New `codex-provider:*` root scripts exist and legacy `codex-provider-relay:*` scripts remain.
+- [x] New `codex-provider:*` root scripts exist and legacy `codex-provider:*` scripts remain.
 - [x] Built-in hosted tools require explicit declarations.
-- [x] Relay-emulated hosted tools require explicit executors.
+- [x] Adapter-emulated hosted tools require explicit executors.
 - [x] Unsafe tools have no default executor.
 - [x] No sqlite driver, vector database driver, browser controller, shell sandbox, or image provider dependency is bundled.
 - [x] Examples live outside `src` and do not pull host-app session/UI logic into the package.
@@ -33,7 +33,7 @@ The package owns:
 - Responses-to-Chat and Chat-to-Responses protocol conversion.
 - Local Responses adapter runtime.
 - Explicit hosted tool declaration and executor registry.
-- Built-in relay-emulated executor contracts.
+- Built-in adapter-emulated executor contracts.
 - Search, file-search, image-generation, code-interpreter, and computer-use adapter interfaces.
 
 The package does not own:

@@ -30,10 +30,10 @@ This file records redacted live smoke evidence for `@codex-provider/core`.
 | Smoke | Status | Notes |
 | --- | --- | --- |
 | Mixed runtime | Passed | `POST /v1/responses` returned a Responses-shaped object with one output item. Latency: 1128 ms. |
-| Custom tool loop | Passed | Forced `relay_echo` produced a `function_call`, then accepted `function_call_output` and returned a final answer. Latencies: 2441 ms + 782 ms. |
-| Relay-emulated file_search, memory source | Passed | `include: ["file_search_call.results"]` exposed a completed `file_search_call`; first result filename: `smoke.md`. Latency: 6413 ms. |
+| Custom tool loop | Passed | Forced `adapter_echo` produced a `function_call`, then accepted `function_call_output` and returned a final answer. Latencies: 2441 ms + 782 ms. |
+| Adapter-emulated file_search, memory source | Passed | `include: ["file_search_call.results"]` exposed a completed `file_search_call`; first result filename: `smoke.md`. Latency: 6413 ms. |
 | Local-vector file_search direct executor | Passed | Local-vector source chunked repository files, called embeddings, and returned 3 results. First result filename: `codexnext-integration.ts`. Latency: 70568 ms. |
-| Unsafe tools without executors | Passed | `code_interpreter` and `computer` were not exposed as relay tools without explicit executors. Both requests returned non-500 Responses-compatible results. |
+| Unsafe tools without executors | Passed | `code_interpreter` and `computer` were not exposed as adapter tools without explicit executors. Both requests returned non-500 Responses-compatible results. |
 
 ### Provider-specific notes
 

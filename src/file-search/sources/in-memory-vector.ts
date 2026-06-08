@@ -1,9 +1,9 @@
 import type {
-  CodexProviderRelayFileSearchSource,
-  CodexProviderRelayFileSearchSourceMatch,
-  CodexProviderRelayFileSearchSourceRequest,
-  CodexProviderRelayFileSearchSourceResult,
-  CodexProviderRelayInMemoryVectorFileSearchSourceOptions,
+  CodexProviderFileSearchSource,
+  CodexProviderFileSearchSourceMatch,
+  CodexProviderFileSearchSourceRequest,
+  CodexProviderFileSearchSourceResult,
+  CodexProviderInMemoryVectorFileSearchSourceOptions,
   EmbeddedMemoryFileSearchDocument,
   NormalizedInMemoryVectorFileSearchOptions,
 } from '../types.js';
@@ -22,15 +22,15 @@ import {
   normalizeMemoryFileSearchDocument,
 } from './memory.js';
 
-export function createCodexProviderRelayInMemoryVectorFileSearchSource(
-  options: CodexProviderRelayInMemoryVectorFileSearchSourceOptions,
-): CodexProviderRelayFileSearchSource {
+export function createCodexProviderInMemoryVectorFileSearchSource(
+  options: CodexProviderInMemoryVectorFileSearchSourceOptions,
+): CodexProviderFileSearchSource {
   const normalizedOptions = normalizeInMemoryVectorFileSearchOptions(options);
   let indexedDocumentsPromise: Promise<EmbeddedMemoryFileSearchDocument[]> | null = null;
   return {
     name: normalizedOptions.name,
     type: 'in-memory-vector',
-    async search(request: CodexProviderRelayFileSearchSourceRequest): Promise<CodexProviderRelayFileSearchSourceResult> {
+    async search(request: CodexProviderFileSearchSourceRequest): Promise<CodexProviderFileSearchSourceResult> {
       const maxResults = request.maxResults;
       const includeContent = typeof request.includeContent === 'boolean'
         ? request.includeContent
@@ -58,7 +58,7 @@ export function createCodexProviderRelayInMemoryVectorFileSearchSource(
 
       const textWeight = request.rankingOptions.hybridSearch?.textWeight ?? normalizedOptions.textWeight;
       const vectorWeight = request.rankingOptions.hybridSearch?.embeddingWeight ?? normalizedOptions.vectorWeight;
-      const scored: CodexProviderRelayFileSearchSourceMatch[] = [];
+      const scored: CodexProviderFileSearchSourceMatch[] = [];
       let scannedDocuments = 0;
       let skippedDocuments = 0;
       for (const entry of indexedDocuments) {
@@ -131,7 +131,7 @@ export function createCodexProviderRelayInMemoryVectorFileSearchSource(
 }
 
 function normalizeInMemoryVectorFileSearchOptions(
-  options: CodexProviderRelayInMemoryVectorFileSearchSourceOptions,
+  options: CodexProviderInMemoryVectorFileSearchSourceOptions,
 ): NormalizedInMemoryVectorFileSearchOptions {
   const embeddingProvider = options.embeddingProvider;
   if (!embeddingProvider || typeof embeddingProvider.embed !== 'function') {

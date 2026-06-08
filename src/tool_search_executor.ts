@@ -1,37 +1,37 @@
 import type {
-  CodexProviderRelayHostedToolExecutionRequest,
-  CodexProviderRelayHostedToolExecutionResult,
-  CodexProviderRelayHostedToolExecutor,
+  CodexProviderHostedToolExecutionRequest,
+  CodexProviderHostedToolExecutionResult,
+  CodexProviderHostedToolExecutor,
   JsonRecord,
 } from './hosted_tool_executors.js';
 
-export interface CodexProviderRelayToolSearchExecutorOptions {
+export interface CodexProviderToolSearchExecutorOptions {
   tools?: JsonRecord[] | null;
   namespaces?: JsonRecord[] | null;
   maxResults?: number | null;
-  search?: CodexProviderRelayToolSearchResolver | null;
+  search?: CodexProviderToolSearchResolver | null;
 }
 
-export interface CodexProviderRelayToolSearchRequest {
+export interface CodexProviderToolSearchRequest {
   query: string;
   goal: string;
   maxResults: number;
   availableTools: JsonRecord[];
   availableNamespaces: JsonRecord[];
-  toolRequest: CodexProviderRelayHostedToolExecutionRequest;
+  toolRequest: CodexProviderHostedToolExecutionRequest;
 }
 
-export interface CodexProviderRelayToolSearchResult {
+export interface CodexProviderToolSearchResult {
   tools?: JsonRecord[] | null;
   namespaces?: JsonRecord[] | null;
   metadata?: JsonRecord | null;
 }
 
-export type CodexProviderRelayToolSearchResolver = (
-  request: CodexProviderRelayToolSearchRequest,
-) => CodexProviderRelayToolSearchResult | Promise<CodexProviderRelayToolSearchResult>;
+export type CodexProviderToolSearchResolver = (
+  request: CodexProviderToolSearchRequest,
+) => CodexProviderToolSearchResult | Promise<CodexProviderToolSearchResult>;
 
-export interface CodexProviderRelayToolSearchExecutorContent {
+export interface CodexProviderToolSearchExecutorContent {
   query: string;
   goal: string;
   tools: JsonRecord[];
@@ -39,17 +39,17 @@ export interface CodexProviderRelayToolSearchExecutorContent {
   returned_at: string;
 }
 
-export function createCodexProviderRelayToolSearchExecutor(
-  options: CodexProviderRelayToolSearchExecutorOptions = {},
-): CodexProviderRelayHostedToolExecutor {
+export function createCodexProviderToolSearchExecutor(
+  options: CodexProviderToolSearchExecutorOptions = {},
+): CodexProviderHostedToolExecutor {
   const configuredTools = normalizeToolSearchTools(options.tools);
   const configuredNamespaces = normalizeToolSearchNamespaces(options.namespaces);
   const maxResults = clampInteger(options.maxResults, 1, 100, 20);
   const resolver = typeof options.search === 'function' ? options.search : null;
 
   return async (
-    request: CodexProviderRelayHostedToolExecutionRequest,
-  ): Promise<CodexProviderRelayHostedToolExecutionResult> => {
+    request: CodexProviderHostedToolExecutionRequest,
+  ): Promise<CodexProviderHostedToolExecutionResult> => {
     const normalizedRequest = normalizeToolSearchRequest(
       request,
       configuredTools,
@@ -70,7 +70,7 @@ export function createCodexProviderRelayToolSearchExecutor(
         tools,
         namespaces,
         returned_at: new Date().toISOString(),
-      } satisfies CodexProviderRelayToolSearchExecutorContent,
+      } satisfies CodexProviderToolSearchExecutorContent,
       metadata: {
         toolCount: tools.length,
         namespaceCount: namespaces.length,
@@ -81,11 +81,11 @@ export function createCodexProviderRelayToolSearchExecutor(
 }
 
 function normalizeToolSearchRequest(
-  request: CodexProviderRelayHostedToolExecutionRequest,
+  request: CodexProviderHostedToolExecutionRequest,
   configuredTools: JsonRecord[],
   configuredNamespaces: JsonRecord[],
   fallbackMaxResults: number,
-): CodexProviderRelayToolSearchRequest {
+): CodexProviderToolSearchRequest {
   const args = request.arguments ?? {};
   return {
     query: firstNonEmptyString([args.query, args.q, args.search_query, args.input]),
@@ -109,8 +109,8 @@ function normalizeToolSearchRequest(
 }
 
 function searchStaticToolDefinitions(
-  request: CodexProviderRelayToolSearchRequest,
-): CodexProviderRelayToolSearchResult {
+  request: CodexProviderToolSearchRequest,
+): CodexProviderToolSearchResult {
   const searchText = `${request.query} ${request.goal}`.trim().toLowerCase();
   const directTools = request.availableTools
     .filter((tool) => toolMatchesSearchText(tool, searchText))

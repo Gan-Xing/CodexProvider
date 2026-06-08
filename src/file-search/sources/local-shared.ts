@@ -3,8 +3,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type {
   CandidateFile,
-  CodexProviderRelayFileSearchSourceMatch,
-  CodexProviderRelayLocalFileSearchSourceOptions,
+  CodexProviderFileSearchSourceMatch,
+  CodexProviderLocalFileSearchSourceOptions,
   JsonRecord,
   LocalFileSearchRoot,
   NormalizedLocalFileSearchOptions,
@@ -26,7 +26,7 @@ import {
 } from '../shared.js';
 
 export async function normalizeLocalFileSearchOptions(
-  options: CodexProviderRelayLocalFileSearchSourceOptions,
+  options: CodexProviderLocalFileSearchSourceOptions,
 ): Promise<NormalizedLocalFileSearchOptions> {
   const roots = Array.isArray(options.roots)
     ? options.roots.map((root) => path.resolve(root)).filter(Boolean)
@@ -161,7 +161,7 @@ export function searchFileContent({
   includeContent: boolean;
   snippetLines: number;
   sourceName: string;
-}): CodexProviderRelayFileSearchSourceMatch | null {
+}): CodexProviderFileSearchSourceMatch | null {
   return searchTextContent({
     title: candidate.relativePath,
     uri: pathToFileURL(candidate.absolutePath).toString(),
@@ -205,7 +205,7 @@ export function searchTextContent({
   terms: string[];
   includeContent: boolean;
   snippetLines: number;
-}): CodexProviderRelayFileSearchSourceMatch | null {
+}): CodexProviderFileSearchSourceMatch | null {
   const score = lexicalScoreForText({
     title,
     path: resultPath,

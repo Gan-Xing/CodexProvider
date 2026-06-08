@@ -20,26 +20,26 @@ import {
   OpenAICompatibleRetryCapabilities,
 } from '../capabilities/thinking_policy.js';
 import {
-  normalizeCodexProviderRelayHostedTools,
-  type CodexProviderRelayHostedToolDeclaration,
-  type NormalizedCodexProviderRelayHostedToolDeclaration,
+  normalizeCodexProviderHostedTools,
+  type CodexProviderHostedToolDeclaration,
+  type NormalizedCodexProviderHostedToolDeclaration,
 } from '../hosted_tools.js';
 import {
-  createCodexProviderRelayHostedToolExecutorRegistry,
-  formatCodexProviderRelayHostedToolExecutionResult,
-  type CodexProviderRelayHostedToolExecutorRegistry,
-  type CodexProviderRelayHostedToolExecutorRegistryInput,
+  createCodexProviderHostedToolExecutorRegistry,
+  formatCodexProviderHostedToolExecutionResult,
+  type CodexProviderHostedToolExecutorRegistry,
+  type CodexProviderHostedToolExecutorRegistryInput,
 } from '../hosted_tool_executors.js';
 import {
-  isCodexProviderRelayRelayEmulatedBuiltinToolType,
-  normalizeCodexProviderRelayBuiltinToolName,
+  isCodexProviderAdapterEmulatedBuiltinToolType,
+  normalizeCodexProviderBuiltinToolName,
 } from '../builtin-tools/index.js';
 
 type JsonRecord = Record<string, any>;
 type AdapterRoute = 'responses' | 'responses.compact';
-type RelayHostedToolExecutionRecord = {
+type AdapterHostedToolExecutionRecord = {
   toolName: string;
-  relayToolName: string;
+  emulatedToolName: string;
   callId: string;
   iteration: number;
   arguments: JsonRecord;
@@ -47,7 +47,7 @@ type RelayHostedToolExecutionRecord = {
   resultContent: unknown;
   resultMetadata: JsonRecord | null;
 };
-type GatewayErrorCategory =
+type ProviderErrorCategory =
   | 'authentication'
   | 'rate_limit'
   | 'transient_upstream'
@@ -56,7 +56,7 @@ type GatewayErrorCategory =
   | 'invalid_request'
   | 'malformed_upstream'
   | 'upstream_failure';
-type GatewayRetryHint =
+type ProviderRetryHint =
   | 'check_api_key_or_access'
   | 'respect_retry_after'
   | 'retry_with_backoff'
@@ -65,7 +65,7 @@ type GatewayRetryHint =
   | 'fix_request'
   | 'retry_or_inspect_upstream';
 
-type CodexProviderRelayRequestAdjustment =
+type CodexProviderRequestAdjustment =
   | {
     kind: 'field_filtered' | 'tool_choice_dropped' | 'model_overridden';
     path: string;
@@ -89,7 +89,7 @@ type CodexProviderRelayRequestAdjustment =
     after: number;
   };
 
-export type CodexProviderRelayTraceEvent =
+export type CodexProviderTraceEvent =
   | {
     type: 'request.received';
     route: AdapterRoute;
@@ -110,7 +110,7 @@ export type CodexProviderRelayTraceEvent =
     route: 'responses';
     model: string;
     stream: boolean;
-    adjustments: CodexProviderRelayRequestAdjustment[];
+    adjustments: CodexProviderRequestAdjustment[];
   }
   | {
     type: 'response.translated';
@@ -155,22 +155,12 @@ export type CodexProviderRelayTraceEvent =
     type: 'hosted_tool.executed';
     route: 'responses';
     toolName: string;
-    relayToolName: string;
+    emulatedToolName: string;
     callId: string;
     iteration: number;
   };
 
-export type CodexProviderRelayTraceSink = (event: CodexProviderRelayTraceEvent) => void;
-
-/**
- * @deprecated Use CodexProviderRelayTraceEvent.
- */
-export type CodexGatewayTraceEvent = CodexProviderRelayTraceEvent;
-
-/**
- * @deprecated Use CodexProviderRelayTraceSink.
- */
-export type CodexGatewayTraceSink = CodexProviderRelayTraceSink;
+export type CodexProviderTraceSink = (event: CodexProviderTraceEvent) => void;
 
 export interface OpenAICompatibleResponsesAdapterServerOptions {
   apiKey: string;
@@ -186,9 +176,9 @@ export interface OpenAICompatibleResponsesAdapterServerOptions {
   upstreamResponsesPath?: string | null;
   upstreamChatCompletionsPath?: string | null;
   ownedBy?: string | null;
-  traceSink?: CodexProviderRelayTraceSink | null;
-  hostedTools?: CodexProviderRelayHostedToolDeclaration[] | null;
-  hostedToolExecutors?: CodexProviderRelayHostedToolExecutorRegistryInput;
+  traceSink?: CodexProviderTraceSink | null;
+  hostedTools?: CodexProviderHostedToolDeclaration[] | null;
+  hostedToolExecutors?: CodexProviderHostedToolExecutorRegistryInput;
   maxHostedToolIterations?: number | null;
   emitHostedToolSseEvents?: boolean | null;
   exposeHostedToolResultsInResponsesOutput?: boolean | null;
@@ -226,13 +216,13 @@ export class OpenAICompatibleResponsesAdapterServer {
 
   private readonly ownedBy: string;
 
-  private readonly traceSink: CodexProviderRelayTraceSink | null;
+  private readonly traceSink: CodexProviderTraceSink | null;
 
-  private readonly hostedTools: NormalizedCodexProviderRelayHostedToolDeclaration[];
+  private readonly hostedTools: NormalizedCodexProviderHostedToolDeclaration[];
 
-  private readonly executableHostedTools: NormalizedCodexProviderRelayHostedToolDeclaration[];
+  private readonly executableHostedTools: NormalizedCodexProviderHostedToolDeclaration[];
 
-  private readonly hostedToolExecutorRegistry: CodexProviderRelayHostedToolExecutorRegistry;
+  private readonly hostedToolExecutorRegistry: CodexProviderHostedToolExecutorRegistry;
 
   private readonly maxHostedToolIterations: number;
 
@@ -283,10 +273,10 @@ export class OpenAICompatibleResponsesAdapterServer {
     this.upstreamChatCompletionsPath = normalizePath(upstreamChatCompletionsPath) || '/chat/completions';
     this.ownedBy = normalizeString(ownedBy) || this.providerKind;
     this.traceSink = typeof traceSink === 'function' ? traceSink : null;
-    this.hostedTools = normalizeCodexProviderRelayHostedTools(hostedTools);
-    this.hostedToolExecutorRegistry = createCodexProviderRelayHostedToolExecutorRegistry(hostedToolExecutors);
+    this.hostedTools = normalizeCodexProviderHostedTools(hostedTools);
+    this.hostedToolExecutorRegistry = createCodexProviderHostedToolExecutorRegistry(hostedToolExecutors);
     this.executableHostedTools = this.hostedTools.filter((tool) => (
-      tool.mode !== 'relay-emulated'
+      tool.mode !== 'adapter-emulated'
       || this.hostedToolExecutorRegistry.has(tool.name)
     ));
     this.maxHostedToolIterations = normalizePositiveInteger(maxHostedToolIterations) ?? 4;
@@ -424,7 +414,7 @@ export class OpenAICompatibleResponsesAdapterServer {
       );
       return;
     }
-    const relayHostedToolExecutionRequired = requestUsesExecutableRelayHostedTool(
+    const adapterHostedToolExecutionRequired = requestUsesExecutableAdapterHostedTool(
       requestBody,
       this.executableHostedTools,
     );
@@ -475,8 +465,8 @@ export class OpenAICompatibleResponsesAdapterServer {
       },
       body: JSON.stringify(body),
     });
-    if (stream && relayHostedToolExecutionRequired) {
-      await this.writeRelayHostedToolStreamingResponse({
+    if (stream && adapterHostedToolExecutionRequired) {
+      await this.writeAdapterHostedToolStreamingResponse({
         requestBody,
         chatBody,
         upstreamUrl,
@@ -562,7 +552,7 @@ export class OpenAICompatibleResponsesAdapterServer {
       writeJson(response, 502, { error });
       return;
     }
-    const hostedToolLoop = await this.completeRelayHostedToolLoop({
+    const hostedToolLoop = await this.completeAdapterHostedToolLoop({
       requestBody,
       chatBody,
       initialJson: json,
@@ -605,7 +595,7 @@ export class OpenAICompatibleResponsesAdapterServer {
         stream: false,
         response: adaptedResponse,
       });
-      if (stream && relayHostedToolExecutionRequired) {
+      if (stream && adapterHostedToolExecutionRequired) {
         await this.writeSyntheticStreamingResponse(adaptedResponse, response);
         return;
       }
@@ -696,7 +686,7 @@ export class OpenAICompatibleResponsesAdapterServer {
     }
   }
 
-  private async completeRelayHostedToolLoop({
+  private async completeAdapterHostedToolLoop({
     requestBody,
     chatBody,
     initialJson,
@@ -716,7 +706,7 @@ export class OpenAICompatibleResponsesAdapterServer {
     json: JsonRecord;
     status: number;
     error: JsonRecord | null;
-    executions: RelayHostedToolExecutionRecord[];
+    executions: AdapterHostedToolExecutionRecord[];
   }> {
     if (this.executableHostedTools.length === 0) {
       return {
@@ -728,10 +718,10 @@ export class OpenAICompatibleResponsesAdapterServer {
     }
 
     let currentJson = initialJson;
-    const executions: RelayHostedToolExecutionRecord[] = [];
+    const executions: AdapterHostedToolExecutionRecord[] = [];
     const loopChatBody = cloneJson(chatBody);
     for (let iteration = 1; iteration <= this.maxHostedToolIterations; iteration += 1) {
-      const executableCalls = collectRelayHostedToolCalls(
+      const executableCalls = collectAdapterHostedToolCalls(
         currentJson,
         this.executableHostedTools,
         this.hostedToolExecutorRegistry,
@@ -745,10 +735,10 @@ export class OpenAICompatibleResponsesAdapterServer {
         };
       }
 
-      for (const { message, toolCalls } of groupRelayHostedToolCallsByMessage(executableCalls)) {
+      for (const { message, toolCalls } of groupAdapterHostedToolCallsByMessage(executableCalls)) {
         loopChatBody.messages.push(buildAssistantToolCallMessage(message, toolCalls.map((entry) => entry.toolCall)));
         for (const entry of toolCalls) {
-          const executionResult = await this.executeRelayHostedToolCall(
+          const executionResult = await this.executeAdapterHostedToolCall(
             entry,
             iteration,
             requestedModel,
@@ -800,7 +790,7 @@ export class OpenAICompatibleResponsesAdapterServer {
       json: currentJson,
       status: 502,
       error: {
-        message: `Relay-emulated hosted tool loop exceeded ${this.maxHostedToolIterations} iterations.`,
+        message: `Adapter-emulated hosted tool loop exceeded ${this.maxHostedToolIterations} iterations.`,
         type: 'unsupported_feature',
         code: 'hosted_tool_loop_exceeded',
       },
@@ -808,7 +798,7 @@ export class OpenAICompatibleResponsesAdapterServer {
     };
   }
 
-  private async writeRelayHostedToolStreamingResponse({
+  private async writeAdapterHostedToolStreamingResponse({
     requestBody,
     chatBody,
     upstreamUrl,
@@ -896,7 +886,7 @@ export class OpenAICompatibleResponsesAdapterServer {
         return;
       }
 
-      const decision = await inspectRelayHostedStreamingTurn(
+      const decision = await inspectAdapterHostedStreamingTurn(
         readSseDataLines(upstream.response.body),
         this.executableHostedTools,
         this.hostedToolExecutorRegistry,
@@ -915,7 +905,7 @@ export class OpenAICompatibleResponsesAdapterServer {
           error: {
             message: decision.message,
             type: 'unsupported_feature',
-            code: 'relay_hosted_streaming_tool_mix_unsupported',
+            code: 'adapter_hosted_streaming_tool_mix_unsupported',
           },
         });
         return;
@@ -925,7 +915,7 @@ export class OpenAICompatibleResponsesAdapterServer {
         content: '',
       }, decision.calls.map((entry) => entry.toolCall)));
       for (const entry of decision.calls) {
-        const executionResult = await this.executeRelayHostedToolCall(
+        const executionResult = await this.executeAdapterHostedToolCall(
           entry,
           iteration,
           requestedModel,
@@ -954,15 +944,15 @@ export class OpenAICompatibleResponsesAdapterServer {
 
     writeJson(response, 502, {
       error: {
-        message: `Relay-emulated hosted tool streaming loop exceeded ${this.maxHostedToolIterations} iterations.`,
+        message: `Adapter-emulated hosted tool streaming loop exceeded ${this.maxHostedToolIterations} iterations.`,
         type: 'unsupported_feature',
         code: 'hosted_tool_streaming_loop_exceeded',
       },
     });
   }
 
-  private async executeRelayHostedToolCall(
-    entry: RelayHostedToolCall,
+  private async executeAdapterHostedToolCall(
+    entry: AdapterHostedToolCall,
     iteration: number,
     requestedModel: string,
     observation: {
@@ -972,15 +962,15 @@ export class OpenAICompatibleResponsesAdapterServer {
     callId: string;
     content: string;
     toolName: string;
-    relayToolName: string;
+    emulatedToolName: string;
     iteration: number;
     arguments: JsonRecord;
     resultContent: unknown;
     resultMetadata: JsonRecord | null;
   }> {
     const callId = normalizeString(entry.toolCall?.id) || `call_${iteration}`;
-    const relayToolName = normalizeString(entry.toolCall?.function?.name)
-      || normalizeString(entry.declaration.relayToolName)
+    const emulatedToolName = normalizeString(entry.toolCall?.function?.name)
+      || normalizeString(entry.declaration.emulatedToolName)
       || entry.declaration.name;
     const rawArguments = normalizeString(entry.toolCall?.function?.arguments) || '{}';
     let content: string;
@@ -993,7 +983,7 @@ export class OpenAICompatibleResponsesAdapterServer {
     emitSseEvent?.(buildHostedToolSseEvent({
       type: 'hosted_tool.started',
       entry,
-      relayToolName,
+      emulatedToolName,
       callId,
       iteration,
       startedAt,
@@ -1003,7 +993,7 @@ export class OpenAICompatibleResponsesAdapterServer {
     try {
       const result = await this.hostedToolExecutorRegistry.execute({
         toolName: entry.declaration.name,
-        relayToolName,
+        emulatedToolName,
         callId,
         arguments: argumentsObject,
         rawArguments,
@@ -1015,7 +1005,7 @@ export class OpenAICompatibleResponsesAdapterServer {
             emitSseEvent(buildHostedToolSseEvent({
               type: 'hosted_tool.delta',
               entry,
-              relayToolName,
+              emulatedToolName,
               callId,
               iteration,
               startedAt,
@@ -1027,11 +1017,11 @@ export class OpenAICompatibleResponsesAdapterServer {
       });
       resultContent = result.content ?? null;
       resultMetadata = result.metadata ?? null;
-      content = formatCodexProviderRelayHostedToolExecutionResult(result);
+      content = formatCodexProviderHostedToolExecutionResult(result);
       emitSseEvent?.(buildHostedToolSseEvent({
         type: 'hosted_tool.completed',
         entry,
-        relayToolName,
+        emulatedToolName,
         callId,
         iteration,
         startedAt,
@@ -1050,7 +1040,7 @@ export class OpenAICompatibleResponsesAdapterServer {
       emitSseEvent?.(buildHostedToolSseEvent({
         type: 'hosted_tool.failed',
         entry,
-        relayToolName,
+        emulatedToolName,
         callId,
         iteration,
         startedAt,
@@ -1066,7 +1056,7 @@ export class OpenAICompatibleResponsesAdapterServer {
       type: 'hosted_tool.executed',
       route: 'responses',
       toolName: entry.declaration.name,
-      relayToolName,
+      emulatedToolName,
       callId,
       iteration,
     });
@@ -1074,7 +1064,7 @@ export class OpenAICompatibleResponsesAdapterServer {
       callId,
       content,
       toolName: entry.declaration.name,
-      relayToolName,
+      emulatedToolName,
       iteration,
       arguments: argumentsObject,
       resultContent,
@@ -1321,7 +1311,7 @@ export class OpenAICompatibleResponsesAdapterServer {
     response.end();
   }
 
-  private emitTrace(event: CodexProviderRelayTraceEvent): void {
+  private emitTrace(event: CodexProviderTraceEvent): void {
     if (!this.traceSink) {
       return;
     }
@@ -1333,13 +1323,13 @@ export class OpenAICompatibleResponsesAdapterServer {
   }
 }
 
-interface RelayHostedToolCall {
-  declaration: NormalizedCodexProviderRelayHostedToolDeclaration;
+interface AdapterHostedToolCall {
+  declaration: NormalizedCodexProviderHostedToolDeclaration;
   toolCall: JsonRecord;
   message: JsonRecord;
 }
 
-type RelayHostedStreamingDecision =
+type AdapterHostedStreamingDecision =
   | {
     kind: 'final_stream';
     bufferedChunks: string[];
@@ -1347,7 +1337,7 @@ type RelayHostedStreamingDecision =
   }
   | {
     kind: 'tool_calls';
-    calls: RelayHostedToolCall[];
+    calls: AdapterHostedToolCall[];
   }
   | {
     kind: 'error';
@@ -1359,11 +1349,11 @@ interface StreamingToolCallAccumulator {
   sawToolCallDelta: boolean;
 }
 
-async function inspectRelayHostedStreamingTurn(
+async function inspectAdapterHostedStreamingTurn(
   dataLines: AsyncIterable<string>,
-  hostedTools: NormalizedCodexProviderRelayHostedToolDeclaration[],
-  registry: CodexProviderRelayHostedToolExecutorRegistry,
-): Promise<RelayHostedStreamingDecision> {
+  hostedTools: NormalizedCodexProviderHostedToolDeclaration[],
+  registry: CodexProviderHostedToolExecutorRegistry,
+): Promise<AdapterHostedStreamingDecision> {
   const iterator = dataLines[Symbol.asyncIterator]();
   const bufferedChunks: string[] = [];
   const accumulator: StreamingToolCallAccumulator = {
@@ -1407,9 +1397,9 @@ async function inspectRelayHostedStreamingTurn(
 function streamingDecisionFromBufferedChunks(
   bufferedChunks: string[],
   accumulator: StreamingToolCallAccumulator,
-  hostedTools: NormalizedCodexProviderRelayHostedToolDeclaration[],
-  registry: CodexProviderRelayHostedToolExecutorRegistry,
-): RelayHostedStreamingDecision {
+  hostedTools: NormalizedCodexProviderHostedToolDeclaration[],
+  registry: CodexProviderHostedToolExecutorRegistry,
+): AdapterHostedStreamingDecision {
   const toolCalls = [...accumulator.toolCallsByKey.values()];
   if (toolCalls.length === 0) {
     return {
@@ -1423,7 +1413,7 @@ function streamingDecisionFromBufferedChunks(
     content: '',
     tool_calls: toolCalls,
   };
-  const executableCalls = collectRelayHostedToolCalls(
+  const executableCalls = collectAdapterHostedToolCalls(
     {
       choices: [{
         message: fakeMessage,
@@ -1442,7 +1432,7 @@ function streamingDecisionFromBufferedChunks(
   if (executableCalls.length !== toolCalls.length) {
     return {
       kind: 'error',
-      message: 'A streamed assistant turn mixed relay-emulated hosted tool calls with non-relay tool calls. This is not supported yet.',
+      message: 'A streamed assistant turn mixed adapter-emulated hosted tool calls with non-adapter tool calls. This is not supported yet.',
     };
   }
   return {
@@ -1451,25 +1441,25 @@ function streamingDecisionFromBufferedChunks(
   };
 }
 
-function collectRelayHostedToolCalls(
+function collectAdapterHostedToolCalls(
   chatResponse: JsonRecord,
-  hostedTools: NormalizedCodexProviderRelayHostedToolDeclaration[],
-  registry: CodexProviderRelayHostedToolExecutorRegistry,
-): RelayHostedToolCall[] {
-  const calls: RelayHostedToolCall[] = [];
+  hostedTools: NormalizedCodexProviderHostedToolDeclaration[],
+  registry: CodexProviderHostedToolExecutorRegistry,
+): AdapterHostedToolCall[] {
+  const calls: AdapterHostedToolCall[] = [];
   for (const choice of normalizeArray(chatResponse?.choices)) {
     const message = choice?.message;
     if (!message || typeof message !== 'object') {
       continue;
     }
     for (const toolCall of normalizeArray(message.tool_calls)) {
-      const relayToolName = normalizeString(toolCall?.function?.name);
-      if (!relayToolName) {
+      const emulatedToolName = normalizeString(toolCall?.function?.name);
+      if (!emulatedToolName) {
         continue;
       }
       const declaration = hostedTools.find((tool) => (
-        tool.mode === 'relay-emulated'
-        && normalizeString(tool.relayToolName || tool.name) === relayToolName
+        tool.mode === 'adapter-emulated'
+        && normalizeString(tool.emulatedToolName || tool.name) === emulatedToolName
       ));
       if (!declaration || !registry.has(declaration.name)) {
         continue;
@@ -1484,10 +1474,10 @@ function collectRelayHostedToolCalls(
   return calls;
 }
 
-function groupRelayHostedToolCallsByMessage(
-  calls: RelayHostedToolCall[],
-): Array<{ message: JsonRecord; toolCalls: RelayHostedToolCall[] }> {
-  const grouped = new Map<JsonRecord, RelayHostedToolCall[]>();
+function groupAdapterHostedToolCallsByMessage(
+  calls: AdapterHostedToolCall[],
+): Array<{ message: JsonRecord; toolCalls: AdapterHostedToolCall[] }> {
+  const grouped = new Map<JsonRecord, AdapterHostedToolCall[]>();
   for (const call of calls) {
     const existing = grouped.get(call.message);
     if (existing) {
@@ -1512,9 +1502,9 @@ function buildAssistantToolCallMessage(
 
 function appendDeferredToolsFromToolSearch(
   chatBody: JsonRecord,
-  execution: RelayHostedToolExecutionRecord,
+  execution: AdapterHostedToolExecutionRecord,
 ): void {
-  if (normalizeCodexProviderRelayBuiltinToolName(execution.toolName) !== 'tool_search') {
+  if (normalizeCodexProviderBuiltinToolName(execution.toolName) !== 'tool_search') {
     return;
   }
   const deferredTools = normalizeDeferredToolSearchChatTools(execution.resultContent);
@@ -1753,37 +1743,37 @@ async function drainAsyncIterator<T>(iterator: AsyncIterator<T>): Promise<void> 
 
 async function* emptyAsyncIterable<T>(): AsyncGenerator<T> {}
 
-function requestUsesExecutableRelayHostedTool(
+function requestUsesExecutableAdapterHostedTool(
   request: JsonRecord,
-  hostedTools: NormalizedCodexProviderRelayHostedToolDeclaration[],
+  hostedTools: NormalizedCodexProviderHostedToolDeclaration[],
 ): boolean {
-  if (!hostedTools.some((tool) => isRelayHostedToolType(tool.name) && tool.mode === 'relay-emulated')) {
+  if (!hostedTools.some((tool) => isAdapterHostedToolType(tool.name) && tool.mode === 'adapter-emulated')) {
     return false;
   }
-  if (normalizeArray(request?.tools).some((tool) => isExecutableRelayHostedRequestTool(tool, hostedTools))) {
+  if (normalizeArray(request?.tools).some((tool) => isExecutableAdapterHostedRequestTool(tool, hostedTools))) {
     return true;
   }
   const toolChoice = request?.tool_choice;
   if (typeof toolChoice === 'string') {
-    return hostedTools.some((tool) => normalizeRelayHostedToolType(toolChoice) === tool.name);
+    return hostedTools.some((tool) => normalizeAdapterHostedToolType(toolChoice) === tool.name);
   }
   if (toolChoice && typeof toolChoice === 'object') {
     const record = toolChoice as JsonRecord;
-    if (hostedTools.some((tool) => normalizeRelayHostedToolType(record.type) === tool.name)) {
+    if (hostedTools.some((tool) => normalizeAdapterHostedToolType(record.type) === tool.name)) {
       return true;
     }
     if (normalizeString(record.type) === 'allowed_tools') {
-      return normalizeArray(record.tools).some((tool) => isExecutableRelayHostedRequestTool(tool, hostedTools));
+      return normalizeArray(record.tools).some((tool) => isExecutableAdapterHostedRequestTool(tool, hostedTools));
     }
   }
   return false;
 }
 
-function isExecutableRelayHostedRequestTool(
+function isExecutableAdapterHostedRequestTool(
   tool: unknown,
-  hostedTools: NormalizedCodexProviderRelayHostedToolDeclaration[],
+  hostedTools: NormalizedCodexProviderHostedToolDeclaration[],
 ): boolean {
-  const normalizedType = normalizeRelayHostedToolType((tool as JsonRecord | null | undefined)?.type);
+  const normalizedType = normalizeAdapterHostedToolType((tool as JsonRecord | null | undefined)?.type);
   return Boolean(normalizedType && hostedTools.some((hostedTool) => hostedTool.name === normalizedType));
 }
 
@@ -1935,7 +1925,7 @@ function ensureSseResponseHeaders(response: ServerResponse): void {
 function buildHostedToolSseEvent({
   type,
   entry,
-  relayToolName,
+  emulatedToolName,
   callId,
   iteration,
   startedAt,
@@ -1947,8 +1937,8 @@ function buildHostedToolSseEvent({
   error,
 }: {
   type: 'hosted_tool.started' | 'hosted_tool.delta' | 'hosted_tool.completed' | 'hosted_tool.failed';
-  entry: RelayHostedToolCall;
-  relayToolName: string;
+  entry: AdapterHostedToolCall;
+  emulatedToolName: string;
   callId: string;
   iteration: number;
   startedAt: number;
@@ -1963,7 +1953,7 @@ function buildHostedToolSseEvent({
     type,
     hosted_tool: omitUndefined({
       name: entry.declaration.name,
-      relay_tool_name: relayToolName,
+      emulated_tool_name: emulatedToolName,
       call_id: callId,
       iteration,
       started_at: new Date(startedAt).toISOString(),
@@ -1993,7 +1983,7 @@ function appendHostedToolResultsToResponsesOutput({
 }: {
   response: JsonRecord;
   request: JsonRecord;
-  executions: RelayHostedToolExecutionRecord[];
+  executions: AdapterHostedToolExecutionRecord[];
   exposeByDefault: boolean;
 }): void {
   if (executions.length === 0) {
@@ -2554,9 +2544,9 @@ function summarizeRequestAdjustments({
   request: JsonRecord;
   upstreamRequest: JsonRecord;
   providerCapabilities: OpenAICompatibleProviderCapabilities | null;
-  hostedTools?: NormalizedCodexProviderRelayHostedToolDeclaration[];
-}): CodexProviderRelayRequestAdjustment[] {
-  const adjustments: CodexProviderRelayRequestAdjustment[] = [];
+  hostedTools?: NormalizedCodexProviderHostedToolDeclaration[];
+}): CodexProviderRequestAdjustment[] {
+  const adjustments: CodexProviderRequestAdjustment[] = [];
   const requestedModel = normalizeString(request?.model);
   const upstreamModel = normalizeString(upstreamRequest?.model);
   if (requestedModel && upstreamModel && requestedModel !== upstreamModel) {
@@ -2610,8 +2600,8 @@ function summarizeRequestAdjustments({
     const upstreamTools = normalizeArray(upstreamRequest?.tools);
     const forwardedFunctionTools = upstreamTools.filter((tool) => normalizeString(tool?.type) === 'function').length;
     const forwardedBuiltinTools = upstreamTools.filter((tool) => isBuiltinWebSearchToolType(tool?.type)).length;
-    const forwardedRelayHostedBuiltinTools = upstreamTools
-      .filter((tool) => isRelayHostedBuiltinChatTool(tool, hostedTools))
+    const forwardedAdapterHostedBuiltinTools = upstreamTools
+      .filter((tool) => isAdapterHostedBuiltinChatTool(tool, hostedTools))
       .length;
 
     if (requestedFunctionTools > forwardedFunctionTools) {
@@ -2625,7 +2615,7 @@ function summarizeRequestAdjustments({
         forwardedCount: forwardedFunctionTools,
       });
     }
-    if (requestedBuiltinTools > forwardedBuiltinTools + forwardedRelayHostedBuiltinTools) {
+    if (requestedBuiltinTools > forwardedBuiltinTools + forwardedAdapterHostedBuiltinTools) {
       adjustments.push({
         kind: 'tools_dropped',
         path: 'tools',
@@ -2633,7 +2623,7 @@ function summarizeRequestAdjustments({
           ? 'builtin_web_search_unsupported'
           : 'unsupported_or_invalid_tools',
         requestedCount: requestedBuiltinTools,
-        forwardedCount: forwardedBuiltinTools + forwardedRelayHostedBuiltinTools,
+        forwardedCount: forwardedBuiltinTools + forwardedAdapterHostedBuiltinTools,
       });
     }
   }
@@ -2748,13 +2738,13 @@ function normalizeUpstreamError(
   const retryAfterMs = parseRetryAfterMs(headers?.get('retry-after') ?? null) ?? parseRetryAfterMsFromBody(trimmed);
   const metadata = buildUpstreamErrorMetadata(headers);
   const fallbackCode = upstreamErrorCode(status);
-  const fallbackCategory = classifyGatewayErrorCategory({
+  const fallbackCategory = classifyProviderErrorCategory({
     status,
     code: fallbackCode,
     type: 'upstream_error',
     message: trimmed,
   });
-  const fallbackRetry = buildGatewayRetryMetadata(fallbackCategory, retryAfterMs);
+  const fallbackRetry = buildProviderRetryMetadata(fallbackCategory, retryAfterMs);
   if (trimmed) {
     try {
       const parsed = JSON.parse(trimmed);
@@ -2762,7 +2752,7 @@ function normalizeUpstreamError(
         const message = normalizeString(parsed.error.message) || `${providerName} upstream returned HTTP ${status}`;
         const type = normalizeString(parsed.error.type) || 'upstream_error';
         const code = parsed.error.code ?? fallbackCode;
-        const category = classifyGatewayErrorCategory({
+        const category = classifyProviderErrorCategory({
           status,
           code,
           type,
@@ -2773,7 +2763,7 @@ function normalizeUpstreamError(
           type,
           code,
           category,
-          retry: buildGatewayRetryMetadata(category, retryAfterMs),
+          retry: buildProviderRetryMetadata(category, retryAfterMs),
           param: parsed.error.param,
           retry_after_ms: retryAfterMs,
           metadata,
@@ -2782,7 +2772,7 @@ function normalizeUpstreamError(
       const message = normalizeString(parsed?.message) || trimmed;
       const type = normalizeString(parsed?.type) || 'upstream_error';
       const code = parsed?.code ?? fallbackCode;
-      const category = classifyGatewayErrorCategory({
+      const category = classifyProviderErrorCategory({
         status,
         code,
         type,
@@ -2793,7 +2783,7 @@ function normalizeUpstreamError(
         type,
         code,
         category,
-        retry: buildGatewayRetryMetadata(category, retryAfterMs),
+        retry: buildProviderRetryMetadata(category, retryAfterMs),
         retry_after_ms: retryAfterMs,
         metadata,
       });
@@ -2832,7 +2822,7 @@ function buildMalformedUpstreamPayloadError(
     type: 'upstream_error',
     code: 'malformed_upstream_payload',
     category: 'malformed_upstream',
-    retry: buildGatewayRetryMetadata('malformed_upstream', null),
+    retry: buildProviderRetryMetadata('malformed_upstream', null),
   };
 }
 
@@ -3041,7 +3031,7 @@ function upstreamErrorCode(status: number): string {
   }
 }
 
-function classifyGatewayErrorCategory({
+function classifyProviderErrorCategory({
   status,
   code,
   type,
@@ -3051,7 +3041,7 @@ function classifyGatewayErrorCategory({
   code: unknown;
   type: unknown;
   message: unknown;
-}): GatewayErrorCategory {
+}): ProviderErrorCategory {
   const normalizedCode = normalizeString(code).toLowerCase();
   const normalizedType = normalizeString(type).toLowerCase();
   const normalizedMessage = normalizeString(message).toLowerCase();
@@ -3095,10 +3085,10 @@ function classifyGatewayErrorCategory({
   return 'upstream_failure';
 }
 
-function buildGatewayRetryMetadata(
-  category: GatewayErrorCategory,
+function buildProviderRetryMetadata(
+  category: ProviderErrorCategory,
   retryAfterMs: number | null,
-): { retryable: boolean; hint: GatewayRetryHint; retry_after_ms?: number } {
+): { retryable: boolean; hint: ProviderRetryHint; retry_after_ms?: number } {
   switch (category) {
     case 'authentication':
       return omitUndefined({
@@ -3174,20 +3164,20 @@ function normalizeArray(value: unknown): any[] {
 }
 
 function isBuiltinWebSearchToolType(type: unknown): boolean {
-  return normalizeCodexProviderRelayBuiltinToolName(type) === 'web_search';
+  return normalizeCodexProviderBuiltinToolName(type) === 'web_search';
 }
 
-function isRelayHostedToolType(type: unknown): boolean {
-  return isCodexProviderRelayRelayEmulatedBuiltinToolType(type);
+function isAdapterHostedToolType(type: unknown): boolean {
+  return isCodexProviderAdapterEmulatedBuiltinToolType(type);
 }
 
-function normalizeRelayHostedToolType(type: unknown): string {
-  return normalizeCodexProviderRelayBuiltinToolName(type) ?? normalizeString(type);
+function normalizeAdapterHostedToolType(type: unknown): string {
+  return normalizeCodexProviderBuiltinToolName(type) ?? normalizeString(type);
 }
 
-function isRelayHostedBuiltinChatTool(
+function isAdapterHostedBuiltinChatTool(
   tool: unknown,
-  hostedTools: NormalizedCodexProviderRelayHostedToolDeclaration[],
+  hostedTools: NormalizedCodexProviderHostedToolDeclaration[],
 ): boolean {
   if (!tool || typeof tool !== 'object') {
     return false;
@@ -3198,9 +3188,9 @@ function isRelayHostedBuiltinChatTool(
   }
   const functionName = normalizeString(record.function?.name);
   return Boolean(functionName && hostedTools.some((hostedTool) => (
-    isRelayHostedToolType(hostedTool.name)
-    && hostedTool.mode === 'relay-emulated'
-    && normalizeString(hostedTool.relayToolName || hostedTool.name) === functionName
+    isAdapterHostedToolType(hostedTool.name)
+    && hostedTool.mode === 'adapter-emulated'
+    && normalizeString(hostedTool.emulatedToolName || hostedTool.name) === functionName
   )));
 }
 

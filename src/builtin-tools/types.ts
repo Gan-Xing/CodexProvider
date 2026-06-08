@@ -1,6 +1,6 @@
 export type JsonRecord = Record<string, any>;
 
-export type CodexProviderRelayBuiltinToolName =
+export type CodexProviderBuiltinToolName =
   | 'web_search'
   | 'file_search'
   | 'tool_search'
@@ -13,21 +13,21 @@ export type CodexProviderRelayBuiltinToolName =
   | 'image_generation'
   | 'apply_patch';
 
-export type CodexProviderRelayBuiltinToolRelayMode =
+export type CodexProviderBuiltinToolMode =
   | 'provider-native'
-  | 'relay-emulated'
+  | 'adapter-emulated'
   | 'codex-local-first'
   | 'declaration-only';
 
-export interface CodexProviderRelayBuiltinToolDefinition {
-  name: CodexProviderRelayBuiltinToolName;
+export interface CodexProviderBuiltinToolDefinition {
+  name: CodexProviderBuiltinToolName;
   openaiToolTypes: string[];
-  relayModes: CodexProviderRelayBuiltinToolRelayMode[];
-  relayEmulatedSupported: boolean;
+  toolModes: CodexProviderBuiltinToolMode[];
+  adapterEmulatedSupported: boolean;
   providerNativeSupported: boolean;
   requiresExecutor: boolean;
   unsafeByDefault: boolean;
-  defaultRelayToolName: string;
+  defaultEmulatedToolName: string;
   description: string;
   parameters: JsonRecord;
   status: 'supported' | 'partial' | 'planned' | 'local-first';

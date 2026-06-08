@@ -1,15 +1,15 @@
 import type {
-  CodexProviderRelayHostedToolExecutionRequest,
-  CodexProviderRelayHostedToolExecutionResult,
-  CodexProviderRelayHostedToolExecutor,
+  CodexProviderHostedToolExecutionRequest,
+  CodexProviderHostedToolExecutionResult,
+  CodexProviderHostedToolExecutor,
   JsonRecord,
 } from './hosted_tool_executors.js';
 
-export interface CodexProviderRelayComputerExecutorOptions {
-  execute: CodexProviderRelayComputerProvider;
+export interface CodexProviderComputerExecutorOptions {
+  execute: CodexProviderComputerProvider;
 }
 
-export type CodexProviderRelayComputerAction =
+export type CodexProviderComputerAction =
   | { type: 'click'; x: number; y: number; button?: string | null }
   | { type: 'double_click'; x: number; y: number }
   | { type: 'scroll'; x?: number | null; y?: number | null; scroll_x?: number | null; scroll_y?: number | null }
@@ -20,49 +20,49 @@ export type CodexProviderRelayComputerAction =
   | { type: 'move'; x: number; y: number }
   | { type: 'screenshot' };
 
-export interface CodexProviderRelayComputerDisplay {
+export interface CodexProviderComputerDisplay {
   width?: number | null;
   height?: number | null;
   environment?: string | null;
 }
 
-export interface CodexProviderRelayComputerRequest {
-  actions: CodexProviderRelayComputerAction[];
-  display: CodexProviderRelayComputerDisplay | null;
-  toolRequest: CodexProviderRelayHostedToolExecutionRequest;
+export interface CodexProviderComputerRequest {
+  actions: CodexProviderComputerAction[];
+  display: CodexProviderComputerDisplay | null;
+  toolRequest: CodexProviderHostedToolExecutionRequest;
 }
 
-export interface CodexProviderRelayComputerScreenshot {
+export interface CodexProviderComputerScreenshot {
   image_url?: string | null;
   b64_png?: string | null;
   detail?: 'low' | 'high' | 'original' | null;
 }
 
-export interface CodexProviderRelayComputerExecutionResult {
-  screenshot?: CodexProviderRelayComputerScreenshot | null;
+export interface CodexProviderComputerExecutionResult {
+  screenshot?: CodexProviderComputerScreenshot | null;
   observations?: string[] | null;
   metadata?: JsonRecord | null;
 }
 
-export interface CodexProviderRelayComputerExecutorContent {
-  screenshot?: CodexProviderRelayComputerScreenshot | null;
+export interface CodexProviderComputerExecutorContent {
+  screenshot?: CodexProviderComputerScreenshot | null;
   observations: string[];
   executed_at: string;
 }
 
-export type CodexProviderRelayComputerProvider = (
-  request: CodexProviderRelayComputerRequest,
-) => CodexProviderRelayComputerExecutionResult | Promise<CodexProviderRelayComputerExecutionResult>;
+export type CodexProviderComputerProvider = (
+  request: CodexProviderComputerRequest,
+) => CodexProviderComputerExecutionResult | Promise<CodexProviderComputerExecutionResult>;
 
-export function createCodexProviderRelayComputerExecutor(
-  options: CodexProviderRelayComputerExecutorOptions,
-): CodexProviderRelayHostedToolExecutor {
+export function createCodexProviderComputerExecutor(
+  options: CodexProviderComputerExecutorOptions,
+): CodexProviderHostedToolExecutor {
   if (typeof options?.execute !== 'function') {
     throw new Error('computer executor requires an explicit sandboxed computer provider.');
   }
   return async (
-    request: CodexProviderRelayHostedToolExecutionRequest,
-  ): Promise<CodexProviderRelayHostedToolExecutionResult> => {
+    request: CodexProviderHostedToolExecutionRequest,
+  ): Promise<CodexProviderHostedToolExecutionResult> => {
     const normalizedRequest = normalizeComputerRequest(request);
     if (normalizedRequest.actions.length === 0) {
       throw new Error('computer executor requires at least one valid action.');
@@ -73,7 +73,7 @@ export function createCodexProviderRelayComputerExecutor(
         screenshot: result.screenshot ?? undefined,
         observations: result.observations,
         executed_at: new Date().toISOString(),
-      } satisfies CodexProviderRelayComputerExecutorContent,
+      } satisfies CodexProviderComputerExecutorContent,
       metadata: {
         actionCount: normalizedRequest.actions.length,
         observationCount: result.observations.length,
@@ -85,8 +85,8 @@ export function createCodexProviderRelayComputerExecutor(
 }
 
 function normalizeComputerRequest(
-  request: CodexProviderRelayHostedToolExecutionRequest,
-): CodexProviderRelayComputerRequest {
+  request: CodexProviderHostedToolExecutionRequest,
+): CodexProviderComputerRequest {
   const args = request.arguments ?? {};
   return {
     actions: normalizeComputerActions(args.actions ?? args.action ?? args),
@@ -95,14 +95,14 @@ function normalizeComputerRequest(
   };
 }
 
-function normalizeComputerActions(value: unknown): CodexProviderRelayComputerAction[] {
+function normalizeComputerActions(value: unknown): CodexProviderComputerAction[] {
   const values = Array.isArray(value) ? value : [value];
   return values
     .map(normalizeComputerAction)
-    .filter(Boolean) as CodexProviderRelayComputerAction[];
+    .filter(Boolean) as CodexProviderComputerAction[];
 }
 
-function normalizeComputerAction(value: unknown): CodexProviderRelayComputerAction | null {
+function normalizeComputerAction(value: unknown): CodexProviderComputerAction | null {
   if (!value || typeof value !== 'object') {
     return null;
   }
@@ -120,7 +120,7 @@ function normalizeComputerAction(value: unknown): CodexProviderRelayComputerActi
     case 'double_click':
     case 'move': {
       const point = normalizePoint(record);
-      return point ? { type, ...point } as CodexProviderRelayComputerAction : null;
+      return point ? { type, ...point } as CodexProviderComputerAction : null;
     }
     case 'scroll': {
       return {
@@ -159,7 +159,7 @@ function normalizeComputerAction(value: unknown): CodexProviderRelayComputerActi
   }
 }
 
-function normalizeComputerDisplay(value: unknown): CodexProviderRelayComputerDisplay | null {
+function normalizeComputerDisplay(value: unknown): CodexProviderComputerDisplay | null {
   if (!value || typeof value !== 'object') {
     return null;
   }
@@ -174,7 +174,7 @@ function normalizeComputerDisplay(value: unknown): CodexProviderRelayComputerDis
     : null;
 }
 
-function normalizeComputerExecutionResult(value: unknown): Required<Pick<CodexProviderRelayComputerExecutionResult, 'screenshot' | 'observations' | 'metadata'>> {
+function normalizeComputerExecutionResult(value: unknown): Required<Pick<CodexProviderComputerExecutionResult, 'screenshot' | 'observations' | 'metadata'>> {
   if (!value || typeof value !== 'object') {
     return {
       screenshot: null,
@@ -194,7 +194,7 @@ function normalizeComputerExecutionResult(value: unknown): Required<Pick<CodexPr
   };
 }
 
-function normalizeComputerScreenshot(value: unknown): CodexProviderRelayComputerScreenshot | null {
+function normalizeComputerScreenshot(value: unknown): CodexProviderComputerScreenshot | null {
   if (!value || typeof value !== 'object') {
     return null;
   }

@@ -1,32 +1,32 @@
 import {
-  buildCodexProviderRelayCliArgs,
-  buildCodexProviderRelayConfig,
-  codexBaseUrlForRelayProtocol,
+  buildCodexProviderCliArgs,
+  buildCodexProviderConfig,
+  codexBaseUrlForProviderProtocol,
   normalizeProviderLabel,
-  normalizeRelayBaseUrl,
+  normalizeProviderBaseUrl,
 } from './codex_config.js';
 import {
   assertHostedToolDeclarationsForStrategy,
-  normalizeCodexProviderRelayHostedTools,
-  type CodexProviderRelayHostedToolDeclaration,
-  type NormalizedCodexProviderRelayHostedToolDeclaration,
+  normalizeCodexProviderHostedTools,
+  type CodexProviderHostedToolDeclaration,
+  type NormalizedCodexProviderHostedToolDeclaration,
 } from './hosted_tools.js';
 import type {
-  BuildCodexProviderRelayConfigInput,
-  CodexProviderRelayAuthMode,
-  CodexProviderRelayConfig,
-  CodexProviderRelayProtocol,
-  CodexProviderRelayTomlPrimitive,
-  CodexProviderRelayToolStrategy,
+  BuildCodexProviderConfigInput,
+  CodexProviderAuthMode,
+  CodexProviderConfig,
+  CodexProviderProtocol,
+  CodexProviderTomlPrimitive,
+  CodexProviderToolStrategy,
 } from './types.js';
 
-export type CodexProviderRelayProfileMode =
+export type CodexProviderProfileMode =
   | 'official'
   | 'mixed'
   | 'pure-api';
 
-export interface BuildCodexProviderRelayProfileInput {
-  mode: CodexProviderRelayProfileMode;
+export interface BuildCodexProviderProfileInput {
+  mode: CodexProviderProfileMode;
   providerLabel: string;
   upstreamBaseUrl: string;
   defaultModel: string;
@@ -35,47 +35,47 @@ export interface BuildCodexProviderRelayProfileInput {
   experimentalBearerToken?: string | null;
   apiKeyEnv?: string | null;
   supportsWebsockets?: boolean | null;
-  toolStrategy?: CodexProviderRelayToolStrategy | null;
-  hostedTools?: CodexProviderRelayHostedToolDeclaration[] | null;
-  extraProviderFields?: Record<string, CodexProviderRelayTomlPrimitive | null | undefined> | null;
+  toolStrategy?: CodexProviderToolStrategy | null;
+  hostedTools?: CodexProviderHostedToolDeclaration[] | null;
+  extraProviderFields?: Record<string, CodexProviderTomlPrimitive | null | undefined> | null;
 }
 
-export interface CodexProviderRelayProfile {
-  mode: CodexProviderRelayProfileMode;
+export interface CodexProviderProfile {
+  mode: CodexProviderProfileMode;
   providerLabel: string;
   providerName: string;
   upstreamBaseUrl: string;
   codexBaseUrl: string;
-  relayProtocol: CodexProviderRelayProtocol;
-  authMode: CodexProviderRelayAuthMode;
-  toolStrategy: CodexProviderRelayToolStrategy;
-  hostedTools: NormalizedCodexProviderRelayHostedToolDeclaration[];
+  providerProtocol: CodexProviderProtocol;
+  authMode: CodexProviderAuthMode;
+  toolStrategy: CodexProviderToolStrategy;
+  hostedTools: NormalizedCodexProviderHostedToolDeclaration[];
   needsLocalResponsesAdapter: boolean;
-  configInput: BuildCodexProviderRelayConfigInput;
-  config: CodexProviderRelayConfig;
+  configInput: BuildCodexProviderConfigInput;
+  config: CodexProviderConfig;
   codexCliArgs: string[];
 }
 
-export function buildCodexProviderRelayProfile(
-  input: BuildCodexProviderRelayProfileInput,
-): CodexProviderRelayProfile {
+export function buildCodexProviderProfile(
+  input: BuildCodexProviderProfileInput,
+): CodexProviderProfile {
   const mode = normalizeProfileMode(input.mode);
-  const relayProtocol = defaultProtocolForProfileMode(mode);
+  const providerProtocol = defaultProtocolForProfileMode(mode);
   const authMode = authModeForProfileMode(mode);
   const toolStrategy = input.toolStrategy ?? 'codex-local-first';
-  const hostedTools = normalizeCodexProviderRelayHostedTools(input.hostedTools);
+  const hostedTools = normalizeCodexProviderHostedTools(input.hostedTools);
   assertHostedToolDeclarationsForStrategy(toolStrategy, hostedTools);
   const providerLabel = normalizeProviderLabel(input.providerLabel);
-  const upstreamBaseUrl = normalizeRelayBaseUrl(input.upstreamBaseUrl);
+  const upstreamBaseUrl = normalizeProviderBaseUrl(input.upstreamBaseUrl);
   const defaultModel = normalizeString(input.defaultModel);
   if (!defaultModel) {
-    throw new Error('Codex provider relay profile requires a default model.');
+    throw new Error('Codex provider profile requires a default model.');
   }
-  const configInput: BuildCodexProviderRelayConfigInput = {
+  const configInput: BuildCodexProviderConfigInput = {
     providerLabel,
     providerName: input.providerName ?? defaultProviderNameForProfileMode(mode),
-    relayBaseUrl: upstreamBaseUrl,
-    relayProtocol,
+    upstreamBaseUrl: upstreamBaseUrl,
+    providerProtocol,
     protocolProxyPort: input.protocolProxyPort ?? null,
     defaultModel,
     authMode,
@@ -85,27 +85,27 @@ export function buildCodexProviderRelayProfile(
     toolStrategy,
     extraProviderFields: input.extraProviderFields ?? null,
   };
-  const config = buildCodexProviderRelayConfig(configInput);
+  const config = buildCodexProviderConfig(configInput);
   return {
     mode,
     providerLabel: config.providerLabel,
     providerName: config.providerName,
     upstreamBaseUrl: config.upstreamBaseUrl,
     codexBaseUrl: config.codexBaseUrl,
-    relayProtocol: config.relayProtocol,
+    providerProtocol: config.providerProtocol,
     authMode: config.authMode,
     toolStrategy: config.toolStrategy,
     hostedTools,
     needsLocalResponsesAdapter: config.codexBaseUrl !== config.upstreamBaseUrl,
     configInput,
     config,
-    codexCliArgs: buildCodexProviderRelayCliArgs(configInput),
+    codexCliArgs: buildCodexProviderCliArgs(configInput),
   };
 }
 
 export function defaultProtocolForProfileMode(
-  mode: CodexProviderRelayProfileMode,
-): CodexProviderRelayProtocol {
+  mode: CodexProviderProfileMode,
+): CodexProviderProtocol {
   switch (mode) {
     case 'official':
       return 'responses';
@@ -118,8 +118,8 @@ export function defaultProtocolForProfileMode(
 }
 
 export function authModeForProfileMode(
-  mode: CodexProviderRelayProfileMode,
-): CodexProviderRelayAuthMode {
+  mode: CodexProviderProfileMode,
+): CodexProviderAuthMode {
   switch (mode) {
     case 'official':
     case 'mixed':
@@ -132,39 +132,39 @@ export function authModeForProfileMode(
 }
 
 export function codexBaseUrlForProfile(input: {
-  mode: CodexProviderRelayProfileMode;
+  mode: CodexProviderProfileMode;
   upstreamBaseUrl: string;
   protocolProxyPort?: number | null;
 }): string {
-  return codexBaseUrlForRelayProtocol({
-    relayBaseUrl: input.upstreamBaseUrl,
-    relayProtocol: defaultProtocolForProfileMode(input.mode),
+  return codexBaseUrlForProviderProtocol({
+    upstreamBaseUrl: input.upstreamBaseUrl,
+    providerProtocol: defaultProtocolForProfileMode(input.mode),
     protocolProxyPort: input.protocolProxyPort,
   });
 }
 
-function defaultProviderNameForProfileMode(mode: CodexProviderRelayProfileMode): string {
+function defaultProviderNameForProfileMode(mode: CodexProviderProfileMode): string {
   switch (mode) {
     case 'official':
       return 'Official Responses Provider';
     case 'mixed':
-      return 'Mixed Codex Relay Provider';
+      return 'Mixed Codex Provider';
     case 'pure-api':
-      return 'Pure API Relay Provider';
+      return 'Pure API Provider';
     default:
       assertNeverProfileMode(mode);
   }
 }
 
-function normalizeProfileMode(mode: CodexProviderRelayProfileMode): CodexProviderRelayProfileMode {
+function normalizeProfileMode(mode: CodexProviderProfileMode): CodexProviderProfileMode {
   if (mode === 'official' || mode === 'mixed' || mode === 'pure-api') {
     return mode;
   }
-  throw new Error(`Unsupported Codex provider relay profile mode: ${String(mode)}`);
+  throw new Error(`Unsupported Codex provider profile mode: ${String(mode)}`);
 }
 
 function assertNeverProfileMode(mode: never): never {
-  throw new Error(`Unsupported Codex provider relay profile mode: ${String(mode)}`);
+  throw new Error(`Unsupported Codex provider profile mode: ${String(mode)}`);
 }
 
 function normalizeString(value: unknown): string {

@@ -18,8 +18,8 @@ const runtime = new CodexProviderRuntime({
   defaultModel: process.env.OPENROUTER_MODEL ?? 'deepseek/deepseek-chat',
   providerLabel: 'openrouter',
   profileMode: 'mixed',
-  toolStrategy: 'relay-emulated',
-  hostedTools: [{ name: 'image_generation', mode: 'relay-emulated' }],
+  toolStrategy: 'adapter-emulated',
+  hostedTools: [{ name: 'image_generation', mode: 'adapter-emulated' }],
   hostedToolExecutors: { image_generation: imageGeneration },
   emitHostedToolSseEvents: true,
 });

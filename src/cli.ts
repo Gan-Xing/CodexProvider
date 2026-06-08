@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import {
-  createCodexProviderRelayStandaloneServerFromEnv,
-  resolveCodexProviderRelayStandaloneServerEnv,
+  createCodexProviderStandaloneServerFromEnv,
+  resolveCodexProviderStandaloneServerEnv,
 } from './server/standalone_server.js';
 
 async function main(): Promise<void> {
@@ -12,17 +12,17 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const env = resolveCodexProviderRelayStandaloneServerEnv({
+  const env = resolveCodexProviderStandaloneServerEnv({
     env: {
       ...process.env,
-      ...(args.trace ? { CODEX_PROVIDER_RELAY_TRACE: '1' } : {}),
+      ...(args.trace ? { CODEX_PROVIDER_TRACE: '1' } : {}),
     },
     envFilePath: args.envFilePath,
   });
-  const { config, server } = createCodexProviderRelayStandaloneServerFromEnv(env);
+  const { config, server } = createCodexProviderStandaloneServerFromEnv(env);
   await server.start();
 
-  console.log('Codex Provider Relay standalone server started.');
+  console.log('Codex Provider standalone server started.');
   console.log(`Provider preset: ${config.presetId}`);
   console.log(`Provider: ${config.providerName} (${config.providerKind})`);
   console.log(`Upstream base URL: ${config.upstreamBaseUrl}`);
@@ -30,14 +30,14 @@ async function main(): Promise<void> {
   console.log(`Local base URL: ${server.baseUrl}`);
   console.log(`Model catalog source: ${config.modelCatalogSource}`);
   console.log(`Trace mode: ${config.traceMode}`);
-  if (args.envFilePath || env.CODEX_PROVIDER_RELAY_ENV_FILE || env.CODEX_GATEWAY_ENV_FILE) {
-    console.log(`Env file: ${args.envFilePath ?? env.CODEX_PROVIDER_RELAY_ENV_FILE ?? env.CODEX_GATEWAY_ENV_FILE}`);
+  if (args.envFilePath || env.CODEX_PROVIDER_ENV_FILE) {
+    console.log(`Env file: ${args.envFilePath ?? env.CODEX_PROVIDER_ENV_FILE}`);
   }
   console.log('Routes: GET /models (alias /v1/models), POST /responses (alias /v1/responses), POST /responses/compact (alias /v1/responses/compact)');
   console.log('Press Ctrl+C to stop.');
 
   const shutdown = async (signal: string) => {
-    console.log(`Received ${signal}, stopping Codex Provider Relay standalone server...`);
+    console.log(`Received ${signal}, stopping Codex Provider standalone server...`);
     await server.stop();
     process.exit(0);
   };
@@ -79,7 +79,7 @@ function parseCliArgs(argv: string[]): {
       trace = true;
       continue;
     }
-    throw new Error(`Unknown codex-provider-relay-server argument: ${arg}`);
+    throw new Error(`Unknown codex-provider-server argument: ${arg}`);
   }
 
   return { envFilePath, help, trace };
@@ -87,9 +87,9 @@ function parseCliArgs(argv: string[]): {
 
 function printHelp(): void {
   console.log([
-    'Usage: codex-provider-relay-server [--env-file <path>] [--trace]',
+    'Usage: codex-provider-server [--env-file <path>] [--trace]',
     '',
-    'Internal-only launcher for the Codex Provider Relay local Responses adapter server.',
+    'Internal-only launcher for the Codex Provider local Responses adapter server.',
     '',
     'Options:',
     '  --env-file <path>  Load dotenv-style defaults before resolving provider env',

@@ -14,7 +14,7 @@ const runtime = new CodexProviderRuntime({
 
 const state = await runtime.start();
 
-console.log('Relay adapter:', state.adapterBaseUrl);
+console.log('Provider adapter:', state.adapterBaseUrl);
 console.log('Codex base URL:', state.codexBaseUrl);
 console.log('Codex CLI args:', state.codexCliArgs.join(' '));
 

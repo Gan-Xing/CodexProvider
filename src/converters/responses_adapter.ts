@@ -23,18 +23,18 @@ import {
   reconstructCustomToolCallInput,
 } from './apply_patch_proxy.js';
 import type {
-  NormalizedCodexProviderRelayHostedToolDeclaration,
+  NormalizedCodexProviderHostedToolDeclaration,
 } from '../hosted_tools.js';
 import {
-  codexProviderRelayBuiltinToolParameters,
-  defaultCodexProviderRelayBuiltinToolDescription,
-  isCodexProviderRelayRelayEmulatedBuiltinToolType,
-  normalizeCodexProviderRelayBuiltinToolName,
+  codexProviderBuiltinToolParameters,
+  defaultCodexProviderBuiltinToolDescription,
+  isCodexProviderAdapterEmulatedBuiltinToolType,
+  normalizeCodexProviderBuiltinToolName,
 } from '../builtin-tools/index.js';
 
 type JsonRecord = Record<string, any>;
 type ToolNameMap = Map<string, string>;
-type RelayEmulatedHostedToolMap = Map<string, NormalizedCodexProviderRelayHostedToolDeclaration>;
+type AdapterEmulatedHostedToolMap = Map<string, NormalizedCodexProviderHostedToolDeclaration>;
 
 const THINK_OPEN_TAG = '<think>';
 const THINK_CLOSE_TAG = '</think>';
@@ -44,7 +44,7 @@ export interface ResponsesToChatOptions {
   stream?: boolean | null;
   providerKind?: string | null;
   providerCapabilities?: OpenAICompatibleProviderCapabilities | null;
-  hostedTools?: NormalizedCodexProviderRelayHostedToolDeclaration[] | null;
+  hostedTools?: NormalizedCodexProviderHostedToolDeclaration[] | null;
   compact?: boolean | null;
 }
 
@@ -136,7 +136,7 @@ export function responsesRequestToChatCompletions(
     stream: Boolean(options.stream ?? request?.stream),
   };
   const builtinWebSearchTransport = resolveBuiltinWebSearchTransport(providerCapabilities);
-  const relayEmulatedHostedTools = resolveRelayEmulatedHostedTools(options.hostedTools);
+  const adapterEmulatedHostedTools = resolveAdapterEmulatedHostedTools(options.hostedTools);
 
   copyIfPresent(request, chat, 'temperature');
   copyIfPresent(request, chat, 'top_p');
@@ -204,7 +204,7 @@ export function responsesRequestToChatCompletions(
         options.providerKind,
         providerCapabilities,
         builtinWebSearchTransport,
-        relayEmulatedHostedTools,
+        adapterEmulatedHostedTools,
       ),
     })
     : [];
@@ -217,7 +217,7 @@ export function responsesRequestToChatCompletions(
         providerCapabilities,
         toolNameMap,
         builtinWebSearchTransport,
-        relayEmulatedHostedTools,
+        adapterEmulatedHostedTools,
       );
       if (toolChoice !== undefined) {
         chat.tool_choice = toolChoice;
@@ -1074,15 +1074,15 @@ function convertResponsesToolToChatTool(
   providerCapabilities: OpenAICompatibleProviderCapabilities | null = null,
   toolNameMap: ToolNameMap = new Map(),
   builtinWebSearchTransport: 'openai_tool' | 'chat_enable_search' = 'openai_tool',
-  relayEmulatedHostedTools: RelayEmulatedHostedToolMap = new Map(),
+  adapterEmulatedHostedTools: AdapterEmulatedHostedToolMap = new Map(),
 ): JsonRecord | null {
   if (!tool || typeof tool !== 'object') {
     return null;
   }
   const type = normalizeString(tool.type);
-  const relayHostedTool = relayEmulatedHostedTools.get(normalizeRelayHostedToolBuiltinType(type));
-  if (isRelayHostedBuiltinToolType(type) && relayHostedTool) {
-    return buildRelayEmulatedHostedChatTool(tool, relayHostedTool);
+  const adapterHostedTool = adapterEmulatedHostedTools.get(normalizeAdapterHostedToolBuiltinType(type));
+  if (isAdapterHostedBuiltinToolType(type) && adapterHostedTool) {
+    return buildAdapterEmulatedHostedChatTool(tool, adapterHostedTool);
   }
   const normalizedBuiltinType = normalizeBuiltinToolType(
     type,
@@ -1116,12 +1116,12 @@ function convertResponsesToolChoiceToChatToolChoice(
   providerCapabilities: OpenAICompatibleProviderCapabilities | null = null,
   toolNameMap: ToolNameMap = new Map(),
   builtinWebSearchTransport: 'openai_tool' | 'chat_enable_search' = 'openai_tool',
-  relayEmulatedHostedTools: RelayEmulatedHostedToolMap = new Map(),
+  adapterEmulatedHostedTools: AdapterEmulatedHostedToolMap = new Map(),
 ): unknown {
   if (typeof toolChoice === 'string') {
-    const relayHostedTool = relayEmulatedHostedTools.get(normalizeRelayHostedToolBuiltinType(toolChoice));
-    if (isRelayHostedBuiltinToolType(toolChoice) && relayHostedTool) {
-      return buildForcedFunctionToolChoice(relayHostedTool.relayToolName || relayHostedTool.name);
+    const adapterHostedTool = adapterEmulatedHostedTools.get(normalizeAdapterHostedToolBuiltinType(toolChoice));
+    if (isAdapterHostedBuiltinToolType(toolChoice) && adapterHostedTool) {
+      return buildForcedFunctionToolChoice(adapterHostedTool.emulatedToolName || adapterHostedTool.name);
     }
     const normalizedBuiltinType = normalizeBuiltinToolType(
       toolChoice,
@@ -1143,9 +1143,9 @@ function convertResponsesToolChoiceToChatToolChoice(
 
   const record = { ...(toolChoice as JsonRecord) };
   const rawType = normalizeString(record.type);
-  const relayHostedTool = relayEmulatedHostedTools.get(normalizeRelayHostedToolBuiltinType(rawType));
-  if (isRelayHostedBuiltinToolType(rawType) && relayHostedTool) {
-    return buildForcedFunctionToolChoice(relayHostedTool.relayToolName || relayHostedTool.name);
+  const adapterHostedTool = adapterEmulatedHostedTools.get(normalizeAdapterHostedToolBuiltinType(rawType));
+  if (isAdapterHostedBuiltinToolType(rawType) && adapterHostedTool) {
+    return buildForcedFunctionToolChoice(adapterHostedTool.emulatedToolName || adapterHostedTool.name);
   }
   const normalizedType = normalizeBuiltinToolType(
     rawType,
@@ -1206,7 +1206,7 @@ function convertResponsesToolChoiceToChatToolChoice(
         providerCapabilities,
         toolNameMap,
         builtinWebSearchTransport,
-        relayEmulatedHostedTools,
+        adapterEmulatedHostedTools,
       ))
       .filter(Boolean);
     if (record.tools.length === 0) {
@@ -1269,14 +1269,14 @@ function convertResponsesBuiltinToolToChatTool(
   providerKind?: string | null,
   providerCapabilities: OpenAICompatibleProviderCapabilities | null = null,
   builtinWebSearchTransport: 'openai_tool' | 'chat_enable_search' = 'openai_tool',
-  relayEmulatedHostedTools: RelayEmulatedHostedToolMap = new Map(),
+  adapterEmulatedHostedTools: AdapterEmulatedHostedToolMap = new Map(),
 ): JsonRecord | null {
   if (!tool || typeof tool !== 'object') {
     return null;
   }
-  const relayHostedTool = relayEmulatedHostedTools.get(normalizeRelayHostedToolBuiltinType(tool.type));
-  if (isRelayHostedBuiltinToolType(tool.type) && relayHostedTool) {
-    return buildRelayEmulatedHostedChatTool(tool, relayHostedTool);
+  const adapterHostedTool = adapterEmulatedHostedTools.get(normalizeAdapterHostedToolBuiltinType(tool.type));
+  if (isAdapterHostedBuiltinToolType(tool.type) && adapterHostedTool) {
+    return buildAdapterEmulatedHostedChatTool(tool, adapterHostedTool);
   }
   const normalizedBuiltinType = normalizeBuiltinToolType(
     tool.type,
@@ -1292,18 +1292,18 @@ function convertResponsesBuiltinToolToChatTool(
     : null;
 }
 
-function resolveRelayEmulatedHostedTools(
-  hostedTools: NormalizedCodexProviderRelayHostedToolDeclaration[] | null | undefined,
-): RelayEmulatedHostedToolMap {
-  const resolved: RelayEmulatedHostedToolMap = new Map();
+function resolveAdapterEmulatedHostedTools(
+  hostedTools: NormalizedCodexProviderHostedToolDeclaration[] | null | undefined,
+): AdapterEmulatedHostedToolMap {
+  const resolved: AdapterEmulatedHostedToolMap = new Map();
   if (!Array.isArray(hostedTools)) {
     return resolved;
   }
   for (const tool of hostedTools) {
     if (
-      tool?.mode !== 'relay-emulated'
-      || !normalizeString(tool.relayToolName || tool.name)
-      || !isRelayHostedBuiltinToolType(tool.name)
+      tool?.mode !== 'adapter-emulated'
+      || !normalizeString(tool.emulatedToolName || tool.name)
+      || !isAdapterHostedBuiltinToolType(tool.name)
     ) {
       continue;
     }
@@ -1312,29 +1312,29 @@ function resolveRelayEmulatedHostedTools(
   return resolved;
 }
 
-function buildRelayEmulatedHostedChatTool(
+function buildAdapterEmulatedHostedChatTool(
   tool: JsonRecord,
-  declaration: NormalizedCodexProviderRelayHostedToolDeclaration,
+  declaration: NormalizedCodexProviderHostedToolDeclaration,
 ): JsonRecord {
-  const relayToolName = normalizeString(declaration.relayToolName) || declaration.name;
+  const emulatedToolName = normalizeString(declaration.emulatedToolName) || declaration.name;
   return {
     type: 'function',
     function: omitUndefined({
-      name: relayToolName,
+      name: emulatedToolName,
       description: normalizeString(declaration.description)
         || normalizeString(tool.description)
-        || defaultRelayHostedToolDescription(declaration.name),
-      parameters: relayHostedToolParameters(declaration.name),
+        || defaultAdapterHostedToolDescription(declaration.name),
+      parameters: adapterHostedToolParameters(declaration.name),
     }),
   };
 }
 
-function defaultRelayHostedToolDescription(name: string): string {
-  return defaultCodexProviderRelayBuiltinToolDescription(name);
+function defaultAdapterHostedToolDescription(name: string): string {
+  return defaultCodexProviderBuiltinToolDescription(name);
 }
 
-function relayHostedToolParameters(name: string): JsonRecord {
-  return codexProviderRelayBuiltinToolParameters(name);
+function adapterHostedToolParameters(name: string): JsonRecord {
+  return codexProviderBuiltinToolParameters(name);
 }
 
 function buildForcedFunctionToolChoice(functionName: string): JsonRecord {
@@ -1347,16 +1347,16 @@ function buildForcedFunctionToolChoice(functionName: string): JsonRecord {
 }
 
 function isBuiltinToolType(type: unknown): boolean {
-  const normalizedName = normalizeCodexProviderRelayBuiltinToolName(type);
+  const normalizedName = normalizeCodexProviderBuiltinToolName(type);
   return normalizedName === 'web_search' || normalizedName === 'file_search';
 }
 
-function isRelayHostedBuiltinToolType(type: unknown): boolean {
-  return isCodexProviderRelayRelayEmulatedBuiltinToolType(type);
+function isAdapterHostedBuiltinToolType(type: unknown): boolean {
+  return isCodexProviderAdapterEmulatedBuiltinToolType(type);
 }
 
-function normalizeRelayHostedToolBuiltinType(type: unknown): string {
-  return normalizeCodexProviderRelayBuiltinToolName(type) ?? normalizeString(type);
+function normalizeAdapterHostedToolBuiltinType(type: unknown): string {
+  return normalizeCodexProviderBuiltinToolName(type) ?? normalizeString(type);
 }
 
 function supportsBuiltinWebSearchTool(
@@ -1398,7 +1398,7 @@ function requestUsesBuiltinWebSearch(request: JsonRecord): boolean {
 }
 
 function isBuiltinWebSearchToolType(type: unknown): boolean {
-  return normalizeCodexProviderRelayBuiltinToolName(type) === 'web_search';
+  return normalizeCodexProviderBuiltinToolName(type) === 'web_search';
 }
 
 function translateChatCompletionStreamData(data: string, state: StreamState): JsonRecord[] {

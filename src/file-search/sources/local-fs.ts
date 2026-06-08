@@ -1,10 +1,10 @@
 import fs from 'node:fs/promises';
 import type {
-  CodexProviderRelayFileSearchSource,
-  CodexProviderRelayFileSearchSourceMatch,
-  CodexProviderRelayFileSearchSourceRequest,
-  CodexProviderRelayFileSearchSourceResult,
-  CodexProviderRelayLocalFileSearchSourceOptions,
+  CodexProviderFileSearchSource,
+  CodexProviderFileSearchSourceMatch,
+  CodexProviderFileSearchSourceRequest,
+  CodexProviderFileSearchSourceResult,
+  CodexProviderLocalFileSearchSourceOptions,
 } from '../types.js';
 import {
   looksBinary,
@@ -17,16 +17,16 @@ import {
   searchFileContent,
 } from './local-shared.js';
 
-export function createCodexProviderRelayLocalFileSearchSource(
-  options: CodexProviderRelayLocalFileSearchSourceOptions,
-): CodexProviderRelayFileSearchSource {
+export function createCodexProviderLocalFileSearchSource(
+  options: CodexProviderLocalFileSearchSourceOptions,
+): CodexProviderFileSearchSource {
   assertExplicitLocalFileSearchRoots(options.roots);
   const normalizedOptionsPromise = normalizeLocalFileSearchOptions(options);
   const sourceName = normalizeString(options.name) || 'local-fs';
   return {
     name: sourceName,
     type: 'local-fs',
-    async search(request: CodexProviderRelayFileSearchSourceRequest): Promise<CodexProviderRelayFileSearchSourceResult> {
+    async search(request: CodexProviderFileSearchSourceRequest): Promise<CodexProviderFileSearchSourceResult> {
       const normalizedOptions = await normalizedOptionsPromise;
       const maxResults = request.maxResults;
       const includeContent = typeof request.includeContent === 'boolean'
@@ -46,7 +46,7 @@ export function createCodexProviderRelayLocalFileSearchSource(
         count: candidates.length,
       });
 
-      const results: CodexProviderRelayFileSearchSourceMatch[] = [];
+      const results: CodexProviderFileSearchSourceMatch[] = [];
       let scannedFiles = 0;
       let skippedFiles = 0;
       for (const candidate of candidates) {

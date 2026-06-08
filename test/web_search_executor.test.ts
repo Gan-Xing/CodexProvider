@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  createCodexProviderRelayWebSearchExecutor,
-  createCodexProviderRelayProviderWebSearchSource,
-  type CodexProviderRelayWebSearchExecutorContent,
+  createCodexProviderWebSearchExecutor,
+  createCodexProviderProviderWebSearchSource,
+  type CodexProviderWebSearchExecutorContent,
 } from '../src/index.js';
 
 function baseRequest(argumentsValue: Record<string, any>) {
   return {
     toolName: 'web_search' as const,
-    relayToolName: 'relay_web_search',
+    emulatedToolName: 'adapter_web_search',
     callId: 'call_search_1',
     arguments: argumentsValue,
     rawArguments: JSON.stringify(argumentsValue),
@@ -21,7 +21,7 @@ function baseRequest(argumentsValue: Record<string, any>) {
 
 test('Tavily web_search executor posts Bearer-authenticated search requests', async () => {
   const calls: Array<{ url: string; init: RequestInit }> = [];
-  const executor = createCodexProviderRelayWebSearchExecutor({
+  const executor = createCodexProviderWebSearchExecutor({
     provider: 'tavily',
     apiKey: 'tvly-test',
     maxResults: 2,
@@ -43,16 +43,16 @@ test('Tavily web_search executor posts Bearer-authenticated search requests', as
   });
 
   const result = await executor(baseRequest({
-    query: 'codex relay',
+    query: 'codex adapter',
     search_context_size: 'high',
   }));
   const body = JSON.parse(String(calls[0].init.body));
 
   assert.equal(calls[0].url, 'https://api.tavily.com/search');
   assert.equal((calls[0].init.headers as any).Authorization, 'Bearer tvly-test');
-  assert.equal(body.query, 'codex relay');
+  assert.equal(body.query, 'codex adapter');
   assert.equal(body.search_depth, 'advanced');
-  const content = result.content as CodexProviderRelayWebSearchExecutorContent;
+  const content = result.content as CodexProviderWebSearchExecutorContent;
   assert.equal(content.provider, 'tavily');
   assert.equal(content.answer, 'short answer');
   assert.equal(content.results[0].url, 'https://example.com/a');
@@ -60,7 +60,7 @@ test('Tavily web_search executor posts Bearer-authenticated search requests', as
 
 test('Brave web_search executor maps web.results into normalized results', async () => {
   const calls: string[] = [];
-  const executor = createCodexProviderRelayWebSearchExecutor({
+  const executor = createCodexProviderWebSearchExecutor({
     provider: 'brave',
     apiKey: 'brave-test',
     maxResults: 3,
@@ -92,14 +92,14 @@ test('Brave web_search executor maps web.results into normalized results', async
   assert.equal(url.searchParams.get('q'), 'brave query');
   assert.equal(url.searchParams.get('count'), '3');
   assert.equal(url.searchParams.get('country'), 'US');
-  const content = result.content as CodexProviderRelayWebSearchExecutorContent;
+  const content = result.content as CodexProviderWebSearchExecutorContent;
   assert.equal(content.provider, 'brave');
   assert.equal(content.results[0].snippet, 'Brave snippet');
 });
 
 test('Serper web_search executor maps organic results and answer boxes', async () => {
   const calls: RequestInit[] = [];
-  const executor = createCodexProviderRelayWebSearchExecutor({
+  const executor = createCodexProviderWebSearchExecutor({
     provider: 'serper',
     apiKey: 'serper-test',
     maxResults: 1,
@@ -128,7 +128,7 @@ test('Serper web_search executor maps organic results and answer boxes', async (
   assert.equal((calls[0].headers as any)['X-API-KEY'], 'serper-test');
   assert.equal(body.q, 'serper query');
   assert.equal(body.num, 1);
-  const content = result.content as CodexProviderRelayWebSearchExecutorContent;
+  const content = result.content as CodexProviderWebSearchExecutorContent;
   assert.equal(content.provider, 'serper');
   assert.equal(content.answer, 'answer box');
   assert.equal(content.results[0].url, 'https://example.com/serper');
@@ -136,7 +136,7 @@ test('Serper web_search executor maps organic results and answer boxes', async (
 
 test('web_search executor rejects offline mode when only live providers are configured', async () => {
   let called = false;
-  const executor = createCodexProviderRelayWebSearchExecutor({
+  const executor = createCodexProviderWebSearchExecutor({
     provider: 'tavily',
     apiKey: 'tvly-test',
     fetchImpl: (async () => {
@@ -157,9 +157,9 @@ test('web_search executor rejects offline mode when only live providers are conf
 
 test('web_search executor uses cache source when external_web_access is false', async () => {
   let liveCalled = false;
-  const executor = createCodexProviderRelayWebSearchExecutor({
+  const executor = createCodexProviderWebSearchExecutor({
     sources: [
-      createCodexProviderRelayProviderWebSearchSource({
+      createCodexProviderProviderWebSearchSource({
         provider: 'brave',
         apiKey: 'brave-test',
         fetchImpl: (async () => {
@@ -213,7 +213,7 @@ test('web_search executor uses cache source when external_web_access is false', 
       city: 'New York',
     },
   }));
-  const content = result.content as CodexProviderRelayWebSearchExecutorContent;
+  const content = result.content as CodexProviderWebSearchExecutorContent;
 
   assert.equal(liveCalled, false);
   assert.equal(content.provider, 'cache-index');
@@ -227,7 +227,7 @@ test('web_search executor uses cache source when external_web_access is false', 
 
 test('web_search executor passes v2 fields and filters source results', async () => {
   const sourceRequests: any[] = [];
-  const executor = createCodexProviderRelayWebSearchExecutor({
+  const executor = createCodexProviderWebSearchExecutor({
     sources: [{
       name: 'custom-live',
       type: 'custom',
@@ -264,7 +264,7 @@ test('web_search executor passes v2 fields and filters source results', async ()
       blocked_domains: ['blocked.example.com'],
     },
   }));
-  const content = result.content as CodexProviderRelayWebSearchExecutorContent;
+  const content = result.content as CodexProviderWebSearchExecutorContent;
 
   assert.equal(sourceRequests[0].query, 'filtered query');
   assert.equal(sourceRequests[0].searchContextSize, 'high');
@@ -279,7 +279,7 @@ test('web_search executor passes v2 fields and filters source results', async ()
 
 test('Tavily web_search source forwards domain filters to provider request', async () => {
   const calls: RequestInit[] = [];
-  const executor = createCodexProviderRelayWebSearchExecutor({
+  const executor = createCodexProviderWebSearchExecutor({
     provider: 'tavily',
     apiKey: 'tvly-test',
     fetchImpl: (async (_url, init) => {
@@ -305,7 +305,7 @@ test('Tavily web_search source forwards domain filters to provider request', asy
     },
   }));
   const body = JSON.parse(String(calls[0].body));
-  const content = result.content as CodexProviderRelayWebSearchExecutorContent;
+  const content = result.content as CodexProviderWebSearchExecutorContent;
 
   assert.deepEqual(body.include_domains, ['docs.example.com']);
   assert.deepEqual(body.exclude_domains, ['blocked.example.com']);

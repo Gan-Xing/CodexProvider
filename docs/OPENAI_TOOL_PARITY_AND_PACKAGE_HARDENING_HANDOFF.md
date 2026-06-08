@@ -1,21 +1,23 @@
-# Codex Provider Relay：OpenAI Built-in Tool Parity & Package Hardening Handoff
+# Codex Provider：OpenAI Built-in Tool Parity & Package Hardening Handoff
+
+Archived historical naming record. This handoff preserves old repository and API names for audit context and should not be treated as current API guidance.
 
 ## 目标
 
-把 `packages/codex-provider-relay` 推进到“可独立成包”的下一阶段。
+把 `packages/codex-provider` 推进到“可独立成包”的下一阶段。
 
 最终目标：
 
 ```text
 Codex app-server / CodexBridge / CodexNext / 任意宿主应用
       ↓
-@codexbridge/codex-provider-relay
+@codexbridge/codex-provider
       ↓
 OpenAI-compatible Responses surface
       ↓
 非 OpenAI Chat Completions / OpenAI-compatible upstream
       ↓
-DeepSeek / Qwen / OpenRouter / MiniMax / Claude-compatible relay / 其他厂商
+DeepSeek / Qwen / OpenRouter / MiniMax / Claude-compatible adapter / 其他厂商
 ```
 
 这个包要让其他厂商模型也能在 Codex 的原生工具调用闭环里工作。
@@ -23,7 +25,7 @@ DeepSeek / Qwen / OpenRouter / MiniMax / Claude-compatible relay / 其他厂商
 
 ## 当前状态判断
 
-当前 `file_search` 不是从零开始，已经完成了 relay-emulated v1 的大部分核心：
+当前 `file_search` 不是从零开始，已经完成了 adapter-emulated v1 的大部分核心：
 
 - `file-search` 子模块已经拆出：
   - `types.ts`
@@ -70,7 +72,7 @@ DeepSeek / Qwen / OpenRouter / MiniMax / Claude-compatible relay / 其他厂商
 - 不要默认引入 sqlite driver
 - 不要默认执行危险 shell / computer / code interpreter 行为
 - 不要破坏现有 public API
-- 不要删除旧 gateway alias；可以新增新命名并 deprecate 旧命名
+- 不要删除旧 provider adapter alias；可以新增新命名并 deprecate 旧命名
 - 不要把所有 provider 都假装支持 OpenAI hosted tools
 
 ## 关键约束
@@ -79,15 +81,15 @@ DeepSeek / Qwen / OpenRouter / MiniMax / Claude-compatible relay / 其他厂商
 
 ```ts
 hostedTools: [
-  { name: "file_search", mode: "relay-emulated" }
+  { name: "file_search", mode: "adapter-emulated" }
 ]
 ```
 
-2. relay-emulated tool 只有注册 executor 才能执行：
+2. adapter-emulated tool 只有注册 executor 才能执行：
 
 ```ts
 hostedToolExecutors: {
-  file_search: createCodexProviderRelayFileSearchExecutor(...)
+  file_search: createCodexProviderFileSearchExecutor(...)
 }
 ```
 
@@ -100,7 +102,7 @@ hostedToolExecutors: {
    - `local_shell`
    - `apply_patch`
 
-5. 内置工具兼容应按 OpenAI Responses API 的 tool shape 设计，但 relay 内部可用 Chat function proxy 执行。
+5. 内置工具兼容应按 OpenAI Responses API 的 tool shape 设计，但 adapter 内部可用 Chat function proxy 执行。
 
 ## OpenAI built-in tool surface baseline
 
@@ -122,7 +124,7 @@ hostedToolExecutors: {
 - 新的 Responses API 推荐 `web_search`，不是 `web_search_preview`。
 - `web_search_preview` 只能作为 legacy alias。
 - `file_search` 常见字段包括 `vector_store_ids`、`max_num_results`、`filters`。
-- `file_search_call.results` 是 OpenAI include 语义的一部分，当前 relay 还没有完全对齐。
+- `file_search_call.results` 是 OpenAI include 语义的一部分，当前 adapter 还没有完全对齐。
 - `computer` 是新的 GA 工具名，`computer_use_preview` 是旧 preview 迁移对象。
 - `image_generation` 输出通常是 `image_generation_call`。
 - `code_interpreter` 有 container 概念。
@@ -137,27 +139,27 @@ hostedToolExecutors: {
 新增文档：
 
 ```text
-packages/codex-provider-relay/docs/OPENAI_BUILTIN_TOOL_COMPATIBILITY.md
+packages/codex-provider/docs/OPENAI_BUILTIN_TOOL_COMPATIBILITY.md
 ```
 
 内容包含矩阵：
 
-| Tool | OpenAI tool type | Current support | Relay mode | Executor required | Output parity | Status |
+| Tool | OpenAI tool type | Current support | Tool mode | Executor required | Output parity | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Web search | `web_search` | partial | provider-native / relay-emulated | yes for relay | partial | P1 |
-| File search | `file_search` | strong v1 | relay-emulated | yes | partial | P1 |
-| Tool search | `tool_search` | no | relay-emulated/client | yes | no | P2 |
-| Image generation | `image_generation` | declaration only | relay-emulated/provider-native | yes | no | P3 |
-| Code interpreter | `code_interpreter` | declaration only | relay-emulated/provider-native | yes | no | P4 |
-| Computer | `computer` | declaration alias missing | relay-emulated/provider-native | yes | no | P5 |
-| Shell | `shell` / `local_shell` | Codex local-first only | codex-local-first/relay-emulated | yes | partial | P5 |
+| Web search | `web_search` | partial | provider-native / adapter-emulated | yes for adapter | partial | P1 |
+| File search | `file_search` | strong v1 | adapter-emulated | yes | partial | P1 |
+| Tool search | `tool_search` | no | adapter-emulated/client | yes | no | P2 |
+| Image generation | `image_generation` | declaration only | adapter-emulated/provider-native | yes | no | P3 |
+| Code interpreter | `code_interpreter` | declaration only | adapter-emulated/provider-native | yes | no | P4 |
+| Computer | `computer` | declaration alias missing | adapter-emulated/provider-native | yes | no | P5 |
+| Shell | `shell` / `local_shell` | Codex local-first only | codex-local-first/adapter-emulated | yes | partial | P5 |
 | Apply patch | `apply_patch` | Codex custom proxy supported | codex-local-first | Codex executes | strong | keep |
 
 完成标准：
 
 - 文档明确“哪些已经完成、哪些只是 declaration、哪些是 future work”。
 - 不夸大支持范围。
-- 文档写明 `provider-native` 和 `relay-emulated` 的区别。
+- 文档写明 `provider-native` 和 `adapter-emulated` 的区别。
 
 ---
 
@@ -166,7 +168,7 @@ packages/codex-provider-relay/docs/OPENAI_BUILTIN_TOOL_COMPATIBILITY.md
 新增目录：
 
 ```text
-packages/codex-provider-relay/src/builtin-tools/
+packages/codex-provider/src/builtin-tools/
 ```
 
 建议文件：
@@ -186,7 +188,7 @@ builtin-tools/index.ts
 建议类型：
 
 ```ts
-export type CodexProviderRelayBuiltinToolName =
+export type CodexProviderBuiltinToolName =
   | "web_search"
   | "file_search"
   | "tool_search"
@@ -215,14 +217,14 @@ local_shell -> shell or local_shell, 需要保留 Codex 语义
 ### 1.3 定义 tool capability
 
 ```ts
-export interface CodexProviderRelayBuiltinToolDefinition {
-  name: CodexProviderRelayBuiltinToolName;
+export interface CodexProviderBuiltinToolDefinition {
+  name: CodexProviderBuiltinToolName;
   openaiToolTypes: string[];
-  relayEmulatedSupported: boolean;
+  adapterEmulatedSupported: boolean;
   providerNativeSupported: boolean;
   requiresExecutor: boolean;
   unsafeByDefault: boolean;
-  defaultRelayToolName: string;
+  defaultEmulatedToolName: string;
   parameters: JsonRecord;
 }
 ```
@@ -232,10 +234,10 @@ export interface CodexProviderRelayBuiltinToolDefinition {
 当前 `responses_adapter.ts` 里有：
 
 - `isBuiltinToolType`
-- `isRelayHostedBuiltinToolType`
-- `normalizeRelayHostedToolBuiltinType`
-- `relayHostedToolParameters`
-- `defaultRelayHostedToolDescription`
+- `isAdapterHostedBuiltinToolType`
+- `normalizeAdapterHostedToolBuiltinType`
+- `adapterHostedToolParameters`
+- `defaultAdapterHostedToolDescription`
 
 把这些逐步改为使用 registry。
 先保留 facade 函数，内部调用 registry，减少大改。
@@ -265,12 +267,12 @@ OpenAI 使用：
 include: ["file_search_call.results"]
 ```
 
-当前 relay 主要通过 tool output 把结果给模型，不一定在最终 Responses output 中暴露 `file_search_call.results`。
+当前 adapter 主要通过 tool output 把结果给模型，不一定在最终 Responses output 中暴露 `file_search_call.results`。
 
 要求：
 
 - 在 `OpenAICompatibleResponsesAdapterServer` 中识别 top-level `include`
-- 如果 include 包含 `file_search_call.results`，则 relay-hosted file_search 执行结果应可观察
+- 如果 include 包含 `file_search_call.results`，则 adapter-hosted file_search 执行结果应可观察
 - 设计一个兼容输出策略，不破坏 Codex tool loop
 
 建议策略：
@@ -282,7 +284,7 @@ include: ["file_search_call.results"]
 exposeHostedToolResultsInResponsesOutput?: boolean | null
 ```
 
-3. 当 include 请求或 option 开启时，在最终 synthetic Responses output 中附加 relay-specific metadata 或兼容 `file_search_call` item。
+3. 当 include 请求或 option 开启时，在最终 synthetic Responses output 中附加 adapter-specific metadata 或兼容 `file_search_call` item。
 
 必须先写测试定义期望结构，再实现。
 
@@ -342,17 +344,17 @@ search_results: [...]
 只新增接口：
 
 ```ts
-export interface CodexProviderRelayVectorStoreFileSearchSourceOptions {
+export interface CodexProviderVectorStoreFileSearchSourceOptions {
   type?: "vector-store" | null;
   name?: string | null;
-  store: CodexProviderRelayVectorStoreAdapter;
+  store: CodexProviderVectorStoreAdapter;
 }
 ```
 
 ```ts
-export interface CodexProviderRelayVectorStoreAdapter {
-  search(request: CodexProviderRelayVectorStoreSearchRequest):
-    Promise<CodexProviderRelayFileSearchSourceResult>;
+export interface CodexProviderVectorStoreAdapter {
+  search(request: CodexProviderVectorStoreSearchRequest):
+    Promise<CodexProviderFileSearchSourceResult>;
 }
 ```
 
@@ -363,7 +365,7 @@ export interface CodexProviderRelayVectorStoreAdapter {
 新增通用 remote-doc source，而不是接某个具体服务：
 
 ```ts
-createCodexProviderRelayRemoteDocumentsFileSearchSource({
+createCodexProviderRemoteDocumentsFileSearchSource({
   name,
   query,
   fetchDocument?
@@ -428,7 +430,7 @@ test/file_search_openai_parity.test.ts
 新增：
 
 ```ts
-CodexProviderRelayWebSearchSource
+CodexProviderWebSearchSource
 ```
 
 现有 Tavily/Brave/Serper 可以变成 source adapter。
@@ -453,7 +455,7 @@ CodexProviderRelayWebSearchSource
 
 新增：
 
-- `web_search` canonical tool converts to relay function
+- `web_search` canonical tool converts to adapter function
 - `web_search_preview` legacy alias works
 - `external_web_access: false` prevents live provider
 - `filters` are passed to executor
@@ -464,7 +466,7 @@ CodexProviderRelayWebSearchSource
 
 # Phase 4：Tool Search
 
-OpenAI `tool_search` 用于动态加载工具定义。这个很适合 Codex Provider Relay。
+OpenAI `tool_search` 用于动态加载工具定义。这个很适合 Codex Provider。
 
 ## 设计
 
@@ -473,7 +475,7 @@ OpenAI `tool_search` 用于动态加载工具定义。这个很适合 Codex Prov
 新增：
 
 ```ts
-CodexProviderRelayToolSearchExecutor
+CodexProviderToolSearchExecutor
 ```
 
 输入：
@@ -499,15 +501,15 @@ CodexProviderRelayToolSearchExecutor
 
 对于 Chat Completions upstream：
 
-1. 初始请求只暴露 `relay_tool_search` function。
-2. 模型调用 `relay_tool_search`。
-3. relay executor 返回工具定义。
-4. relay 把工具定义追加到下一轮 Chat request 的 `tools`。
+1. 初始请求只暴露 `adapter_tool_search` function。
+2. 模型调用 `adapter_tool_search`。
+3. adapter executor 返回工具定义。
+4. adapter 把工具定义追加到下一轮 Chat request 的 `tools`。
 5. 模型再选择真实工具。
 
 ## 测试
 
-- tool_search 被转换成 relay function
+- tool_search 被转换成 adapter function
 - tool_search executor 返回 tools 后，下一轮 upstream request 包含 deferred tools
 - streaming path 不破坏
 - 未注册 executor 时明确报错或不暴露 capability
@@ -530,9 +532,9 @@ src/image_generation_executor.ts
 类型：
 
 ```ts
-CodexProviderRelayImageGenerationExecutorOptions
-CodexProviderRelayImageGenerationExecutorContent
-CodexProviderRelayImageGenerationResult
+CodexProviderImageGenerationExecutorOptions
+CodexProviderImageGenerationExecutorContent
+CodexProviderImageGenerationResult
 ```
 
 Executor contract：
@@ -567,7 +569,7 @@ Executor contract：
 
 - 默认不内置任何 image provider。
 - 可以提供 OpenAI-compatible image API provider factory。
-- 对非 OpenAI Chat upstream，暴露 `relay_image_generation` function。
+- 对非 OpenAI Chat upstream，暴露 `adapter_image_generation` function。
 - 工具执行后，把图片结果以 compact JSON 作为 tool output 回传模型。
 - 如果 host 开启 `exposeHostedToolResultsInResponsesOutput`，在 Responses output 中追加 `image_generation_call` 兼容项。
 
@@ -621,7 +623,7 @@ Executor result：
 
 ## 行为
 
-- `code_interpreter` exposed only when relay-emulated declaration + executor registered.
+- `code_interpreter` exposed only when adapter-emulated declaration + executor registered.
 - No default executor.
 - Host can bind Docker, Pyodide, remote sandbox, or OpenAI container API.
 - Support hosted_tool SSE deltas for stdout/stderr.
@@ -659,7 +661,7 @@ computer_use_preview -> computer
 Executor contract：
 
 ```ts
-CodexProviderRelayComputerExecutor
+CodexProviderComputerExecutor
 ```
 
 Request:
@@ -699,13 +701,13 @@ Result:
 - 默认不启用。
 - 不做真实本地电脑控制。
 - Host 必须显式提供 executor。
-- 对 Codex app-server，如果 Codex 自己拥有 computer/local tools，应优先走 `codex-local-first`，不要 relay-emulated 抢执行。
-- 对非 OpenAI Chat upstream，可暴露 `relay_computer` function。
+- 对 Codex app-server，如果 Codex 自己拥有 computer/local tools，应优先走 `codex-local-first`，不要 adapter-emulated 抢执行。
+- 对非 OpenAI Chat upstream，可暴露 `adapter_computer` function。
 
 ## 测试
 
 - aliases normalize to `computer`
-- relay function schema generated
+- adapter function schema generated
 - executor receives actions
 - screenshot output appends to model loop
 - unsafe default disabled
@@ -725,22 +727,22 @@ Result:
 
 ## 任务
 
-### 8.1 命名去 gateway 化
+### 8.1 命名去 provider adapter 化
 
 保留旧 alias，但新增正式名称：
 
-- `CodexProviderRelayTraceEvent`
-- `CodexProviderRelayTraceSink`
-- `createCodexProviderRelayStandaloneServerConfigFromEnv`
-- `createCodexProviderRelayStandaloneServerFromEnv`
-- `loadCodexProviderRelayStandaloneEnvFile`
-- `resolveCodexProviderRelayStandaloneServerEnv`
+- `CodexProviderTraceEvent`
+- `CodexProviderTraceSink`
+- `createCodexProviderStandaloneServerConfigFromEnv`
+- `createCodexProviderStandaloneServerFromEnv`
+- `loadCodexProviderStandaloneEnvFile`
+- `resolveCodexProviderStandaloneServerEnv`
 
 旧的：
 
-- `CodexGatewayTraceEvent`
-- `CodexGatewayTraceSink`
-- `createCodexGatewayStandaloneServerFromEnv`
+- `CodexProviderTraceEvent`
+- `CodexProviderTraceSink`
+- `createCodexProviderStandaloneServerFromEnv`
 
 保留并标注 deprecated。
 
@@ -749,17 +751,17 @@ Result:
 新增：
 
 ```text
-packages/codex-provider-relay/examples/
+packages/codex-provider/examples/
 ```
 
 至少：
 
 ```text
 mixed-openrouter-runtime.ts
-relay-emulated-web-search.ts
-relay-emulated-file-search-local-vector.ts
-relay-emulated-image-generation.ts
-relay-emulated-code-interpreter-custom-executor.ts
+adapter-emulated-web-search.ts
+adapter-emulated-file-search-local-vector.ts
+adapter-emulated-image-generation.ts
+adapter-emulated-code-interpreter-custom-executor.ts
 codexnext-integration.ts
 ```
 
@@ -768,9 +770,9 @@ codexnext-integration.ts
 新增：
 
 ```text
-packages/codex-provider-relay/docs/OPENAI_BUILTIN_TOOL_COMPATIBILITY.md
-packages/codex-provider-relay/docs/INDEPENDENT_PACKAGE_CHECKLIST.md
-packages/codex-provider-relay/docs/RECIPES.md
+packages/codex-provider/docs/OPENAI_BUILTIN_TOOL_COMPATIBILITY.md
+packages/codex-provider/docs/INDEPENDENT_PACKAGE_CHECKLIST.md
+packages/codex-provider/docs/RECIPES.md
 ```
 
 ### 8.4 Package readiness checklist
@@ -778,7 +780,7 @@ packages/codex-provider-relay/docs/RECIPES.md
 保持 private true，直到以下完成：
 
 - root exports 只暴露稳定 API
-- gateway naming 全部有 provider relay alias
+- provider adapter naming 全部有 provider adapter alias
 - no host-app imports
 - docs recipes complete
 - test/typecheck/build pass
@@ -791,7 +793,7 @@ packages/codex-provider-relay/docs/RECIPES.md
 优先在包目录运行：
 
 ```bash
-cd packages/codex-provider-relay
+cd packages/codex-provider
 pnpm test
 pnpm typecheck
 pnpm build
@@ -800,9 +802,9 @@ pnpm build
 如果 workspace 支持 filter：
 
 ```bash
-pnpm --filter @codexbridge/codex-provider-relay test
-pnpm --filter @codexbridge/codex-provider-relay typecheck
-pnpm --filter @codexbridge/codex-provider-relay build
+pnpm --filter @codexbridge/codex-provider test
+pnpm --filter @codexbridge/codex-provider typecheck
+pnpm --filter @codexbridge/codex-provider build
 ```
 
 ## AI 执行指令
@@ -812,30 +814,30 @@ pnpm --filter @codexbridge/codex-provider-relay build
 1. 保存本文档到：
 
 ```text
-packages/codex-provider-relay/docs/OPENAI_TOOL_PARITY_AND_PACKAGE_HARDENING_HANDOFF.md
+packages/codex-provider/docs/OPENAI_TOOL_PARITY_AND_PACKAGE_HARDENING_HANDOFF.md
 ```
 
 2. 阅读这些文件：
 
 ```text
-packages/codex-provider-relay/README.md
-packages/codex-provider-relay/package.json
-packages/codex-provider-relay/src/index.ts
-packages/codex-provider-relay/src/hosted_tools.ts
-packages/codex-provider-relay/src/hosted_tool_executors.ts
-packages/codex-provider-relay/src/converters/responses_adapter.ts
-packages/codex-provider-relay/src/server/responses_adapter_server.ts
-packages/codex-provider-relay/src/file_search_executor.ts
-packages/codex-provider-relay/src/file-search/types.ts
-packages/codex-provider-relay/src/file-search/executor.ts
-packages/codex-provider-relay/src/file-search/local-vector-index.ts
-packages/codex-provider-relay/src/file-search/stores.ts
-packages/codex-provider-relay/src/file-search/shared.ts
-packages/codex-provider-relay/src/file-search/sources/local-vector.ts
-packages/codex-provider-relay/src/web_search_executor.ts
-packages/codex-provider-relay/test/file_search_executor.test.ts
-packages/codex-provider-relay/test/server.test.ts
-packages/codex-provider-relay/test/public_surface.test.ts
+packages/codex-provider/README.md
+packages/codex-provider/package.json
+packages/codex-provider/src/index.ts
+packages/codex-provider/src/hosted_tools.ts
+packages/codex-provider/src/hosted_tool_executors.ts
+packages/codex-provider/src/converters/responses_adapter.ts
+packages/codex-provider/src/server/responses_adapter_server.ts
+packages/codex-provider/src/file_search_executor.ts
+packages/codex-provider/src/file-search/types.ts
+packages/codex-provider/src/file-search/executor.ts
+packages/codex-provider/src/file-search/local-vector-index.ts
+packages/codex-provider/src/file-search/stores.ts
+packages/codex-provider/src/file-search/shared.ts
+packages/codex-provider/src/file-search/sources/local-vector.ts
+packages/codex-provider/src/web_search_executor.ts
+packages/codex-provider/test/file_search_executor.test.ts
+packages/codex-provider/test/server.test.ts
+packages/codex-provider/test/public_surface.test.ts
 ```
 
 3. 阅读 OpenAI 当前工具文档，确认工具名称和请求/响应 shape。
@@ -885,7 +887,7 @@ web_search v2 params + source contract + canonical web_search migration
 ### PR 4
 
 ```text
-image_generation relay-emulated executor contract
+image_generation adapter-emulated executor contract
 ```
 
 ### PR 5
@@ -912,27 +914,27 @@ package independence hardening + examples + docs
 
 ```ts
 import {
-  CodexProviderRelayRuntime,
-  createCodexProviderRelayFileSearchExecutor,
-  createCodexProviderRelayLocalVectorFileSearchSource,
-  createCodexProviderRelayEmbeddingsApiProvider,
-  createCodexProviderRelayWebSearchExecutor,
-} from "@codexbridge/codex-provider-relay";
+  CodexProviderRuntime,
+  createCodexProviderFileSearchExecutor,
+  createCodexProviderLocalVectorFileSearchSource,
+  createCodexProviderEmbeddingsApiProvider,
+  createCodexProviderWebSearchExecutor,
+} from "@codexbridge/codex-provider";
 
-const runtime = new CodexProviderRelayRuntime({
+const runtime = new CodexProviderRuntime({
   apiKey: process.env.OPENROUTER_API_KEY!,
   upstreamBaseUrl: "https://openrouter.ai/api/v1",
   defaultModel: "deepseek/deepseek-chat",
   providerLabel: "openrouter",
   profileMode: "mixed",
-  toolStrategy: "relay-emulated",
+  toolStrategy: "adapter-emulated",
   hostedTools: [
-    { name: "web_search", mode: "relay-emulated" },
-    { name: "file_search", mode: "relay-emulated" },
+    { name: "web_search", mode: "adapter-emulated" },
+    { name: "file_search", mode: "adapter-emulated" },
   ],
   hostedToolExecutors: {
-    web_search: createCodexProviderRelayWebSearchExecutor(...),
-    file_search: createCodexProviderRelayFileSearchExecutor(...),
+    web_search: createCodexProviderWebSearchExecutor(...),
+    file_search: createCodexProviderFileSearchExecutor(...),
   },
 });
 

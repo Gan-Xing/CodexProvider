@@ -2,7 +2,7 @@
 
 `@codex-provider/core` defines contracts for unsafe tools but must not become the default executor for dangerous actions.
 
-Historical names under `@codexbridge/codex-provider-relay` and `CodexProviderRelay*` remain as deprecated aliases during the stabilization cycle.
+Historical names under `@codexbridge/codex-provider` and `CodexProvider*` remain as deprecated aliases during the stabilization cycle.
 
 ## Default Policy
 
@@ -11,7 +11,7 @@ Historical names under `@codexbridge/codex-provider-relay` and `CodexProviderRel
 - No code interpreter sandbox is bundled.
 - No image provider is bundled.
 - No browser automation, desktop automation, credential store, or OS-level control is bundled.
-- Relay-emulated unsafe tools require explicit hosted tool declarations and explicit executors.
+- Adapter-emulated unsafe tools require explicit hosted tool declarations and explicit executors.
 
 ## Tool-Specific Requirements
 
@@ -41,11 +41,11 @@ A host that wires `computer` must own:
 
 Shell-like execution should stay `codex-local-first` unless a host intentionally provides a separate sandboxed executor.
 
-This package should not expose generic shell execution as a convenience API because it changes the trust boundary from protocol relay to machine control.
+This package should not expose generic shell execution as a convenience API because it changes the trust boundary from protocol adapter to machine control.
 
 ### Apply Patch
 
-`apply_patch` remains a Codex-local custom tool bridge. The relay translates/proxies tool-call shape but does not apply patches itself.
+`apply_patch` remains a Codex-local custom tool bridge. The provider adapter translates/proxies tool-call shape but does not apply patches itself.
 
 ## Host Checklist
 

@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  createCodexProviderRelayImageGenerationExecutor,
-  createCodexProviderRelayOpenAICompatibleImageGenerationProvider,
-  type CodexProviderRelayImageGenerationExecutorContent,
+  createCodexProviderImageGenerationExecutor,
+  createCodexProviderOpenAICompatibleImageGenerationProvider,
+  type CodexProviderImageGenerationExecutorContent,
 } from '../src/index.js';
 
 function baseRequest(argumentsValue: Record<string, any>) {
   return {
     toolName: 'image_generation' as const,
-    relayToolName: 'relay_image_generation',
+    emulatedToolName: 'adapter_image_generation',
     callId: 'call_image_1',
     arguments: argumentsValue,
     rawArguments: JSON.stringify(argumentsValue),
@@ -21,7 +21,7 @@ function baseRequest(argumentsValue: Record<string, any>) {
 
 test('image_generation executor sends normalized prompt and options to provider', async () => {
   const seen: any[] = [];
-  const executor = createCodexProviderRelayImageGenerationExecutor({
+  const executor = createCodexProviderImageGenerationExecutor({
     generate(request) {
       seen.push(JSON.parse(JSON.stringify({
         prompt: request.prompt,
@@ -48,7 +48,7 @@ test('image_generation executor sends normalized prompt and options to provider'
     output_format: 'png',
     n: 1,
   }));
-  const content = result.content as CodexProviderRelayImageGenerationExecutorContent;
+  const content = result.content as CodexProviderImageGenerationExecutorContent;
 
   assert.deepEqual(seen[0], {
     prompt: 'A bridge icon',
@@ -67,7 +67,7 @@ test('image_generation executor sends normalized prompt and options to provider'
 
 test('OpenAI-compatible image provider posts image generation requests', async () => {
   const calls: Array<{ url: string; init: RequestInit }> = [];
-  const provider = createCodexProviderRelayOpenAICompatibleImageGenerationProvider({
+  const provider = createCodexProviderOpenAICompatibleImageGenerationProvider({
     apiKey: 'img-test',
     model: 'gpt-image-1',
     endpoint: 'https://example.test/v1/images/generations',
@@ -86,24 +86,24 @@ test('OpenAI-compatible image provider posts image generation requests', async (
   });
 
   const images = await provider({
-    prompt: 'Generate a relay logo',
+    prompt: 'Generate an adapter logo',
     size: '1024x1024',
     quality: 'medium',
     background: 'opaque',
     output_format: 'webp',
     n: 2,
-    toolRequest: baseRequest({ prompt: 'Generate a relay logo' }),
+    toolRequest: baseRequest({ prompt: 'Generate an adapter logo' }),
   });
   const body = JSON.parse(String(calls[0].init.body));
 
   assert.equal(calls[0].url, 'https://example.test/v1/images/generations');
   assert.equal((calls[0].init.headers as any).Authorization, 'Bearer img-test');
   assert.equal(body.model, 'gpt-image-1');
-  assert.equal(body.prompt, 'Generate a relay logo');
+  assert.equal(body.prompt, 'Generate an adapter logo');
   assert.equal(body.output_format, 'webp');
   assert.equal(images[0].b64_json, 'aW1hZ2U=');
 });
 
 test('image_generation executor requires an explicit provider', () => {
-  assert.throws(() => createCodexProviderRelayImageGenerationExecutor({} as any), /requires an explicit/u);
+  assert.throws(() => createCodexProviderImageGenerationExecutor({} as any), /requires an explicit/u);
 });

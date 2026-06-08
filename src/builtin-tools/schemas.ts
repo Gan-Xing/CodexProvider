@@ -50,7 +50,7 @@ export const FILE_SEARCH_TOOL_PARAMETERS: JsonRecord = {
       items: {
         type: 'string',
       },
-      description: 'Optional OpenAI-compatible vector store ids. In relay-emulated mode these map to configured source names.',
+      description: 'Optional OpenAI-compatible vector store ids. In adapter-emulated mode these map to configured source names.',
     },
     filters: {
       type: 'object',

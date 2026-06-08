@@ -3,14 +3,14 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type {
   CandidateFile,
-  CodexProviderRelayEmbeddingProvider,
-  CodexProviderRelayEmbeddingProviderResult,
-  CodexProviderRelayFileSearchSourceMatch,
-  CodexProviderRelayFileSearchSourceRequest,
-  CodexProviderRelayFileSearchSourceResult,
-  CodexProviderRelayLocalVectorIndexChunk,
-  CodexProviderRelayLocalVectorIndexDocument,
-  CodexProviderRelayLocalVectorIndexSearchChunksRequest,
+  CodexProviderEmbeddingProvider,
+  CodexProviderEmbeddingProviderResult,
+  CodexProviderFileSearchSourceMatch,
+  CodexProviderFileSearchSourceRequest,
+  CodexProviderFileSearchSourceResult,
+  CodexProviderLocalVectorIndexChunk,
+  CodexProviderLocalVectorIndexDocument,
+  CodexProviderLocalVectorIndexSearchChunksRequest,
   LocalVectorTextChunk,
   NormalizedLocalVectorChunkingOptions,
   NormalizedLocalVectorFileSearchOptions,
@@ -32,22 +32,22 @@ const LOCAL_VECTOR_CHUNKER_VERSION = 'line-window-chunker-v1';
 const LOCAL_VECTOR_RRF_K = 60;
 
 type LocalVectorScoredChunk = {
-  chunk: CodexProviderRelayLocalVectorIndexChunk;
+  chunk: CodexProviderLocalVectorIndexChunk;
   score: number;
   vectorScore: number;
   lexicalScore: number;
 };
 
-export function createCodexProviderRelayLocalVectorIndex(
+export function createCodexProviderLocalVectorIndex(
   options: NormalizedLocalVectorFileSearchOptions,
-): CodexProviderRelayLocalVectorIndex {
-  return new CodexProviderRelayLocalVectorIndex(options);
+): CodexProviderLocalVectorIndex {
+  return new CodexProviderLocalVectorIndex(options);
 }
 
-class CodexProviderRelayLocalVectorIndex {
+class CodexProviderLocalVectorIndex {
   constructor(private readonly options: NormalizedLocalVectorFileSearchOptions) {}
 
-  async search(request: CodexProviderRelayFileSearchSourceRequest): Promise<CodexProviderRelayFileSearchSourceResult> {
+  async search(request: CodexProviderFileSearchSourceRequest): Promise<CodexProviderFileSearchSourceResult> {
     const maxResults = request.maxResults;
     const includeContent = typeof request.includeContent === 'boolean'
       ? request.includeContent
@@ -200,7 +200,7 @@ class CodexProviderRelayLocalVectorIndex {
       groupedResults.set(chunk.documentId, entry);
     }
 
-    const results: CodexProviderRelayFileSearchSourceMatch[] = [];
+    const results: CodexProviderFileSearchSourceMatch[] = [];
     for (const entry of groupedResults.values()) {
       entry.chunkScores.sort((left, right) => right.score - left.score || left.chunk.chunkIndex - right.chunk.chunkIndex);
       const bestChunk = entry.chunkScores[0]?.chunk;
@@ -311,7 +311,7 @@ class CodexProviderRelayLocalVectorIndex {
       embeddingDimensions,
     );
     const filename = path.basename(candidate.relativePath) || candidate.relativePath;
-    const document: CodexProviderRelayLocalVectorIndexDocument = {
+    const document: CodexProviderLocalVectorIndexDocument = {
       id: documentId,
       sourceName: this.options.name,
       root: candidate.root.path,
@@ -331,7 +331,7 @@ class CodexProviderRelayLocalVectorIndex {
       statFingerprint: fingerprint.statFingerprint,
       updatedAt: new Date().toISOString(),
     };
-    const chunks: CodexProviderRelayLocalVectorIndexChunk[] = [];
+    const chunks: CodexProviderLocalVectorIndexChunk[] = [];
     for (let index = 0; index < textChunks.length; index += 1) {
       const embedding = normalizeEmbeddingVector(embeddings[index]);
       if (embedding.length === 0) {
@@ -394,8 +394,8 @@ class CodexProviderRelayLocalVectorIndex {
   }
 
   private async searchChunks(
-    request: CodexProviderRelayLocalVectorIndexSearchChunksRequest,
-  ): Promise<CodexProviderRelayLocalVectorIndexChunk[]> {
+    request: CodexProviderLocalVectorIndexSearchChunksRequest,
+  ): Promise<CodexProviderLocalVectorIndexChunk[]> {
     if (this.options.indexStore.searchChunks) {
       return this.options.indexStore.searchChunks(request);
     }
@@ -466,7 +466,7 @@ function createLocalVectorDocumentFingerprint({
   contentHash: string;
   embeddingDimensions: number;
 }): Required<Pick<
-  CodexProviderRelayLocalVectorIndexDocument,
+  CodexProviderLocalVectorIndexDocument,
   | 'size'
   | 'mtimeMs'
   | 'contentHash'
@@ -493,9 +493,9 @@ function createLocalVectorDocumentFingerprint({
 }
 
 function localVectorDocumentMatchesFingerprint(
-  document: CodexProviderRelayLocalVectorIndexDocument,
+  document: CodexProviderLocalVectorIndexDocument,
   fingerprint: Required<Pick<
-    CodexProviderRelayLocalVectorIndexDocument,
+    CodexProviderLocalVectorIndexDocument,
     | 'size'
     | 'mtimeMs'
     | 'contentHash'
@@ -589,7 +589,7 @@ function chunkLocalVectorText(
 }
 
 async function embedTextsInBatches(
-  embeddingProvider: CodexProviderRelayEmbeddingProvider,
+  embeddingProvider: CodexProviderEmbeddingProvider,
   texts: string[],
   batchSize: number,
   expectedDimensions: number,
@@ -609,7 +609,7 @@ async function embedTextsInBatches(
 }
 
 async function embedSingleText(
-  embeddingProvider: CodexProviderRelayEmbeddingProvider,
+  embeddingProvider: CodexProviderEmbeddingProvider,
   text: string,
   context: string,
 ): Promise<number[]> {
@@ -628,7 +628,7 @@ function normalizeEmbeddingResult({
   expectedDimensions,
   context,
 }: {
-  result: CodexProviderRelayEmbeddingProviderResult;
+  result: CodexProviderEmbeddingProviderResult;
   expectedCount: number;
   expectedDimensions: number | null;
   context: string;

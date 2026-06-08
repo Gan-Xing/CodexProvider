@@ -1,11 +1,11 @@
 import path from 'node:path';
 import type {
-  CodexProviderRelayFileSearchSource,
-  CodexProviderRelayFileSearchSourceMatch,
-  CodexProviderRelayFileSearchSourceRequest,
-  CodexProviderRelayFileSearchSourceResult,
-  CodexProviderRelayMemoryFileSearchDocument,
-  CodexProviderRelayMemoryFileSearchSourceOptions,
+  CodexProviderFileSearchSource,
+  CodexProviderFileSearchSourceMatch,
+  CodexProviderFileSearchSourceRequest,
+  CodexProviderFileSearchSourceResult,
+  CodexProviderMemoryFileSearchDocument,
+  CodexProviderMemoryFileSearchSourceOptions,
   NormalizedMemoryFileSearchDocument,
   NormalizedMemoryFileSearchOptions,
 } from '../types.js';
@@ -18,14 +18,14 @@ import {
 } from '../shared.js';
 import { searchTextContent } from './local-shared.js';
 
-export function createCodexProviderRelayMemoryFileSearchSource(
-  options: CodexProviderRelayMemoryFileSearchSourceOptions,
-): CodexProviderRelayFileSearchSource {
+export function createCodexProviderMemoryFileSearchSource(
+  options: CodexProviderMemoryFileSearchSourceOptions,
+): CodexProviderFileSearchSource {
   const normalizedOptions = normalizeMemoryFileSearchOptions(options);
   return {
     name: normalizedOptions.name,
     type: 'memory-documents',
-    async search(request: CodexProviderRelayFileSearchSourceRequest): Promise<CodexProviderRelayFileSearchSourceResult> {
+    async search(request: CodexProviderFileSearchSourceRequest): Promise<CodexProviderFileSearchSourceResult> {
       const maxResults = request.maxResults;
       const includeContent = typeof request.includeContent === 'boolean'
         ? request.includeContent
@@ -39,7 +39,7 @@ export function createCodexProviderRelayMemoryFileSearchSource(
         maxResults,
       });
 
-      const results: CodexProviderRelayFileSearchSourceMatch[] = [];
+      const results: CodexProviderFileSearchSourceMatch[] = [];
       let scannedDocuments = 0;
       let skippedDocuments = 0;
       for (const document of normalizedOptions.documents) {
@@ -96,7 +96,7 @@ export function createCodexProviderRelayMemoryFileSearchSource(
 }
 
 function normalizeMemoryFileSearchOptions(
-  options: CodexProviderRelayMemoryFileSearchSourceOptions,
+  options: CodexProviderMemoryFileSearchSourceOptions,
 ): NormalizedMemoryFileSearchOptions {
   const documents = Array.isArray(options.documents)
     ? options.documents.map(normalizeMemoryFileSearchDocument).filter(Boolean)
@@ -113,7 +113,7 @@ function normalizeMemoryFileSearchOptions(
 }
 
 export function normalizeMemoryFileSearchDocument(
-  document: CodexProviderRelayMemoryFileSearchDocument,
+  document: CodexProviderMemoryFileSearchDocument,
 ): NormalizedMemoryFileSearchDocument | null {
   if (!document || typeof document !== 'object') {
     return null;

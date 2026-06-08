@@ -1,42 +1,42 @@
 import type {
-  BuildCodexProviderRelayConfigInput,
-  CodexProviderRelayAuthMode,
-  CodexProviderRelayConfig,
-  CodexProviderRelayConfigEntry,
-  CodexProviderRelayProtocol,
-  CodexProviderRelayTomlPrimitive,
-  CodexProviderRelayToolStrategy,
+  BuildCodexProviderConfigInput,
+  CodexProviderAuthMode,
+  CodexProviderConfig,
+  CodexProviderConfigEntry,
+  CodexProviderProtocol,
+  CodexProviderTomlPrimitive,
+  CodexProviderToolStrategy,
 } from './types.js';
 
-const DEFAULT_AUTH_MODE: CodexProviderRelayAuthMode = 'codex-auth-compatible';
-const DEFAULT_RELAY_PROTOCOL: CodexProviderRelayProtocol = 'responses';
-const DEFAULT_TOOL_STRATEGY: CodexProviderRelayToolStrategy = 'codex-local-first';
-const DEFAULT_PROVIDER_NAME = 'Codex Provider Relay';
+const DEFAULT_AUTH_MODE: CodexProviderAuthMode = 'codex-auth-compatible';
+const DEFAULT_PROVIDER_PROTOCOL: CodexProviderProtocol = 'responses';
+const DEFAULT_TOOL_STRATEGY: CodexProviderToolStrategy = 'codex-local-first';
+const DEFAULT_PROVIDER_NAME = 'Codex Provider';
 const DEFAULT_API_KEY_ENV = 'OPENAI_API_KEY';
-export const DEFAULT_CODEX_PROVIDER_RELAY_PROTOCOL_PROXY_PORT = 57321;
+export const DEFAULT_CODEX_PROVIDER_PROTOCOL_PROXY_PORT = 57321;
 
-export function buildCodexProviderRelayConfig(
-  input: BuildCodexProviderRelayConfigInput,
-): CodexProviderRelayConfig {
+export function buildCodexProviderConfig(
+  input: BuildCodexProviderConfigInput,
+): CodexProviderConfig {
   const providerLabel = normalizeProviderLabel(input.providerLabel);
   const providerName = normalizeString(input.providerName) || DEFAULT_PROVIDER_NAME;
-  const upstreamBaseUrl = normalizeRelayBaseUrl(input.relayBaseUrl);
-  const relayProtocol = input.relayProtocol ?? DEFAULT_RELAY_PROTOCOL;
+  const upstreamBaseUrl = normalizeProviderBaseUrl(input.upstreamBaseUrl);
+  const providerProtocol = input.providerProtocol ?? DEFAULT_PROVIDER_PROTOCOL;
   const protocolProxyPort = normalizeProtocolProxyPort(input.protocolProxyPort);
-  const codexBaseUrl = codexBaseUrlForRelayProtocol({
-    relayBaseUrl: upstreamBaseUrl,
-    relayProtocol,
+  const codexBaseUrl = codexBaseUrlForProviderProtocol({
+    upstreamBaseUrl,
+    providerProtocol,
     protocolProxyPort,
   });
   const defaultModel = normalizeString(input.defaultModel);
   if (!defaultModel) {
-    throw new Error('Codex provider relay config requires a default model.');
+    throw new Error('Codex provider config requires a default model.');
   }
 
   const authMode = input.authMode ?? DEFAULT_AUTH_MODE;
   const toolStrategy = input.toolStrategy ?? DEFAULT_TOOL_STRATEGY;
   const supportsWebsockets = Boolean(input.supportsWebsockets ?? false);
-  const entries: CodexProviderRelayConfigEntry[] = [
+  const entries: CodexProviderConfigEntry[] = [
     { key: 'model', value: defaultModel },
     { key: 'model_provider', value: providerLabel },
     { key: `model_providers.${providerLabel}.name`, value: providerName },
@@ -59,7 +59,7 @@ export function buildCodexProviderRelayConfig(
     providerLabel,
     providerName,
     authMode,
-    relayProtocol,
+    providerProtocol,
     upstreamBaseUrl,
     codexBaseUrl,
     protocolProxyPort,
@@ -68,20 +68,20 @@ export function buildCodexProviderRelayConfig(
   };
 }
 
-export function buildCodexProviderRelayCliArgs(
-  input: BuildCodexProviderRelayConfigInput,
+export function buildCodexProviderCliArgs(
+  input: BuildCodexProviderConfigInput,
 ): string[] {
-  const config = buildCodexProviderRelayConfig(input);
+  const config = buildCodexProviderConfig(input);
   return config.entries.flatMap((entry) => [
     '-c',
     `${entry.key}=${tomlValue(entry.value)}`,
   ]);
 }
 
-export function buildCodexProviderRelayTomlFragment(
-  input: BuildCodexProviderRelayConfigInput,
+export function buildCodexProviderTomlFragment(
+  input: BuildCodexProviderConfigInput,
 ): string {
-  const config = buildCodexProviderRelayConfig(input);
+  const config = buildCodexProviderConfig(input);
   const rootEntries = config.entries.filter((entry) => !entry.key.startsWith('model_providers.'));
   const providerPrefix = `model_providers.${config.providerLabel}.`;
   const providerEntries = config.entries
@@ -105,7 +105,7 @@ export function normalizeProviderLabel(value: string): string {
     .replace(/[^A-Za-z0-9_-]+/gu, '_')
     .replace(/^_+|_+$/gu, '');
   if (!normalized) {
-    throw new Error('Codex provider relay config requires a provider label.');
+    throw new Error('Codex provider config requires a provider label.');
   }
   if (/^\d/u.test(normalized)) {
     return `provider_${normalized}`;
@@ -113,36 +113,36 @@ export function normalizeProviderLabel(value: string): string {
   return normalized;
 }
 
-export function normalizeRelayBaseUrl(value: string): string {
+export function normalizeProviderBaseUrl(value: string): string {
   const normalized = normalizeString(value).replace(/\/+$/u, '');
   if (!normalized) {
-    throw new Error('Codex provider relay config requires a relay base URL.');
+    throw new Error('Codex provider config requires an upstream base URL.');
   }
   return normalized;
 }
 
 export function localResponsesProxyBaseUrl(
-  port = DEFAULT_CODEX_PROVIDER_RELAY_PROTOCOL_PROXY_PORT,
+  port = DEFAULT_CODEX_PROVIDER_PROTOCOL_PROXY_PORT,
 ): string {
   return `http://127.0.0.1:${normalizeProtocolProxyPort(port)}/v1`;
 }
 
-export function codexBaseUrlForRelayProtocol(input: {
-  relayBaseUrl: string;
-  relayProtocol?: CodexProviderRelayProtocol | null;
+export function codexBaseUrlForProviderProtocol(input: {
+  upstreamBaseUrl: string;
+  providerProtocol?: CodexProviderProtocol | null;
   protocolProxyPort?: number | null;
 }): string {
-  const relayProtocol = input.relayProtocol ?? DEFAULT_RELAY_PROTOCOL;
-  if (relayProtocol === 'responses') {
-    return normalizeRelayBaseUrl(input.relayBaseUrl);
+  const providerProtocol = input.providerProtocol ?? DEFAULT_PROVIDER_PROTOCOL;
+  if (providerProtocol === 'responses') {
+    return normalizeProviderBaseUrl(input.upstreamBaseUrl);
   }
-  if (relayProtocol === 'chat-completions') {
+  if (providerProtocol === 'chat-completions') {
     return localResponsesProxyBaseUrl(input.protocolProxyPort ?? undefined);
   }
-  throw new Error(`Unsupported Codex provider relay protocol: ${String(relayProtocol)}`);
+  throw new Error(`Unsupported Codex provider protocol: ${String(providerProtocol)}`);
 }
 
-export function tomlValue(value: CodexProviderRelayTomlPrimitive): string {
+export function tomlValue(value: CodexProviderTomlPrimitive): string {
   if (typeof value === 'boolean') {
     return value ? 'true' : 'false';
   }
@@ -160,10 +160,10 @@ export function tomlString(value: string): string {
 }
 
 function appendTokenEntries(
-  entries: CodexProviderRelayConfigEntry[],
+  entries: CodexProviderConfigEntry[],
   providerLabel: string,
-  authMode: CodexProviderRelayAuthMode,
-  input: BuildCodexProviderRelayConfigInput,
+  authMode: CodexProviderAuthMode,
+  input: BuildCodexProviderConfigInput,
 ) {
   const experimentalBearerToken = normalizeString(input.experimentalBearerToken);
   const apiKeyEnv = normalizeString(input.apiKeyEnv);
@@ -184,9 +184,9 @@ function appendTokenEntries(
 }
 
 function appendExtraProviderFields(
-  entries: CodexProviderRelayConfigEntry[],
+  entries: CodexProviderConfigEntry[],
   providerLabel: string,
-  fields: BuildCodexProviderRelayConfigInput['extraProviderFields'],
+  fields: BuildCodexProviderConfigInput['extraProviderFields'],
 ) {
   if (!fields) {
     return;
@@ -213,10 +213,10 @@ function normalizeProviderFieldKey(value: string): string {
 
 function normalizeProtocolProxyPort(value: number | null | undefined): number {
   if (value === null || value === undefined) {
-    return DEFAULT_CODEX_PROVIDER_RELAY_PROTOCOL_PROXY_PORT;
+    return DEFAULT_CODEX_PROVIDER_PROTOCOL_PROXY_PORT;
   }
   if (!Number.isInteger(value) || value < 1 || value > 65535) {
-    throw new Error('Codex provider relay protocol proxy port must be an integer from 1 to 65535.');
+    throw new Error('Codex provider protocol proxy port must be an integer from 1 to 65535.');
   }
   return value;
 }
