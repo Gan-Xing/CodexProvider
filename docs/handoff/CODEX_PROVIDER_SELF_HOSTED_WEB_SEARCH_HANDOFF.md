@@ -1373,7 +1373,7 @@ const webSearch = createCodexProviderWebSearchExecutor({
   ],
   fetchPages: true,
   maxResults: 8,
-  maxFetchedPages: 5,
+  maxRetrievedPages: 5,
 });
 ```
 
@@ -1387,28 +1387,41 @@ const webSearch = createCodexProviderWebSearchExecutor({
       ? createCodexProviderBraveApiEngine({ apiKey: process.env.BRAVE_SEARCH_API_KEY })
       : null,
     process.env.SERPER_API_KEY
-      ? createCodexProviderSerperEngine({ apiKey: process.env.SERPER_API_KEY })
+      ? createCodexProviderSerperApiEngine({ apiKey: process.env.SERPER_API_KEY })
       : null,
     createCodexProviderDuckDuckGoHtmlEngine(),
     createCodexProviderBraveHtmlEngine(),
   ].filter(Boolean),
   fetchPages: true,
   maxResults: 10,
-  maxFetchedPages: 5,
+  maxRetrievedPages: 5,
 });
 ```
 
 ### 11.3 Endpoint + local fallback
 
 ```ts
+const localIndex = createCodexProviderMemoryWebSearchLocalIndex();
+const retrieval = createCodexProviderWebRetrievalFetcher({
+  cache: createCodexProviderLocalIndexingWebRetrievalCache({
+    cache: createCodexProviderMemoryWebRetrievalCache(),
+    index: localIndex,
+  }),
+});
+
 const webSearch = createCodexProviderWebSearchExecutor({
   mode: "balanced",
   engines: [
-    createCodexProviderSearxngEndpointEngine({ endpoint: process.env.SEARXNG_ENDPOINT }),
-    createCodexProviderOpenSerpEndpointEngine({ endpoint: process.env.OPENSERP_ENDPOINT }),
-    createCodexProviderLocalCacheSearchEngine({ cacheDir: ".codex-provider/web-cache" }),
+    process.env.SEARXNG_ENDPOINT
+      ? createCodexProviderSearxngEndpointEngine({ endpoint: process.env.SEARXNG_ENDPOINT })
+      : null,
+    process.env.OPENSERP_ENDPOINT
+      ? createCodexProviderOpenSerpEndpointEngine({ endpoint: process.env.OPENSERP_ENDPOINT })
+      : null,
+    createCodexProviderLocalIndexSearchEngine({ index: localIndex, name: "local-cache" }),
     createCodexProviderDuckDuckGoHtmlEngine(),
-  ],
+  ].filter(Boolean),
+  retrieval,
   fetchPages: true,
 });
 ```

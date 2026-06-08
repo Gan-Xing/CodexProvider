@@ -29,7 +29,7 @@ Official OpenAI docs checked for this matrix:
 
 | Tool | OpenAI tool type | Current support | Tool mode | Executor required | Output parity | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Web search | `web_search` | Partial. `web_search_preview*` aliases normalize to canonical `web_search`; adapter executor exists for Tavily, Brave, and Serper. | `provider-native` / `adapter-emulated` | Yes for `adapter-emulated` | Partial. Current output has answer/results; v2 fields and richer citations are not fully aligned. | P1 |
+| Web search | `web_search` | Strong v1. `web_search_preview*` aliases normalize to canonical `web_search`; adapter executor supports native metasearch, Tavily/Brave/Serper API engines, no-key HTML engines, SearXNG/OpenSERP endpoint adapters, retrieval/chunking, local cache indexes, and optional deep-search custom tooling. | `provider-native` / `adapter-emulated` | Yes for `adapter-emulated` | Strong adapter parity for synthetic `web_search_call`, include-gated `action.sources` / `results`, and `[[source:N]]` to `url_citation` annotations. Exact OpenAI hosted index quality is not claimed. | P1 done |
 | File search | `file_search` | Strong v1. Local-fs, memory, sqlite-fts, in-memory-vector, local-vector, cache fingerprint, RRF, safety bounds, vector-store contract, remote-doc contract, and `include: ["file_search_call.results"]` exposure exist. | `adapter-emulated` | Yes | Strong adapter parity for OpenAI-like `data[]` and synthetic `file_search_call.results`; exact OpenAI-hosted retrieval annotations are not claimed. | P1 done |
 | Tool search | `tool_search` as package-owned deferred discovery surface. | Partial. Registry/converter/server loop support adapter-emulated `tool_search`; `createCodexProviderToolSearchExecutor()` can return deferred function tools and namespaces. | `adapter-emulated` / client-deferred | Yes | Partial. Returned tools are appended to the next Chat request; no provider-native output item is synthesized. | P2 done |
 | Remote MCP / connectors | `mcp` | No package executor. OpenAI-hosted Responses can use `mcp`; Codex hosts may also handle MCP locally. | `provider-native` / `codex-local-first`; future `adapter-emulated` only with explicit host adapter | Yes for adapter | No | P2 |
@@ -112,8 +112,9 @@ The next phase should keep moving heavy or unsafe tools behind explicit executor
 ### P2: Web search v2
 
 - Done: parse `search_context_size`, `user_location`, `filters`, `external_web_access`, and `return_token_budget`.
-- Done: Tavily/Brave/Serper providers are source adapters under a generic web-search source contract.
-- Done: preserved current output while adding optional `sources`, `citations`, `retrieved_at`, and access metadata.
+- Done: Tavily/Brave/Serper providers are available as API search engines.
+- Done: added no-key HTML engines, SearXNG/OpenSERP endpoint adapters, retrieval/chunking, local cache indexes, and optional deep-search graph runtime.
+- Done: synthetic Responses output now appends `web_search_call`, supports `include: ["web_search_call.action.sources", "web_search_call.results"]`, and converts `[[source:N]]` placeholders into `url_citation` annotations.
 
 ### P2: Tool search / MCP / skills planning
 

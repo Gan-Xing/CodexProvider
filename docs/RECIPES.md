@@ -33,6 +33,69 @@ hostedToolExecutors: {
 
 The provider adapter then exposes a function tool to Chat Completions upstreams, executes the host-provided executor, appends the tool output, and continues the model loop.
 
+## Self-Hosted Web Search
+
+Use native metasearch engines when the host should not depend on OpenAI hosted Web Search. API engines are optional; HTML engines provide best-effort fallback without API keys.
+
+```ts
+const webSearch = createCodexProviderWebSearchExecutor({
+  mode: "balanced",
+  engines: [
+    process.env.BRAVE_SEARCH_API_KEY
+      ? createCodexProviderBraveApiEngine({ apiKey: process.env.BRAVE_SEARCH_API_KEY })
+      : null,
+    process.env.SERPER_API_KEY
+      ? createCodexProviderSerperApiEngine({ apiKey: process.env.SERPER_API_KEY })
+      : null,
+    createCodexProviderDuckDuckGoHtmlEngine(),
+    createCodexProviderBraveHtmlEngine(),
+    createCodexProviderEcosiaHtmlEngine(),
+    createCodexProviderMojeekHtmlEngine(),
+  ].filter(Boolean),
+  fetchPages: true,
+  maxResults: 10,
+  maxRetrievedPages: 5,
+});
+```
+
+For offline fallback, index retrieved pages into a local cache engine. When requests set `external_web_access=false`, only `live: false` engines such as the local index are queried.
+
+```ts
+const localIndex = createCodexProviderMemoryWebSearchLocalIndex();
+const retrieval = createCodexProviderWebRetrievalFetcher({
+  cache: createCodexProviderLocalIndexingWebRetrievalCache({
+    cache: createCodexProviderMemoryWebRetrievalCache(),
+    index: localIndex,
+  }),
+});
+
+const webSearch = createCodexProviderWebSearchExecutor({
+  mode: "balanced",
+  engines: [
+    createCodexProviderLocalIndexSearchEngine({ index: localIndex, name: "local-cache" }),
+    createCodexProviderDuckDuckGoHtmlEngine(),
+  ],
+  retrieval,
+  fetchPages: true,
+});
+```
+
+Deep search is opt-in and should be exposed as a separate custom hosted tool, not as the default `web_search`.
+
+```ts
+const research = createCodexProviderDeepWebSearchExecutor({
+  search: createCodexProviderMetaSearchService({
+    engines: [
+      createCodexProviderDuckDuckGoHtmlEngine(),
+      createCodexProviderBraveHtmlEngine(),
+    ],
+    mode: "balanced",
+  }),
+  maxSubqueries: 4,
+  maxSources: 20,
+});
+```
+
 ## Local Vector File Search
 
 Use explicit roots and an explicit embedding provider.
