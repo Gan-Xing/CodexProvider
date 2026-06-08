@@ -15,8 +15,10 @@ export function assertValidSearchEngine(engine: CodexProviderSearchEngine): void
   if (!Array.isArray(engine.categories) || engine.categories.length === 0) {
     throw new Error(`Search engine ${name} requires at least one category.`);
   }
-  if (typeof engine.buildRequest !== 'function' || typeof engine.parseResponse !== 'function') {
-    throw new Error(`Search engine ${name} requires buildRequest() and parseResponse().`);
+  const hasDirectSearch = typeof engine.search === 'function';
+  const hasHttpSearch = typeof engine.buildRequest === 'function' && typeof engine.parseResponse === 'function';
+  if (!hasDirectSearch && !hasHttpSearch) {
+    throw new Error(`Search engine ${name} requires search() or buildRequest() and parseResponse().`);
   }
 }
 

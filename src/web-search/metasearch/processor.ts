@@ -40,9 +40,9 @@ class DefaultCodexProviderSearchProcessor implements CodexProviderSearchProcesso
   ): Promise<CodexProviderEngineSearchOutcome> {
     const startedAt = this.now();
     try {
-      const httpRequest = await engine.buildRequest(request);
-      const response = await this.executeHttpRequest(httpRequest, engine.timeoutMs);
-      const parsedResults = await engine.parseResponse(response, request);
+      const parsedResults = typeof engine.search === 'function'
+        ? await engine.search(request)
+        : await this.searchHttpEngine(engine, request);
       const results = (Array.isArray(parsedResults) ? parsedResults : [])
         .map((result, index) => normalizeSearchEngineResult(result, engine.name, index + 1))
         .filter(Boolean);
@@ -62,6 +62,23 @@ class DefaultCodexProviderSearchProcessor implements CodexProviderSearchProcesso
         error: searchEngineErrorFromUnknown(error),
       };
     }
+  }
+
+  private async searchHttpEngine(
+    engine: CodexProviderSearchEngine,
+    request: CodexProviderSearchEngineRequest,
+  ): Promise<unknown> {
+    if (typeof engine.buildRequest !== 'function' || typeof engine.parseResponse !== 'function') {
+      throw new CodexProviderMetaSearchError(
+        `Search engine ${engine.name} requires search() or buildRequest() and parseResponse().`,
+        'invalid_engine',
+        null,
+        false,
+      );
+    }
+    const httpRequest = await engine.buildRequest(request);
+    const response = await this.executeHttpRequest(httpRequest, engine.timeoutMs);
+    return engine.parseResponse(response, request);
   }
 
   private async executeHttpRequest(

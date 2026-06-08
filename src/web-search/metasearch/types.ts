@@ -83,11 +83,14 @@ export interface CodexProviderSearchEngine {
   priority?: number;
   timeoutMs?: number;
   live?: boolean;
-  buildRequest(
+  buildRequest?(
     request: CodexProviderSearchEngineRequest,
   ): Promise<CodexProviderEngineHttpRequest> | CodexProviderEngineHttpRequest;
-  parseResponse(
+  parseResponse?(
     response: CodexProviderEngineHttpResponse,
+    request: CodexProviderSearchEngineRequest,
+  ): Promise<CodexProviderSearchResult[]> | CodexProviderSearchResult[];
+  search?(
     request: CodexProviderSearchEngineRequest,
   ): Promise<CodexProviderSearchResult[]> | CodexProviderSearchResult[];
 }
