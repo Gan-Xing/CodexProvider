@@ -10,6 +10,7 @@ export * from './profiles.js';
 export * from './runtime.js';
 export * from './target.js';
 export * from './tool_search_executor.js';
+export * from './web-search/index.js';
 export * from './web_search_executor.js';
 export {
   OPENAI_COMPATIBLE_PROFILE_PRESET_REGISTRATIONS,
