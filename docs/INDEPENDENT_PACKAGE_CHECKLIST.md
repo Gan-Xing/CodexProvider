@@ -7,8 +7,8 @@
 - [x] `private: true` is retained while the API is still stabilizing.
 - [x] Root `exports` exposes only the stable root entrypoint and `./package.json`.
 - [x] Historical server/trace names are removed from the active package surface.
-- [x] Formal `CodexProvider*` server/trace names are exported from the root entrypoint.
-- [x] Formal `CodexProvider*` public APIs are exported from the root entrypoint.
+- [x] Canonical `CodexProvider*`, `OpenAICompatible*`, and `createCodexProvider*` APIs are exported from the root entrypoint.
+- [x] Historical Relay/Gateway compatibility aliases are not part of the active package surface.
 - [x] Package metadata uses `@codex-provider/core` and `0.1.0-alpha.0` while retaining `private: true`.
 - [x] Root scripts use canonical `codex-provider:*` names only.
 - [x] Built-in hosted tools require explicit declarations.
@@ -23,7 +23,8 @@
 - [x] Non-web OpenRouter live smoke results are recorded in `docs/LIVE_SMOKE_RESULTS.md`.
 - [ ] Live smoke recipes are executed and recorded against real upstream providers.
 - [x] Live consumer validation is completed through CodexNext or a standalone app-server harness.
-- [ ] Changelog policy and npm release workflow are decided.
+- [x] Changelog policy and npm release workflow are decided.
+- [x] Package tarball contents are inspected and recorded in `docs/RELEASE_READINESS.md`.
 
 ## Consumer Boundary
 
@@ -50,8 +51,8 @@ The package does not own:
 
 Prefer adding new root exports over subpath exports until the package reaches a stable semver release. Internal folders can be refactored without breaking consumers as long as the root entrypoint remains compatible.
 
-Deprecated names are not part of the active package surface.
+Deprecated Relay/Gateway names are not part of the active package surface.
 
 ## Current Blocker
 
-The public package name is now `@codex-provider/core`, but the package remains internal-only. Keep `private: true`, keep `version: "0.1.0-alpha.0"`, and avoid adding new public subpath exports until live smoke and release workflow decisions are complete.
+The public package name is now `@codex-provider/core`, but the package remains internal-only. Keep `private: true`, keep `version: "0.1.0-alpha.0"`, and avoid adding new public subpath exports until provider live smoke evidence is complete.
