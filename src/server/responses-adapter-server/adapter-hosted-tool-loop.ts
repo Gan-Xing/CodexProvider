@@ -8,11 +8,13 @@ import type {
   CodexProviderHostedToolExecutorRegistry,
 } from '../../hosted_tool_executors.js';
 import {
-  appendDeferredToolsFromToolSearch,
   buildAssistantToolCallMessage,
   collectAdapterHostedToolCalls,
   groupAdapterHostedToolCallsByMessage,
 } from './adapter-hosted-tools.js';
+import {
+  appendDeferredToolsFromToolSearch,
+} from './adapter-deferred-tools.js';
 import {
   executeAdapterHostedToolCall,
 } from './adapter-hosted-tool-execution.js';

@@ -13,7 +13,6 @@ export {
   normalizeUpstreamError,
 } from './errors.js';
 export {
-  appendDeferredToolsFromToolSearch,
   buildAssistantToolCallMessage,
   buildHostedToolSseEvent,
   collectAdapterHostedToolCalls,
@@ -24,6 +23,9 @@ export {
   parseToolCallArguments,
   requestUsesExecutableAdapterHostedTool,
 } from './adapter-hosted-tools.js';
+export {
+  appendDeferredToolsFromToolSearch,
+} from './adapter-deferred-tools.js';
 export type {
   AdapterHostedStreamingDecision,
   AdapterHostedToolCall,
