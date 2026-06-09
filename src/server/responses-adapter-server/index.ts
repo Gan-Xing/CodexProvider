@@ -80,6 +80,12 @@ export {
 export type {
   UpstreamFetchResult,
 } from './upstream.js';
+export {
+  handleCompactResponses,
+} from './compact-responses.js';
+export {
+  handleDirectResponsesProxy,
+} from './direct-responses-proxy.js';
 export type {
   CodexProviderTraceEvent,
   CodexProviderTraceSink,

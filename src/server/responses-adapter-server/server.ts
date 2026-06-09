@@ -1,7 +1,6 @@
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import {
   chatCompletionsResponseToResponses,
-  responsesRequestToCompactionResponse,
   responsesRequestToChatCompletions,
 } from '../../converters/responses_adapter.js';
 import {
@@ -32,6 +31,12 @@ import {
   writeAdapterHostedToolStreamingResponse,
 } from './adapter-hosted-tool-loop.js';
 import {
+  handleCompactResponses,
+} from './compact-responses.js';
+import {
+  handleDirectResponsesProxy,
+} from './direct-responses-proxy.js';
+import {
   buildModelsResponseMetadata,
   normalizeModels,
   resolveModelMetadata,
@@ -58,7 +63,6 @@ import {
 } from './retry.js';
 import {
   fetchUpstreamWithRetry as fetchUpstreamWithRetryRequest,
-  pipeUpstreamStream,
 } from './upstream.js';
 import {
   summarizeRequestAdjustments,
@@ -312,18 +316,35 @@ export class OpenAICompatibleResponsesAdapterServer {
       request: requestBody,
     });
     if (compact) {
-      await this.handleCompactResponses(requestBody, response, effectiveCapabilities);
+      await handleCompactResponses({
+        requestBody,
+        response,
+        providerCapabilities: effectiveCapabilities,
+        upstreamBaseUrl: this.upstreamBaseUrl,
+        apiKey: this.apiKey,
+        providerName: this.providerName,
+        models: this.models,
+        defaultModel: this.defaultModel,
+        fetchUpstreamWithRetry: (...args) => this.fetchUpstreamWithRetry(...args),
+        emitTrace: (event) => this.emitTrace(event),
+      });
       return;
     }
     if (this.upstreamResponsesPath) {
-      await this.handleDirectResponsesProxy(
+      await handleDirectResponsesProxy({
         requestBody,
         response,
         requestedModel,
         stream,
         route,
-        effectiveCapabilities,
-      );
+        providerCapabilities: effectiveCapabilities,
+        upstreamBaseUrl: this.upstreamBaseUrl,
+        upstreamResponsesPath: this.upstreamResponsesPath,
+        apiKey: this.apiKey,
+        providerName: this.providerName,
+        fetchUpstreamWithRetry: (...args) => this.fetchUpstreamWithRetry(...args),
+        emitTrace: (event) => this.emitTrace(event),
+      });
       return;
     }
     const adapterHostedToolExecutionRequired = requestUsesExecutableAdapterHostedTool(
@@ -545,153 +566,6 @@ export class OpenAICompatibleResponsesAdapterServer {
     }
   }
 
-  private async handleDirectResponsesProxy(
-    requestBody: JsonRecord,
-    response: ServerResponse,
-    requestedModel: string,
-    stream: boolean,
-    route: AdapterRoute,
-    providerCapabilities: OpenAICompatibleProviderCapabilities | null,
-  ): Promise<void> {
-    this.emitTrace({
-      type: 'request.translated',
-      route: 'responses',
-      model: requestedModel,
-      stream,
-      request: requestBody,
-      upstreamRequest: requestBody,
-    });
-    const upstream = await this.fetchUpstreamWithRetry(
-      buildChatCompletionsUrl(this.upstreamBaseUrl, this.upstreamResponsesPath),
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-          Accept: stream ? 'text/event-stream' : 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      },
-      route,
-      providerCapabilities,
-    );
-    if (!upstream.response.ok) {
-      const error = normalizeUpstreamError(
-        upstream.errorText ?? '',
-        this.providerName,
-        upstream.response.status,
-        upstream.response.headers,
-      );
-      this.emitTrace({
-        type: 'upstream.error',
-        route,
-        status: upstream.response.status || 502,
-        error,
-      });
-      writeJson(response, upstream.response.status || 502, { error });
-      return;
-    }
-    if (stream) {
-      await this.pipeUpstreamStream(upstream.response, response);
-      return;
-    }
-    const text = await upstream.response.text();
-    const contentType = upstream.response.headers.get('Content-Type') || 'application/json; charset=utf-8';
-    try {
-      const json = JSON.parse(text) as JsonRecord;
-      this.emitTrace({
-        type: 'response.translated',
-        route: 'responses',
-        model: requestedModel,
-        stream: false,
-        response: json,
-      });
-      writeJson(response, 200, json);
-      return;
-    } catch {
-      response.writeHead(200, {
-        'Content-Type': contentType,
-      });
-      response.end(text);
-    }
-  }
-
-  private async handleCompactResponses(
-    requestBody: JsonRecord,
-    response: ServerResponse,
-    providerCapabilities: OpenAICompatibleProviderCapabilities | null,
-  ): Promise<void> {
-    if (Boolean(requestBody?.stream)) {
-      writeJson(response, 400, {
-        error: {
-          message: 'Streaming not supported for compact responses',
-          type: 'invalid_request_error',
-        },
-      });
-      return;
-    }
-    const compactBody = { ...requestBody };
-    delete compactBody.stream;
-
-    if (!providerCapabilities?.supportsResponsesCompact) {
-      const modelMetadata = resolveModelMetadata(
-        this.models,
-        normalizeString(compactBody?.model) || this.defaultModel,
-      );
-      const compactResponse = responsesRequestToCompactionResponse(compactBody, {
-        request: compactBody,
-        providerCapabilities,
-        modelMetadata,
-      });
-      this.emitTrace({
-        type: 'response.compaction_fallback',
-        route: 'responses.compact',
-        model: normalizeString(compactBody?.model) || this.defaultModel,
-        reason: 'compact_not_supported',
-        response: compactResponse,
-      });
-      writeJson(response, 200, compactResponse);
-      return;
-    }
-
-    const compactPath = normalizePath(providerCapabilities.upstreamResponsesCompactPath) || '/responses/compact';
-    const upstream = await this.fetchUpstreamWithRetry(
-      buildChatCompletionsUrl(this.upstreamBaseUrl, compactPath),
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(compactBody),
-      },
-      'responses.compact',
-      providerCapabilities,
-    );
-    if (!upstream.response.ok) {
-      const error = normalizeUpstreamError(
-        upstream.errorText ?? '',
-        this.providerName,
-        upstream.response.status,
-        upstream.response.headers,
-      );
-      this.emitTrace({
-        type: 'upstream.error',
-        route: 'responses.compact',
-        status: upstream.response.status || 502,
-        error,
-      });
-      writeJson(response, upstream.response.status || 502, { error });
-      return;
-    }
-    const text = await upstream.response.text();
-    response.writeHead(200, {
-      'Content-Type': upstream.response.headers.get('Content-Type') || 'application/json; charset=utf-8',
-    });
-    response.end(text);
-  }
-
   private async fetchUpstreamWithRetry(
     url: string,
     init: RequestInit,
@@ -709,13 +583,6 @@ export class OpenAICompatibleResponsesAdapterServer {
       fetchImpl: this.fetchImpl,
       emitTrace: (event) => this.emitTrace(event),
     });
-  }
-
-  private async pipeUpstreamStream(
-    upstreamResponse: Response,
-    response: ServerResponse,
-  ): Promise<void> {
-    await pipeUpstreamStream(upstreamResponse, response);
   }
 
   private async writeStreamingResponse(
