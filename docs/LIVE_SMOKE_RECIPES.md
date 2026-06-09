@@ -78,7 +78,32 @@ Expected:
 - Result content uses `data[]` entries with `file_id`, `filename`, `score`, `attributes`, and `content[]`.
 - A Responses request with `include: ["file_search_call.results"]` exposes a `file_search_call` item in `output`.
 
-## Smoke 4: Image Generation Contract
+## Smoke 4: Real Host Integration
+
+Goal: verify the packaged root entrypoint can drive a real non-OpenAI OpenAI-compatible Chat Completions provider through `CodexProviderRuntime` mixed mode and the local `/v1/responses` adapter.
+
+```bash
+pnpm smoke:host
+```
+
+The script builds the package, runs `npm pack --dry-run`, starts `CodexProviderRuntime` in `mixed` mode, and validates:
+
+- A normal `/v1/responses` request.
+- A custom tool call / custom tool output continuation loop.
+- Adapter-emulated `file_search` with `include: ["file_search_call.results"]`.
+- Adapter-emulated `web_search` with `include: ["web_search_call.action.sources", "web_search_call.results"]`.
+- Streaming adapter-emulated `web_search` through SSE.
+
+Required:
+
+- An upstream key through `CODEX_PROVIDER_API_KEY`, `OPENROUTER_API_KEY`, `DASHSCOPE_API_KEY`, `QWEN_API_KEY`, `DEEPSEEK_API_KEY`, `MINIMAX_API_KEY`, or `KIMI_API_KEY`.
+- `CODEX_PROVIDER_BASE_URL` and `CODEX_PROVIDER_MODEL` unless the script can infer them from the provider key.
+
+Optional:
+
+- `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, or `TAVILY_API_KEY` for live external web search. Without a search key, this smoke still validates adapter-emulated `web_search` through a local web index.
+
+## Smoke 5: Image Generation Contract
 
 Goal: verify the provider adapter can call a host-provided image provider without bundling a default one.
 
@@ -90,7 +115,7 @@ Expected:
 - The provider receives prompt/options.
 - Optional `include: ["image_generation_call.results"]` exposes `image_generation_call` output.
 
-## Smoke 5: Unsafe Tool Refusal By Default
+## Smoke 6: Unsafe Tool Refusal By Default
 
 Goal: verify unsafe tools cannot run unless a host explicitly supplies an executor.
 

@@ -43,4 +43,5 @@ This file records redacted live smoke evidence for `@codex-provider/core`.
 ### Pending
 
 - `web_search` live smoke script is available through `pnpm smoke:web-search`; live evidence remains pending until upstream and search credentials are provided.
-- A future CodexNext tarball/file dependency smoke should validate a real host app consuming the package.
+- Real host integration smoke is available through `pnpm smoke:host`; live evidence remains pending until an upstream provider key is available. On 2026-06-09 this environment did not expose `CODEX_PROVIDER_API_KEY`, `OPENROUTER_API_KEY`, `DASHSCOPE_API_KEY`, `QWEN_API_KEY`, `DEEPSEEK_API_KEY`, `MINIMAX_API_KEY`, or `KIMI_API_KEY`.
+- A future CodexNext tarball/file dependency smoke should validate a real host app consuming the package when that host workspace is available.
