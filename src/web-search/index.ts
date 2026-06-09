@@ -4,3 +4,4 @@ export * from './local-index/index.js';
 export * from './metasearch/index.js';
 export * from './openai/index.js';
 export * from './retrieval/index.js';
+export type * from './types.js';

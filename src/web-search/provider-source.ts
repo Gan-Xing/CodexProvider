@@ -11,7 +11,7 @@ import type {
   CodexProviderWebSearchSourceReference,
   CodexProviderWebSearchSourceRequest,
   CodexProviderWebSearchSourceResult,
-} from '../web_search_executor.js';
+} from './types.js';
 import {
   clampInteger,
   normalizeArray,
