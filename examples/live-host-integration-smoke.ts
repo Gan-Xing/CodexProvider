@@ -3,11 +3,15 @@ import fs from 'node:fs/promises';
 import {
   CodexProviderRuntime,
   createCodexProviderBraveApiEngine,
+  createCodexProviderBraveHtmlEngine,
+  createCodexProviderDuckDuckGoHtmlEngine,
+  createCodexProviderEcosiaHtmlEngine,
   createCodexProviderFileSearchExecutor,
   createCodexProviderLocalIndexSearchEngine,
   createCodexProviderMemoryFileSearchSource,
   createCodexProviderMemoryWebSearchLocalIndex,
   createCodexProviderMetaSearchService,
+  createCodexProviderMojeekHtmlEngine,
   createCodexProviderSerperApiEngine,
   createCodexProviderTavilyApiEngine,
   createCodexProviderWebRetrievalFetcher,
@@ -22,7 +26,7 @@ type HostSmokeEnv = {
   upstreamBaseUrl: string;
   model: string;
   searchKeyName: string | null;
-  searchProvider: 'local-index' | 'brave' | 'serper' | 'tavily';
+  searchProvider: 'local-index' | 'builtin-metasearch' | 'brave' | 'serper' | 'tavily';
   searchApiKey: string | null;
 };
 
@@ -37,7 +41,7 @@ if (!env) {
   console.log([
     'live host integration smoke skipped: missing upstream provider credentials.',
     'Required: CODEX_PROVIDER_API_KEY or a provider preset API key; CODEX_PROVIDER_BASE_URL and CODEX_PROVIDER_MODEL unless inferred.',
-    'Optional for live external search: BRAVE_SEARCH_API_KEY, SERPER_API_KEY, or TAVILY_API_KEY. Without a search key, the smoke uses a local web index.',
+    'Optional for API-backed search: BRAVE_SEARCH_API_KEY, SERPER_API_KEY, or TAVILY_API_KEY. Without a search key, the smoke uses built-in no-key HTML metasearch plus a local-index fallback.',
   ].join('\n'));
   process.exit(0);
 }
@@ -70,9 +74,9 @@ const webSearch = createCodexProviderWebSearchExecutor({
     maxResults: 6,
   }),
   retrieval: createCodexProviderWebRetrievalFetcher(),
-  fetchPages: Boolean(env.searchApiKey),
+  fetchPages: env.searchProvider !== 'local-index',
   maxResults: 6,
-  maxRetrievedPages: env.searchApiKey ? 3 : 0,
+  maxRetrievedPages: env.searchProvider !== 'local-index' ? 3 : 0,
 });
 
 const runtime = new CodexProviderRuntime({
@@ -131,14 +135,17 @@ try {
   }));
   assertFileSearchOutput(fileSearchResult.value);
 
-  const webSearchResult = await time(() => postResponses(responsesBaseUrl, buildWebSearchRequest(env.model, false)));
-  assertWebSearchOutput(webSearchResult.value, 'non-streaming web_search');
+  const webSearchResult = await time(() => postResponses(
+    responsesBaseUrl,
+    buildWebSearchRequest(env.model, false, env.searchProvider),
+  ));
+  assertWebSearchOutput(webSearchResult.value, 'non-streaming web_search', env.searchProvider);
 
   const streamingWebSearch = await time(() => postResponsesStream(
     responsesBaseUrl,
-    buildWebSearchRequest(env.model, true),
+    buildWebSearchRequest(env.model, true, env.searchProvider),
   ));
-  assertStreamingWebSearchOutput(streamingWebSearch.value);
+  assertStreamingWebSearchOutput(streamingWebSearch.value, env.searchProvider);
 
   await appendHostSmokeEvidence({
     env,
@@ -168,20 +175,30 @@ function createSearchEngines(env: HostSmokeEnv): CodexProviderSearchEngine[] {
       source: 'host-smoke-local-index',
     }],
   });
-  const engines: CodexProviderSearchEngine[] = [
-    createCodexProviderLocalIndexSearchEngine({
-      index: localIndex,
-      name: 'host-smoke-local-index',
-    }),
+  const localEngine = createCodexProviderLocalIndexSearchEngine({
+    index: localIndex,
+    name: 'host-smoke-local-index',
+  });
+  return [
+    ...createLiveSearchEngines(env),
+    localEngine,
   ];
-  const liveEngine = createLiveSearchEngine(env);
-  if (liveEngine) {
-    engines.unshift(liveEngine);
-  }
-  return engines;
 }
 
-function createLiveSearchEngine(env: HostSmokeEnv): CodexProviderSearchEngine | null {
+function createLiveSearchEngines(env: HostSmokeEnv): CodexProviderSearchEngine[] {
+  if (env.searchProvider === 'builtin-metasearch') {
+    return [
+      createCodexProviderDuckDuckGoHtmlEngine({ maxResults: 6 }),
+      createCodexProviderBraveHtmlEngine({ maxResults: 6 }),
+      createCodexProviderEcosiaHtmlEngine({ maxResults: 6 }),
+      createCodexProviderMojeekHtmlEngine({ maxResults: 6 }),
+    ];
+  }
+  const liveEngine = createApiSearchEngine(env);
+  return liveEngine ? [liveEngine] : [];
+}
+
+function createApiSearchEngine(env: HostSmokeEnv): CodexProviderSearchEngine | null {
   if (!env.searchApiKey) {
     return null;
   }
@@ -192,18 +209,29 @@ function createLiveSearchEngine(env: HostSmokeEnv): CodexProviderSearchEngine | 
       return createCodexProviderSerperApiEngine({ apiKey: env.searchApiKey });
     case 'tavily':
       return createCodexProviderTavilyApiEngine({ apiKey: env.searchApiKey });
+    case 'builtin-metasearch':
     case 'local-index':
       return null;
   }
 }
 
-function buildWebSearchRequest(model: string, stream: boolean): Record<string, any> {
+function buildWebSearchRequest(
+  model: string,
+  stream: boolean,
+  searchProvider: HostSmokeEnv['searchProvider'],
+): Record<string, any> {
+  const searchPrompt = searchProvider === 'local-index'
+    ? [
+        'Use web_search for CodexProvider host integration smoke.',
+        'Answer in one sentence and cite the first source with [[source:1]].',
+      ]
+    : [
+        'Use web_search to find one current source about TypeScript package architecture.',
+        'After the search, answer in one sentence and cite the first source with [[source:1]].',
+      ];
   return {
     model,
-    input: [
-      'Use web_search for CodexProvider host integration smoke.',
-      'Answer in one sentence and cite the first source with [[source:1]].',
-    ].join(' '),
+    input: searchPrompt.join(' '),
     tools: [{ type: 'web_search' }],
     tool_choice: 'web_search',
     include: ['web_search_call.action.sources', 'web_search_call.results'],
@@ -296,7 +324,11 @@ function assertFileSearchOutput(response: Record<string, any>): void {
   assert.equal(fileSearchCall.results[0]?.filename, 'host-smoke.md');
 }
 
-function assertWebSearchOutput(response: Record<string, any>, label: string): void {
+function assertWebSearchOutput(
+  response: Record<string, any>,
+  label: string,
+  searchProvider: HostSmokeEnv['searchProvider'],
+): void {
   assertMessage(response, label);
   const webSearchCall = findOutput(response, 'web_search_call');
   const message = findOutput(response, 'message');
@@ -316,12 +348,51 @@ function assertWebSearchOutput(response: Record<string, any>, label: string): vo
     Array.isArray(textPart?.annotations) && textPart.annotations.some((entry: any) => entry?.type === 'url_citation'),
     `${label} should include a url_citation annotation`,
   );
+  if (searchProvider !== 'local-index') {
+    assertLiveWebSearchOutput(response, label);
+  }
 }
 
-function assertStreamingWebSearchOutput(events: Record<string, any>[]): void {
+function assertStreamingWebSearchOutput(
+  events: Record<string, any>[],
+  searchProvider: HostSmokeEnv['searchProvider'],
+): void {
   const completed = events.find((event) => event?.type === 'response.completed');
   assert.ok(completed, 'streaming web_search should emit response.completed');
-  assertWebSearchOutput(completed.response ?? {}, 'streaming web_search');
+  assertWebSearchOutput(completed.response ?? {}, 'streaming web_search', searchProvider);
+}
+
+function assertLiveWebSearchOutput(response: Record<string, any>, label: string): void {
+  const liveUrls = collectWebSearchUrls(response).filter((url) => !isLocalCacheSmokeUrl(url));
+  assert.ok(
+    liveUrls.length > 0,
+    `${label} should include at least one live web_search source/result outside the local cache`,
+  );
+}
+
+function collectWebSearchUrls(response: Record<string, any>): string[] {
+  const webSearchCall = findOutput(response, 'web_search_call');
+  const urls: string[] = [];
+  for (const collection of [webSearchCall?.action?.sources, webSearchCall?.results]) {
+    if (!Array.isArray(collection)) {
+      continue;
+    }
+    for (const entry of collection) {
+      const url = normalizeString(entry?.url);
+      if (url) {
+        urls.push(url);
+      }
+    }
+  }
+  return urls;
+}
+
+function isLocalCacheSmokeUrl(value: string): boolean {
+  try {
+    return new URL(value).host === 'docs.example.com';
+  } catch {
+    return false;
+  }
 }
 
 function parseSseJsonEvents(text: string): Record<string, any>[] {
@@ -380,7 +451,7 @@ async function appendHostSmokeEvidence({
     `- Tool strategy: \`${state.profile.toolStrategy}\``,
     `- Upstream key env: \`${env.upstreamKeyName}=<redacted>\``,
     `- Search provider: \`${env.searchProvider}\``,
-    `- Search key env: \`${env.searchKeyName ? `${env.searchKeyName}=<redacted>` : '<not set; local-index>'}\``,
+    `- Search key env: \`${formatHostSearchCredential(env)}\``,
     '- Secrets: redacted; sourced from environment variables.',
     '',
     '| Smoke | Status | Notes |',
@@ -461,9 +532,19 @@ function resolveHostSmokeEnv(): HostSmokeEnv | null {
     upstreamBaseUrl,
     model,
     searchKeyName: search?.name ?? null,
-    searchProvider: search ? searchProviderForKey(search.name) : 'local-index',
+    searchProvider: search ? searchProviderForKey(search.name) : 'builtin-metasearch',
     searchApiKey: search?.value ?? null,
   };
+}
+
+function formatHostSearchCredential(env: HostSmokeEnv): string {
+  if (env.searchKeyName) {
+    return `${env.searchKeyName}=<redacted>`;
+  }
+  if (env.searchProvider === 'builtin-metasearch') {
+    return '<not set; built-in no-key metasearch>';
+  }
+  return '<not set; local-index>';
 }
 
 function firstPresent(entries: Array<[string, string | undefined]>): { name: string; value: string } | null {

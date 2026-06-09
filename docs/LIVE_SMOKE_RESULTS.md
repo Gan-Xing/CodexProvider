@@ -40,10 +40,10 @@ This file records redacted live smoke evidence for `@codex-provider/core`.
 - `google/gemini-3.1-pro-preview` through OpenRouter did not produce a forced tool call in this smoke; it returned reasoning output only. The live tool-loop smoke was rerun with `deepseek/deepseek-chat` and passed.
 - The local-vector smoke is slower than the other checks because it performs live embeddings over repository chunks. This is expected for a cold run without a persistent on-disk vector cache.
 
-### Pending
+### Coverage notes
 
 - `web_search` live smoke has evidence below through built-in no-key metasearch. Endpoint/API-backed search credentials remain optional for additional coverage.
-- Real host integration smoke has live evidence below. Current verified path uses OpenRouter with `deepseek/deepseek-chat`, adapter-emulated hosted tools, and local-index web_search.
+- Real host integration smoke has live evidence below. Current verified paths use OpenRouter with `deepseek/deepseek-chat`, adapter-emulated hosted tools, and both local-index and built-in no-key metasearch web_search coverage.
 - A future CodexNext tarball/file dependency smoke should validate a real host app consuming the package when that host workspace is available.
 
 ## 2026-06-09T17:48:09.853Z CodexProviderRuntime live host integration smoke
@@ -80,3 +80,58 @@ This file records redacted live smoke evidence for `@codex-provider/core`.
 | Offline local-index path | Passed | Direct executor request used `external_web_access=false` and returned the seeded local-cache result. |
 | Non-streaming adapter web_search | Passed | web_search_call sources: 1; results: 1; annotations: 1; latency: 7358 ms. |
 | Streaming adapter web_search | Passed | SSE events: 24; web_search_call sources: 1; results: 1; annotations: 1; latency: 6838 ms. |
+
+## 2026-06-09T20:18:40.909Z Adapter-emulated web_search live smoke
+
+- Provider base URL host: `openrouter.ai`
+- Model: `deepseek/deepseek-chat`
+- Search provider: `builtin-metasearch`
+- Upstream key env: `CODEX_PROVIDER_API_KEY=<redacted>`
+- Search credential: `not set; built-in no-key metasearch`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Offline local-index path | Passed | Direct executor request used `external_web_access=false` and returned the seeded local-cache result. |
+| Non-streaming adapter web_search | Passed | web_search_call sources: 1; results: 1; annotations: 1; latency: 7703 ms. |
+| Streaming adapter web_search | Passed | SSE events: 37; web_search_call sources: 1; results: 1; annotations: 1; latency: 6804 ms. |
+
+## 2026-06-09T20:19:16.358Z CodexProviderRuntime live host integration smoke
+
+- Provider base URL host: `openrouter.ai`
+- Model: `deepseek/deepseek-chat`
+- Runtime mode: `mixed`
+- Tool strategy: `adapter-emulated`
+- Upstream key env: `CODEX_PROVIDER_API_KEY=<redacted>`
+- Search provider: `local-index`
+- Search key env: `<not set; local-index>`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Mixed runtime local adapter | Passed | Adapter base URL host: 127.0.0.1:40219. |
+| Normal response | Passed | Latency: 1143 ms. |
+| Custom tool loop | Passed | First turn produced echo_probe; second turn returned final text. Latency: 4608 ms. |
+| Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 3904 ms. |
+| Adapter-emulated web_search | Passed | Sources: 1; results: 1; annotations: 1; latency: 4847 ms. |
+| Streaming adapter-emulated web_search | Passed | SSE events: 30; sources: 1; results: 1; annotations: 1; latency: 4433 ms. |
+
+## 2026-06-09T20:22:25.619Z CodexProviderRuntime live host integration smoke
+
+- Provider base URL host: `openrouter.ai`
+- Model: `deepseek/deepseek-chat`
+- Runtime mode: `mixed`
+- Tool strategy: `adapter-emulated`
+- Upstream key env: `CODEX_PROVIDER_API_KEY=<redacted>`
+- Search provider: `builtin-metasearch`
+- Search key env: `<not set; built-in no-key metasearch>`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Mixed runtime local adapter | Passed | Adapter base URL host: 127.0.0.1:33699. |
+| Normal response | Passed | Latency: 1814 ms. |
+| Custom tool loop | Passed | First turn produced echo_probe; second turn returned final text. Latency: 3984 ms. |
+| Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 4262 ms. |
+| Adapter-emulated web_search | Passed | Sources: 1; results: 1; annotations: 1; latency: 6604 ms. |
+| Streaming adapter-emulated web_search | Passed | SSE events: 67; sources: 1; results: 1; annotations: 1; latency: 7185 ms. |
