@@ -116,6 +116,33 @@ const fileSearch = createCodexProviderFileSearchExecutor({
 
 The package does not scan the process working directory implicitly. Hosts must decide which roots are safe.
 
+`vector_store_ids` maps to the configured file-search source `name`. It is package-owned source selection, not an OpenAI-hosted vector-store lookup.
+
+```ts
+const fileSearch = createCodexProviderFileSearchExecutor({
+  sources: [{
+    type: "local-vector",
+    name: "repo",
+    roots: [workspaceRoot],
+    embeddingProvider,
+    indexStore: createCodexProviderSqliteLocalVectorIndexStore({
+      database: sqliteDatabase,
+      tablePrefix: "repo_search",
+    }),
+    chunking: { maxChars: 1_600, overlapChars: 200 },
+  }, {
+    type: "remote-documents",
+    name: "docs",
+    query: async ({ query, maxResults }) => docsClient.search({ query, limit: maxResults }),
+    fetchDocument: async ({ document }) => docsClient.fetchText(document.id),
+  }],
+  maxResults: 8,
+  maxPayloadBytes: 48_000,
+});
+```
+
+Callers can select both sources by passing `vector_store_ids: ["repo", "docs"]` on the `file_search` request. When the executor returns `has_more: true`, pass `next_page` back as `page_token`, `page`, or `after` with the same query, filters, `vector_store_ids`, and `max_num_results`.
+
 ## Unsafe Tool Policy
 
 `code_interpreter`, `computer`, shell-like tools, and any real environment-control surface require a host-owned executor and safety policy. The provider adapter package only defines contracts and output normalization.

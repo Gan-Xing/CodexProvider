@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import type {
   CodexProviderFileSearchChunk,
@@ -69,10 +70,23 @@ export function createCodexProviderFileSearchExecutor(
     const filters = normalizeFileSearchFilter(request.arguments.filters ?? request.arguments.attribute_filter);
     const rankingOptions = normalizeFileSearchRankingOptions(request.arguments.ranking_options);
     const searchSources = selectFileSearchSources(normalizedOptions.sources, vectorStoreIds);
+    const pageFingerprint = createFileSearchPageFingerprint({
+      query,
+      pathGlob,
+      vectorStoreIds,
+      filters,
+      rankingOptions,
+      maxResults,
+      includeContent,
+    });
+    const pageToken = fileSearchPageTokenFromRequest(request);
+    const pageOffset = decodeFileSearchPageOffset(pageToken, pageFingerprint);
+    const sourceMaxResults = sourceMaxResultsForPage(pageOffset, maxResults);
 
     await request.emitDelta?.('searching sources', {
       sourceCount: searchSources.length,
       maxResults,
+      pageOffset,
       vectorStoreIds,
     });
 
@@ -92,7 +106,7 @@ export function createCodexProviderFileSearchExecutor(
         vectorStoreIds,
         filters,
         rankingOptions,
-        maxResults,
+        maxResults: sourceMaxResults,
         maxBytesPerFile: normalizedOptions.maxBytesPerFile,
         maxPayloadBytes: normalizedOptions.maxPayloadBytes,
         snippetLines: normalizedOptions.snippetLines,
@@ -114,12 +128,15 @@ export function createCodexProviderFileSearchExecutor(
       || left.path.localeCompare(right.path)
     ));
     const rankedResults = applyFileSearchRankingOptions(filteredResults, rankingOptions);
+    const pagedResults = rankedResults.slice(pageOffset);
     const limitedResults = limitResultsByPayload(
-      rankedResults,
+      pagedResults,
       maxResults,
       normalizedOptions.maxPayloadBytes,
     );
     const openAIResults = limitedResults.map((result) => toOpenAIFileSearchResult(result, rankedResults));
+    const nextOffset = pageOffset + limitedResults.length;
+    const hasMore = rankedResults.length > nextOffset;
     const provider = searchSources.length === 1
       ? normalizeSourceType(searchSources[0])
       : 'multi-source';
@@ -131,8 +148,8 @@ export function createCodexProviderFileSearchExecutor(
         provider,
         data: openAIResults,
         search_results: openAIResults,
-        has_more: rankedResults.length > limitedResults.length,
-        next_page: null,
+        has_more: hasMore,
+        next_page: hasMore ? encodeFileSearchPageToken(nextOffset, pageFingerprint) : null,
         vector_store_ids: vectorStoreIds,
         ranking_options: rankingOptions,
         sourceCount: searchSources.length,
@@ -143,6 +160,7 @@ export function createCodexProviderFileSearchExecutor(
         provider,
         sourceCount: searchSources.length,
         resultCount: limitedResults.length,
+        pageOffset,
         scannedFiles,
         skippedFiles,
       },
@@ -268,6 +286,78 @@ function fileSearchMaxResultsFromRequest(
   );
 }
 
+function fileSearchPageTokenFromRequest(
+  request: CodexProviderHostedToolExecutionRequest,
+): string | null {
+  const token = normalizeString(
+    request.arguments.page_token
+    ?? request.arguments.page
+    ?? request.arguments.after
+    ?? request.arguments.next_page,
+  );
+  if (!token) {
+    return null;
+  }
+  if (token.length > 2_048) {
+    throw new Error('file_search page token is too long.');
+  }
+  return token;
+}
+
+function sourceMaxResultsForPage(pageOffset: number, maxResults: number): number {
+  return Math.min(pageOffset + maxResults + 1, 10_000);
+}
+
+function decodeFileSearchPageOffset(token: string | null, fingerprint: string): number {
+  if (!token) {
+    return 0;
+  }
+  let parsed: JsonRecord;
+  try {
+    parsed = JSON.parse(Buffer.from(token, 'base64url').toString('utf8')) as JsonRecord;
+  } catch {
+    throw new Error('file_search page token is invalid.');
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('file_search page token is invalid.');
+  }
+  if (parsed.v !== 1 || parsed.fingerprint !== fingerprint) {
+    throw new Error('file_search page token does not match the current request.');
+  }
+  const offset = Number(parsed.offset);
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > 10_000) {
+    throw new Error('file_search page token is invalid.');
+  }
+  return offset;
+}
+
+function encodeFileSearchPageToken(offset: number, fingerprint: string): string {
+  return Buffer.from(JSON.stringify({
+    v: 1,
+    offset,
+    fingerprint,
+  }), 'utf8').toString('base64url');
+}
+
+function createFileSearchPageFingerprint(input: JsonRecord): string {
+  return createHash('sha256')
+    .update(stableJsonStringify(input))
+    .digest('base64url');
+}
+
+function stableJsonStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableJsonStringify).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const record = value as JsonRecord;
+    return `{${Object.keys(record).sort().map((key) => (
+      `${JSON.stringify(key)}:${stableJsonStringify(record[key])}`
+    )).join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'null';
+}
+
 function selectFileSearchSources(
   sources: CodexProviderFileSearchSource[],
   vectorStoreIds: string[],
@@ -347,6 +437,9 @@ function fileSearchResultMatchesFilter(
   const comparisonFilter = filter as Extract<CodexProviderFileSearchFilter, { value: unknown }>;
   const key = normalizeString(comparisonFilter.key ?? comparisonFilter.property);
   const actual = fileSearchResultAttributeValue(result, key);
+  if (actual === undefined) {
+    return comparisonFilter.type === 'ne' || comparisonFilter.type === 'nin';
+  }
   switch (comparisonFilter.type) {
     case 'eq':
       return filterValueMatches(actual, comparisonFilter.value);

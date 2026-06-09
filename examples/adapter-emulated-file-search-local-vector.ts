@@ -14,7 +14,8 @@ const embeddings = createCodexProviderEmbeddingsApiProvider({
 const fileSearch = createCodexProviderFileSearchExecutor({
   sources: [{
     type: 'local-vector',
-    name: 'workspace-local-vector',
+    // Responses file_search vector_store_ids maps to this source name.
+    name: 'repo',
     roots: [workspaceRoot],
     embeddingProvider: embeddings,
     chunking: { maxChars: 1_600, overlapChars: 200 },

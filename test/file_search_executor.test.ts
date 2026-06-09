@@ -363,6 +363,69 @@ test('file_search executor emits OpenAI-compatible search result data', async ()
   assert.ok(content.data[0].score <= 1);
 });
 
+test('file_search executor paginates results with stable page tokens', async () => {
+  const executor = createCodexProviderFileSearchExecutor({
+    sources: [
+      createCodexProviderMemoryFileSearchSource({
+        name: 'paged-store',
+        documents: Array.from({ length: 5 }, (_, index) => ({
+          id: `page-${index + 1}`,
+          title: `Paged alpha beta ${index + 1}`,
+          path: `docs/page-${index + 1}.md`,
+          content: 'paged alpha beta content for stable pagination',
+        })),
+      }),
+    ],
+    maxResults: 5,
+  });
+
+  const first = await executor(baseRequest({
+    query: 'paged alpha beta',
+    max_num_results: 2,
+  }));
+  const firstContent = first.content as CodexProviderFileSearchExecutorContent;
+
+  assert.equal(firstContent.data.length, 2);
+  assert.equal(firstContent.has_more, true);
+  assert.equal(typeof firstContent.next_page, 'string');
+
+  const second = await executor(baseRequest({
+    query: 'paged alpha beta',
+    max_num_results: 2,
+    page_token: firstContent.next_page,
+  }));
+  const secondContent = second.content as CodexProviderFileSearchExecutorContent;
+
+  assert.equal(secondContent.data.length, 2);
+  assert.equal(secondContent.has_more, true);
+  assert.equal(typeof secondContent.next_page, 'string');
+  assert.deepEqual(
+    secondContent.data.map((entry) => entry.filename),
+    ['page-3.md', 'page-4.md'],
+  );
+
+  const third = await executor(baseRequest({
+    query: 'paged alpha beta',
+    max_num_results: 2,
+    page: secondContent.next_page,
+  }));
+  const thirdContent = third.content as CodexProviderFileSearchExecutorContent;
+
+  assert.equal(thirdContent.data.length, 1);
+  assert.equal(thirdContent.data[0].filename, 'page-5.md');
+  assert.equal(thirdContent.has_more, false);
+  assert.equal(thirdContent.next_page, null);
+
+  await assert.rejects(
+    () => executor(baseRequest({
+      query: 'different alpha beta',
+      max_num_results: 2,
+      page_token: firstContent.next_page,
+    })),
+    /page token does not match/u,
+  );
+});
+
 test('file_search executor applies vector store ids, filters, and ranking threshold', async () => {
   const executor = createCodexProviderFileSearchExecutor({
     sources: [
@@ -508,6 +571,22 @@ test('file_search executor applies nested metadata filter parity', async () => {
   assert.equal(content.data.length, 1);
   assert.equal(content.data[0].filename, 'match.md');
   assert.equal(content.data[0].attributes.priority, 9);
+
+  const missingComparison = await executor(baseRequest({
+    query: 'alpha beta target',
+    filters: { type: 'lt', key: 'missing_priority', value: 100 },
+  }));
+  const missingComparisonContent = missingComparison.content as CodexProviderFileSearchExecutorContent;
+
+  assert.equal(missingComparisonContent.data.length, 0);
+
+  const missingArray = await executor(baseRequest({
+    query: 'alpha beta target',
+    filters: { type: 'in', property: 'missing_tags', value: ['adapter'] },
+  }));
+  const missingArrayContent = missingArray.content as CodexProviderFileSearchExecutorContent;
+
+  assert.equal(missingArrayContent.data.length, 0);
 });
 
 test('vector-store file_search source delegates to host adapter contract', async () => {
@@ -565,7 +644,7 @@ test('vector-store file_search source delegates to host adapter contract', async
     sourceName: 'vector-contract',
     query: 'alpha beta',
     vectorStoreIds: ['vector-contract'],
-    maxResults: 3,
+    maxResults: 4,
     includeContent: null,
   }]);
   assert.equal(content.provider, 'vector-store');
@@ -743,7 +822,7 @@ test('sqlite fts file_search source queries injected database and normalizes row
   assert.match(executed[0].sql, /FROM "documents_fts"/u);
   assert.match(executed[0].sql, /"documents_fts" MATCH \?/u);
   assert.match(executed[0].sql, /"path" GLOB \?/u);
-  assert.deepEqual(executed[0].params, ['"sqlite" OR "project" OR "summaries"', 'docs/*', 5]);
+  assert.deepEqual(executed[0].params, ['"sqlite" OR "project" OR "summaries"', 'docs/*', 6]);
 });
 
 test('sqlite fts file_search source supports includeContent false and custom query function', async () => {
@@ -1564,6 +1643,18 @@ test('file_search executor applies total payload bounds across sources', async (
 
   assert.ok(content.data.length >= 1);
   assert.ok(content.data.length < 5);
+  assert.equal(content.has_more, true);
+  assert.equal(typeof content.next_page, 'string');
+
+  const next = await executor(baseRequest({
+    query: 'large payload',
+    page_token: content.next_page,
+  }));
+  const nextContent = next.content as CodexProviderFileSearchExecutorContent;
+  const firstPageFilenames = new Set(content.data.map((entry) => entry.filename));
+
+  assert.ok(nextContent.data.length >= 1);
+  assert.equal(nextContent.data.some((entry) => firstPageFilenames.has(entry.filename)), false);
 });
 
 test('local file_search executor requires explicit roots', () => {
