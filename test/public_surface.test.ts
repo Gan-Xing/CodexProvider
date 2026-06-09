@@ -201,6 +201,7 @@ test('codex provider package includes public examples and package readiness docs
     'examples/mixed-openrouter-runtime.ts',
     'examples/adapter-emulated-web-search.ts',
     'examples/adapter-emulated-web-search-metasearch.ts',
+    'examples/live-web-search-smoke.ts',
     'examples/adapter-emulated-file-search-local-vector.ts',
     'examples/adapter-emulated-image-generation.ts',
     'examples/adapter-emulated-code-interpreter-custom-executor.ts',

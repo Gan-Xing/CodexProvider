@@ -45,6 +45,14 @@ Goal: verify `web_search` is explicit, executor-backed, self-hosted through Code
 
 Use `examples/adapter-emulated-web-search-metasearch.ts` as the primary wiring reference. `examples/adapter-emulated-web-search.ts` remains a smaller Tavily-only baseline.
 
+For an end-to-end smoke against a real OpenAI-compatible upstream plus a real web search API, run:
+
+```bash
+pnpm smoke:web-search
+```
+
+The script requires an upstream key (`CODEX_PROVIDER_API_KEY` or a supported provider preset key), an upstream base URL/model unless they can be inferred, and one of `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, or `TAVILY_API_KEY`. Without those variables it exits successfully after the offline local-index check and prints a skip reason.
+
 Expected:
 
 - `{ name: "web_search", mode: "adapter-emulated" }` is declared.

@@ -42,5 +42,5 @@ This file records redacted live smoke evidence for `@codex-provider/core`.
 
 ### Pending
 
-- `web_search` live smoke remains pending by product decision.
+- `web_search` live smoke script is available through `pnpm smoke:web-search`; live evidence remains pending until upstream and search credentials are provided.
 - A future CodexNext tarball/file dependency smoke should validate a real host app consuming the package.

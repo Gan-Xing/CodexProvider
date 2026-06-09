@@ -28,6 +28,7 @@
     "consumer:harness": "pnpm build && tsx examples/standalone-consumer-harness.ts",
     "pack:dry-run": "npm pack --dry-run",
     "serve": "node ./dist/cli.js",
+    "smoke:web-search": "pnpm build && tsx examples/live-web-search-smoke.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test test/*.test.ts"
   },
