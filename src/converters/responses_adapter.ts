@@ -75,89 +75,15 @@ import {
 export {
   responsesRequestToChatCompletions,
 } from './responses-adapter/request-to-chat/convert.js';
+export {
+  chatCompletionsResponseToResponses,
+} from './responses-adapter/chat-to-responses/convert.js';
+export {
+  responsesRequestToCompactionResponse,
+} from './responses-adapter/chat-to-responses/compaction.js';
 
 const THINK_OPEN_TAG = '<think>';
 const THINK_CLOSE_TAG = '</think>';
-
-export function chatCompletionsResponseToResponses(
-  chatResponse: JsonRecord,
-  options: ChatToResponsesOptions = {},
-): JsonRecord {
-  const request = options.request ?? {};
-  const reverseToolNameMap = buildReverseToolNameMap(request);
-  const toolContext = buildCodexToolContext(request?.tools);
-  const responseId = normalizeString(options.responseId)
-    || normalizeString(chatResponse?.id)
-    || `resp_${crypto.randomUUID()}`;
-  const createdAt = normalizeNumber(options.createdAt)
-    ?? normalizeNumber(chatResponse?.created)
-    ?? Math.floor(Date.now() / 1000);
-  const output: JsonRecord[] = [];
-
-  for (const choice of normalizeArray(chatResponse?.choices)) {
-    const message = choice?.message ?? {};
-    const rawText = typeof message?.content === 'string' ? message.content : normalizeString(message?.content);
-    const inlineThink = splitLeadingThinkBlock(rawText);
-    const text = inlineThink ? normalizeString(inlineThink.answer) : normalizeString(rawText);
-    const explicitReasoningContent = extractReasoningText(message);
-    const reasoningContent = explicitReasoningContent || inlineThink?.reasoning || '';
-    const toolCalls = normalizeArray(message?.tool_calls);
-    if (reasoningContent || request?.reasoning) {
-      output.push(buildCompletedReasoningOutputItem(reasoningContent));
-    }
-    if (text) {
-      output.push({
-        id: `msg_${crypto.randomUUID()}`,
-        type: 'message',
-        status: 'completed',
-        role: 'assistant',
-        content: text
-          ? [{
-            type: 'output_text',
-            text,
-            annotations: [],
-          }]
-          : [],
-      });
-    }
-    for (const toolCall of toolCalls) {
-      output.push(chatToolCallToResponseOutputItem(toolCall, reverseToolNameMap, toolContext));
-    }
-  }
-
-  return buildResponsesObject({
-    responseId,
-    createdAt,
-    request,
-    responseModel: normalizeString(chatResponse?.model) || null,
-    status: 'completed',
-    output,
-    usage: withUsagePricingMetadata(
-      mapProviderUsage(chatResponse)
-        ?? estimateUsageIfEnabled(request, output, options),
-      options.modelMetadata,
-    ),
-  });
-}
-
-export function responsesRequestToCompactionResponse(
-  request: JsonRecord,
-  options: ChatToResponsesOptions = {},
-): JsonRecord {
-  const responseId = normalizeString(options.responseId) || `resp_${crypto.randomUUID()}`;
-  const createdAt = normalizeNumber(options.createdAt) ?? Math.floor(Date.now() / 1000);
-  const output = normalizeCompactionOutput(request?.input);
-  return omitUndefined({
-    id: responseId,
-    object: 'response.compaction',
-    created_at: createdAt,
-    output,
-    usage: withUsagePricingMetadata(
-      estimateUsageIfEnabled(request, output, options),
-      options.modelMetadata,
-    ),
-  });
-}
 
 export function inspectOpenAICompatiblePayloadCompatibility(
   {

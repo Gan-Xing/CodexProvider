@@ -1,3 +1,3 @@
-// Phase 1 skeleton. ID construction helpers move here in a later phase.
-export {};
-
+export function buildFunctionCallItemId(callId: string): string {
+  return `fc_${callId}`;
+}
