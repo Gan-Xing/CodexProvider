@@ -7,6 +7,21 @@ export function normalizeReasoningEffort(value: unknown): string | null {
   return normalized || null;
 }
 
+export function normalizeEffortList(value: unknown): string[] {
+  return [...new Set(
+    (Array.isArray(value) ? value : [])
+      .map((entry) => normalizeReasoningEffort(entry))
+      .filter(Boolean),
+  )] as string[];
+}
+
+export function normalizeCapabilityEffortList(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  return normalizeEffortList(value);
+}
+
 export function normalizeString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
