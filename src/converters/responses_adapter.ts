@@ -31,93 +31,49 @@ import {
   isCodexProviderAdapterEmulatedBuiltinToolType,
   normalizeCodexProviderBuiltinToolName,
 } from '../builtin-tools/index.js';
-
-type JsonRecord = Record<string, any>;
-type ToolNameMap = Map<string, string>;
-type AdapterEmulatedHostedToolMap = Map<string, NormalizedCodexProviderHostedToolDeclaration>;
+import type {
+  AdapterEmulatedHostedToolMap,
+  ChatToResponsesOptions,
+  InputConversionState,
+  InlineThinkMode,
+  InlineThinkState,
+  JsonRecord,
+  ResponsesSseTranslateOptions,
+  ResponsesToChatOptions,
+  StreamState,
+  StreamToolCallState,
+  ToolNameMap,
+} from './responses-adapter/types.js';
+export type {
+  ChatToResponsesOptions,
+  ResponsesSseTranslateOptions,
+  ResponsesToChatOptions,
+} from './responses-adapter/types.js';
+import {
+  cloneJson,
+  copyIfPresent,
+  firstRecord,
+  normalizeArray,
+  omitUndefined,
+} from './responses-adapter/shared/json.js';
+import {
+  isOpenAIOFamilyModel,
+} from './responses-adapter/shared/model.js';
+import {
+  multiplyFinite,
+  normalizeNumber,
+  normalizePositiveOrZeroNumber,
+} from './responses-adapter/shared/numbers.js';
+import {
+  normalizeRole,
+  normalizeString,
+} from './responses-adapter/shared/strings.js';
+import {
+  joinTextBlocks,
+} from './responses-adapter/shared/text.js';
 
 const THINK_OPEN_TAG = '<think>';
 const THINK_CLOSE_TAG = '</think>';
-
-export interface ResponsesToChatOptions {
-  model?: string | null;
-  stream?: boolean | null;
-  providerKind?: string | null;
-  providerCapabilities?: OpenAICompatibleProviderCapabilities | null;
-  hostedTools?: NormalizedCodexProviderHostedToolDeclaration[] | null;
-  compact?: boolean | null;
-}
-
-export interface ChatToResponsesOptions {
-  request?: JsonRecord | null;
-  responseId?: string | null;
-  createdAt?: number | null;
-  providerCapabilities?: OpenAICompatibleProviderCapabilities | null;
-  modelMetadata?: JsonRecord | null;
-}
-
-export interface ResponsesSseTranslateOptions extends ChatToResponsesOptions {
-  traceEvent?: ((event: JsonRecord) => void) | null;
-}
-
-interface StreamToolCallState {
-  key: string;
-  id: string | null;
-  callId: string | null;
-  name: string;
-  arguments: string;
-  outputIndex: number | null;
-  added: boolean;
-  done: boolean;
-}
-
-type InlineThinkMode = 'detecting' | 'reasoning' | 'text';
-
-interface InlineThinkState {
-  mode: InlineThinkMode;
-  buffer: string;
-}
-
-interface StreamState {
-  responseId: string;
-  createdAt: number;
-  responseModel: string | null;
-  sequence: number;
-  request: JsonRecord;
-  output: JsonRecord[];
-  nextOutputIndex: number;
-  messageStates: Map<number, {
-    id: string;
-    outputIndex: number;
-    text: string;
-    added: boolean;
-    contentAdded: boolean;
-    done: boolean;
-  }>;
-  inlineThinkStates: Map<number, InlineThinkState>;
-  reasoningStates: Map<number, {
-    id: string;
-    outputIndex: number;
-    text: string;
-    added: boolean;
-    partAdded: boolean;
-    done: boolean;
-  }>;
-  toolCalls: Map<string, StreamToolCallState>;
-  createdEmitted: boolean;
-  terminalEmitted: boolean;
-  failedError: JsonRecord | null;
-  usage: JsonRecord | null;
-  providerCapabilities: OpenAICompatibleProviderCapabilities | null;
-  reverseToolNameMap: ToolNameMap;
-  toolContext: CodexToolContext;
-}
-
-interface InputConversionState {
-  pendingToolCalls: JsonRecord[];
-  pendingReasoning: string[];
-  seenToolCallIds: Set<string>;
-}
 
 export function responsesRequestToChatCompletions(
   request: JsonRecord,
@@ -633,13 +589,6 @@ function orphanToolOutputMessage(callId: string, output: unknown): JsonRecord {
 
 function responseToolCallId(item: JsonRecord): string {
   return normalizeString(item.call_id) || normalizeString(item.id);
-}
-
-function joinTextBlocks(values: unknown[]): string {
-  return values
-    .map((value) => normalizeString(value))
-    .filter(Boolean)
-    .join('\n');
 }
 
 function normalizeChatMessages(messages: JsonRecord[]): void {
@@ -2456,15 +2405,6 @@ function normalizeOutputTokenDetails(usage: JsonRecord): JsonRecord | null {
   return Object.keys(normalized).length > 0 ? normalized : null;
 }
 
-function firstRecord(...values: unknown[]): JsonRecord | null {
-  for (const value of values) {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      return value as JsonRecord;
-    }
-  }
-  return null;
-}
-
 function normalizePricingMetadataForUsage(modelMetadata: JsonRecord | null | undefined): JsonRecord | null {
   const source = firstRecord(modelMetadata?.pricing, modelMetadata);
   if (!source) {
@@ -2623,50 +2563,6 @@ function withSequence(state: StreamState, payload: JsonRecord): JsonRecord {
   return next;
 }
 
-function normalizeRole(role: unknown): string {
-  const normalized = normalizeString(role);
-  if (normalized === 'developer') {
-    return 'system';
-  }
-  if (normalized === 'assistant' || normalized === 'system' || normalized === 'tool') {
-    return normalized;
-  }
-  return 'user';
-}
-
-function normalizeArray(value: unknown): any[] {
-  return Array.isArray(value) ? value : [];
-}
-
-function normalizeString(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function isOpenAIOFamilyModel(model: string): boolean {
-  const normalized = normalizeString(model);
-  return normalized.length > 1
-    && normalized.startsWith('o')
-    && Boolean(normalized.at(1)?.match(/[0-9]/u));
-}
-
-function normalizeNumber(value: unknown): number | null {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-}
-
-function normalizePositiveOrZeroNumber(value: unknown): number | null {
-  const number = normalizeNumber(value);
-  return number !== null && number >= 0 ? number : null;
-}
-
-function multiplyFinite(left: number | null, right: number | null): number | null {
-  if (left === null || right === null) {
-    return null;
-  }
-  const product = left * right;
-  return Number.isFinite(product) ? product : null;
-}
-
 function normalizePricingObject(value: unknown): JsonRecord | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
@@ -2678,12 +2574,6 @@ function normalizePricingObject(value: unknown): JsonRecord | null {
     ]),
   ));
   return Object.keys(normalized).length > 0 ? normalized : null;
-}
-
-function copyIfPresent(source: JsonRecord, target: JsonRecord, key: string) {
-  if (source?.[key] !== undefined) {
-    target[key] = source[key];
-  }
 }
 
 function getNestedPath(target: JsonRecord, path: string): unknown {
@@ -2815,10 +2705,6 @@ function buildFunctionCallItemId(callId: string): string {
   return `fc_${callId}`;
 }
 
-function cloneJson<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
-}
-
 function restoreToolName(name: string, reverseToolNameMap: ToolNameMap): string {
   const normalized = normalizeString(name);
   if (!normalized) {
@@ -2886,13 +2772,4 @@ function buildShortNameMap(names: string[]): ToolNameMap {
   }
 
   return result;
-}
-
-function omitUndefined<T extends JsonRecord>(record: T): T {
-  for (const key of Object.keys(record)) {
-    if (record[key] === undefined) {
-      delete record[key];
-    }
-  }
-  return record;
 }
