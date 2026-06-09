@@ -15,7 +15,7 @@ import {
   type CodexProviderTraceSink,
   OpenAICompatibleResponsesAdapterServer,
   type OpenAICompatibleResponsesAdapterServerOptions,
-} from './responses_adapter_server.js';
+} from './responses-adapter-server/index.js';
 
 type EnvRecord = Record<string, string | undefined>;
 

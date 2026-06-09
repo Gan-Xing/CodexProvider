@@ -22,7 +22,7 @@ import type {
 import {
   OpenAICompatibleResponsesAdapterServer,
   type OpenAICompatibleResponsesAdapterServerOptions,
-} from './server/responses_adapter_server.js';
+} from './server/responses-adapter-server/index.js';
 
 export interface CodexProviderAdapterServer {
   readonly baseUrl: string;

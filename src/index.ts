@@ -87,12 +87,12 @@ export {
   isOpenAICompatibleResponsesProxyPath,
   OpenAICompatibleResponsesAdapterServer,
   reserveLocalPort,
-} from './server/responses_adapter_server.js';
+} from './server/responses-adapter-server/index.js';
 export type {
   CodexProviderTraceEvent,
   CodexProviderTraceSink,
   OpenAICompatibleResponsesAdapterServerOptions,
-} from './server/responses_adapter_server.js';
+} from './server/responses-adapter-server/index.js';
 export {
   createCodexProviderStandaloneServerConfigFromEnv,
   createCodexProviderStandaloneServerFromEnv,
