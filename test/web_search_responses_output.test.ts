@@ -43,6 +43,10 @@ function outputItem(response: any, type: string): any {
   return response.output.find((item: any) => item?.type === type);
 }
 
+function outputItems(response: any, type: string): any[] {
+  return response.output.filter((item: any) => item?.type === type);
+}
+
 function outputTextPart(response: any): any {
   const message = outputItem(response, 'message');
   return message?.content?.find((part: any) => part?.type === 'output_text');
@@ -159,7 +163,8 @@ test('responses output exposes adapter web_search call with sources, results, an
     });
     const body = await response.json() as any;
     const textPart = outputTextPart(body);
-    const webSearchCall = outputItem(body, 'web_search_call');
+    const webSearchCalls = outputItems(body, 'web_search_call');
+    const webSearchCall = webSearchCalls[0];
 
     assert.equal(response.status, 200);
     assert.equal(upstreamRequests.length, 2);
@@ -172,11 +177,12 @@ test('responses output exposes adapter web_search call with sources, results, an
     assert.equal(webSearchCall.call_id, 'call_web_search_output_1');
     assert.equal(webSearchCall.action.type, 'search');
     assert.equal(webSearchCall.action.query, 'phase 7 search');
+    assert.deepEqual(webSearchCall.action.queries, ['phase 7 search']);
     assert.equal(webSearchCall.action.sources[0].url, 'https://example.com/phase-7-source');
-    assert.deepEqual(webSearchCall.actions.map((action: any) => action.type), ['search', 'open_page', 'find_in_page']);
-    assert.equal(webSearchCall.actions[1].url, 'https://example.com/phase-7-source');
-    assert.equal(webSearchCall.actions[2].chunk_id, 'chunk_phase_7_1');
-    assert.match(webSearchCall.actions[2].text, /find in page/u);
+    assert.deepEqual(webSearchCalls.map((item: any) => item.action.type), ['search', 'open_page', 'find_in_page']);
+    assert.equal(webSearchCalls[1].action.url, 'https://example.com/phase-7-source');
+    assert.equal(webSearchCalls[2].action.url, 'https://example.com/phase-7-source');
+    assert.match(webSearchCalls[2].action.pattern, /find in page/u);
     assert.equal(webSearchCall.results[0].url, 'https://example.com/phase-7-result');
   } finally {
     await server.stop();
@@ -266,7 +272,7 @@ test('responses output does not fabricate citation annotations without placehold
     assert.equal(textPart.text, 'Answer without citation marker.');
     assert.deepEqual(textPart.annotations ?? [], []);
     assert.equal(outputItem(body, 'web_search_call').action.type, 'search');
-    assert.equal(outputItem(body, 'web_search_call').actions, undefined);
+    assert.equal(outputItems(body, 'web_search_call').length, 1);
   } finally {
     await server.stop();
   }
@@ -400,7 +406,8 @@ test('streaming responses completed event includes adapter web_search call outpu
     const events = parseSseText(await response.text());
     const completed = events.find((event) => event.event === 'response.completed')?.data.response;
     const textPart = outputTextPart(completed);
-    const webSearchCall = outputItem(completed, 'web_search_call');
+    const webSearchCalls = outputItems(completed, 'web_search_call');
+    const webSearchCall = webSearchCalls[0];
 
     assert.equal(response.status, 200);
     assert.equal(upstreamRequests.length, 2);
@@ -412,10 +419,12 @@ test('streaming responses completed event includes adapter web_search call outpu
     assert.equal(textPart.annotations[0].url, 'https://example.com/streaming-phase-7');
     assert.equal(webSearchCall.action.type, 'search');
     assert.equal(webSearchCall.action.query, 'streaming phase 7');
+    assert.deepEqual(webSearchCall.action.queries, ['streaming phase 7']);
     assert.equal(webSearchCall.action.sources[0].url, 'https://example.com/streaming-phase-7');
-    assert.deepEqual(webSearchCall.actions.map((action: any) => action.type), ['search', 'open_page', 'find_in_page']);
-    assert.equal(webSearchCall.actions[1].url, 'https://example.com/streaming-phase-7');
-    assert.equal(webSearchCall.actions[2].chunk_id, 'chunk_streaming_phase_7_1');
+    assert.deepEqual(webSearchCalls.map((item: any) => item.action.type), ['search', 'open_page', 'find_in_page']);
+    assert.equal(webSearchCalls[1].action.url, 'https://example.com/streaming-phase-7');
+    assert.equal(webSearchCalls[2].action.url, 'https://example.com/streaming-phase-7');
+    assert.match(webSearchCalls[2].action.pattern, /find in page/u);
     assert.equal(webSearchCall.results[0].url, 'https://example.com/streaming-phase-7-result');
   } finally {
     await server.stop();

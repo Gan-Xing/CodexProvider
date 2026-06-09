@@ -111,7 +111,7 @@ The next phase should keep moving heavy or unsafe tools behind explicit executor
 - Done: metasearch page retrieval defaults on for OpenAI-like grounding and citation quality. Budgets are bounded by `search_context_size` (`low` 1 page, `medium` 3 pages, `high` 5 pages), and hosts can explicitly set `fetchPages: false` for snippet-only search.
 - Done: Tavily/Brave/Serper providers are available as API search engines.
 - Done: added no-key HTML engines, SearXNG/OpenSERP endpoint adapters, retrieval/chunking, local cache indexes, and optional deep-search graph runtime.
-- Done: synthetic Responses output now appends `web_search_call`, supports `include: ["web_search_call.action.sources", "web_search_call.results"]`, and converts `[[source:N]]` placeholders into `url_citation` annotations.
+- Done: synthetic Responses output now appends `web_search_call`, supports `include: ["web_search_call.action.sources", "web_search_call.results"]`, emits optional standard `open_page` / `find_in_page` action items from retrieved pages and ranked chunks, and converts `[[source:N]]` placeholders into `url_citation` annotations.
 
 ### P2: Tool search / MCP / skills planning
 

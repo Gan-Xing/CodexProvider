@@ -83,7 +83,7 @@ export function appendHostedToolResultsToResponsesOutput({
         includeSources: shouldExposeWebSearchActionSources(request, exposeByDefault),
         includeResults: shouldExposeWebSearchResults(request, exposeByDefault),
       });
-      output.push(webSearchCall.item);
+      output.push(...webSearchCall.items);
       webSearchCitationSources.push(...webSearchCall.citationSources);
     }
   }

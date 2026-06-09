@@ -16,7 +16,7 @@ export interface CodexProviderWebSearchCallBuildOptions {
 }
 
 export interface CodexProviderWebSearchCallBuildResult {
-  item: JsonRecord;
+  items: JsonRecord[];
   payload: JsonRecord | null;
   citationSources: CodexProviderWebSearchCitationSource[];
 }
@@ -34,10 +34,10 @@ export function buildCodexProviderWebSearchCallOutputItem(
     || normalizeString(payload?.query);
   const sources = normalizeWebSearchSources(payload);
   const results = normalizeWebSearchResults(payload);
-  const detailedActions = options.includeSources || options.includeResults
-    ? buildDetailedWebSearchActions({
+  const detailedItems = options.includeSources || options.includeResults
+    ? buildDetailedWebSearchCallItems({
+      callId: options.callId,
       query,
-      sources,
       documents: normalizeWebSearchDocuments(payload),
       chunks: normalizeWebSearchChunks(payload),
     })
@@ -50,53 +50,66 @@ export function buildCodexProviderWebSearchCallOutputItem(
     action: {
       type: 'search',
       query: query || null,
+      ...(query ? { queries: [query] } : {}),
       ...(options.includeSources && sources.length > 0 ? { sources } : {}),
     },
-    ...(detailedActions.length > 1 ? { actions: detailedActions } : {}),
     ...(options.includeResults && results.length > 0 ? { results } : {}),
   };
   return {
-    item,
+    items: [item, ...detailedItems],
     payload,
     citationSources: normalizeWebSearchCitationSources(sources.length > 0 ? sources : results),
   };
 }
 
-function buildDetailedWebSearchActions({
+function buildDetailedWebSearchCallItems({
+  callId,
   query,
-  sources,
   documents,
   chunks,
 }: {
+  callId: string;
   query: string;
-  sources: JsonRecord[];
   documents: JsonRecord[];
   chunks: JsonRecord[];
 }): JsonRecord[] {
-  const searchAction = {
-    type: 'search',
-    query: query || null,
-    ...(sources.length > 0 ? { sources } : {}),
-  };
   return [
-    searchAction,
-    ...documents.map((document) => omitUndefined({
-      type: 'open_page',
-      source_id: document.source_id,
-      url: document.final_url || document.url,
-      title: document.title,
+    ...documents.map((document, index) => webSearchActionItem({
+      callId,
+      suffix: `open_${index + 1}`,
+      action: omitUndefined({
+        type: 'open_page',
+        url: document.final_url || document.url,
+      }),
     })),
-    ...chunks.map((chunk) => omitUndefined({
-      type: 'find_in_page',
-      source_id: chunk.source_id,
-      chunk_id: chunk.chunk_id,
-      url: chunk.url,
-      title: chunk.title,
-      query: query || undefined,
-      text: chunk.text,
-      score: chunk.score,
+    ...chunks.map((chunk, index) => webSearchActionItem({
+      callId,
+      suffix: `find_${index + 1}`,
+      action: omitUndefined({
+        type: 'find_in_page',
+        url: chunk.url,
+        pattern: findInPagePattern(chunk.text, query),
+      }),
     })),
   ];
+}
+
+function webSearchActionItem({
+  callId,
+  suffix,
+  action,
+}: {
+  callId: string;
+  suffix: string;
+  action: JsonRecord;
+}): JsonRecord {
+  return {
+    id: `ws_${callId}_${suffix}`,
+    type: 'web_search_call',
+    status: 'completed',
+    call_id: callId,
+    action,
+  };
 }
 
 function normalizeWebSearchPayload(value: unknown): JsonRecord | null {
@@ -227,6 +240,14 @@ function normalizeArray(value: unknown): any[] {
 
 function normalizeString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function findInPagePattern(text: unknown, query: string): string {
+  const normalized = normalizeString(text).replace(/\s+/gu, ' ');
+  if (normalized) {
+    return normalized.length > 240 ? `${normalized.slice(0, 237)}...` : normalized;
+  }
+  return query || '';
 }
 
 function normalizePositiveInteger(value: unknown): number | null {
