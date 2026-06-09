@@ -53,7 +53,7 @@ export function createCodexProviderOpenAiWebSearchExecutor(
     fetchImpl: options.fetchImpl ?? undefined,
     externalWebAccess: true,
   });
-  const fetchPages = options.fetchPages === true || Boolean(options.retrieval);
+  const fetchPages = options.fetchPages !== false;
   const now = options.now ?? (() => new Date());
   return async (request: CodexProviderHostedToolExecutionRequest): Promise<CodexProviderHostedToolExecutionResult> => {
     const normalizedRequest = normalizeCodexProviderOpenAiWebSearchRequest(request, {

@@ -475,6 +475,121 @@ test('metasearch web_search executor returns sources, chunks, and citation instr
   assert.equal(result.metadata?.chunkCount, 1);
 });
 
+test('metasearch web_search executor fetches pages by default with engine results', async () => {
+  const fetchUrls: string[] = [];
+  const engine: CodexProviderSearchEngine = {
+    name: 'default-fetch-engine',
+    categories: ['web'],
+    buildRequest(request) {
+      return {
+        url: `https://search.example.com?q=${encodeURIComponent(request.query)}`,
+      };
+    },
+    parseResponse() {
+      return [];
+    },
+  };
+  const processor: CodexProviderSearchProcessor = {
+    async search(searchEngine, request): Promise<CodexProviderEngineSearchOutcome> {
+      return {
+        engine: searchEngine.name,
+        ok: true,
+        durationMs: 1,
+        results: [{
+          type: 'web',
+          engine: searchEngine.name,
+          title: 'Default Fetch Result',
+          url: 'https://docs.example.com/default-fetch',
+          snippet: 'Search snippet before page retrieval.',
+          rank: 1,
+          score: 1,
+        }],
+        error: null,
+      };
+    },
+  };
+  const executor = createCodexProviderWebSearchExecutor({
+    engines: [engine],
+    processor,
+    fetchImpl: (async (url) => {
+      fetchUrls.push(String(url));
+      return new Response([
+        '<html><head><title>Default Fetch Result</title></head><body>',
+        '<main>Default page retrieval content grounds the web search answer with citations.</main>',
+        '</body></html>',
+      ].join(''), {
+        status: 200,
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }) as typeof fetch,
+  });
+
+  const result = await executor(baseRequest({
+    query: 'default fetch query',
+  }));
+  const content = result.content as any;
+
+  assert.deepEqual(fetchUrls, ['https://docs.example.com/default-fetch']);
+  assert.equal(content.documents[0].url, 'https://docs.example.com/default-fetch');
+  assert.match(content.chunks[0].text, /Default page retrieval content/u);
+  assert.equal(result.metadata?.documentCount, 1);
+  assert.equal(result.metadata?.chunkCount, 1);
+});
+
+test('metasearch web_search executor keeps page retrieval disabled when fetchPages is false', async () => {
+  let fetchCalled = false;
+  const engine: CodexProviderSearchEngine = {
+    name: 'no-fetch-engine',
+    categories: ['web'],
+    buildRequest(request) {
+      return {
+        url: `https://search.example.com?q=${encodeURIComponent(request.query)}`,
+      };
+    },
+    parseResponse() {
+      return [];
+    },
+  };
+  const processor: CodexProviderSearchProcessor = {
+    async search(searchEngine, request): Promise<CodexProviderEngineSearchOutcome> {
+      return {
+        engine: searchEngine.name,
+        ok: true,
+        durationMs: 1,
+        results: [{
+          type: 'web',
+          engine: searchEngine.name,
+          title: 'No Fetch Result',
+          url: 'https://docs.example.com/no-fetch',
+          snippet: 'Search snippet only.',
+          rank: 1,
+          score: 1,
+        }],
+        error: null,
+      };
+    },
+  };
+  const executor = createCodexProviderWebSearchExecutor({
+    engines: [engine],
+    processor,
+    fetchPages: false,
+    fetchImpl: (async () => {
+      fetchCalled = true;
+      return new Response('');
+    }) as typeof fetch,
+  });
+
+  const result = await executor(baseRequest({
+    query: 'no fetch query',
+  }));
+  const content = result.content as any;
+
+  assert.equal(fetchCalled, false);
+  assert.equal(content.results[0].url, 'https://docs.example.com/no-fetch');
+  assert.equal(content.documents.length, 0);
+  assert.equal(content.chunks.length, 0);
+});
+
 test('metasearch web_search executor rejects invalid return_token_budget by default', async () => {
   const executor = createCodexProviderWebSearchExecutor({
     search: {

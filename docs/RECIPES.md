@@ -52,7 +52,7 @@ const webSearch = createCodexProviderWebSearchExecutor({
     createCodexProviderEcosiaHtmlEngine(),
     createCodexProviderMojeekHtmlEngine(),
   ].filter(Boolean),
-  fetchPages: true,
+  // Page retrieval is enabled by default. Set fetchPages: false for snippet-only search.
   maxResults: 10,
   maxRetrievedPages: 5,
 });
