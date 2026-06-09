@@ -55,11 +55,11 @@ Last updated: 2026-06-07
 
 ## Source Baseline
 
-- Source repository: `/home/ubuntu/dev/reference/BigPizzaV3-CodexPlusPlus`
+- Source repository: `reference/BigPizzaV3-CodexPlusPlus`
 - Source commit inspected: `1df4152`
-- Source license marker: `/home/ubuntu/dev/reference/BigPizzaV3-CodexPlusPlus/Cargo.toml:13`, `license = "MIT"`
-- Main source file: `/home/ubuntu/dev/reference/BigPizzaV3-CodexPlusPlus/crates/codex-plus-core/src/protocol_proxy.rs`
-- Main source tests: `/home/ubuntu/dev/reference/BigPizzaV3-CodexPlusPlus/crates/codex-plus-core/tests/protocol_proxy.rs`
+- Source license marker: `reference/BigPizzaV3-CodexPlusPlus/Cargo.toml:13`, `license = "MIT"`
+- Main source file: `reference/BigPizzaV3-CodexPlusPlus/crates/codex-plus-core/src/protocol_proxy.rs`
+- Main source tests: `reference/BigPizzaV3-CodexPlusPlus/crates/codex-plus-core/tests/protocol_proxy.rs`
 
 If code is directly translated from Codex++, keep a source note in the target module header or test file header with the source commit and source path.
 

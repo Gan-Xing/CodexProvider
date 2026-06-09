@@ -11,7 +11,7 @@ Archived historical naming record. This handoff preserves old repository and API
 ```text
 Codex app-server / CodexBridge / CodexNext / 任意宿主应用
       ↓
-@codexbridge/codex-provider
+@codex-provider/core
       ↓
 OpenAI-compatible Responses surface
       ↓
@@ -802,9 +802,9 @@ pnpm build
 如果 workspace 支持 filter：
 
 ```bash
-pnpm --filter @codexbridge/codex-provider test
-pnpm --filter @codexbridge/codex-provider typecheck
-pnpm --filter @codexbridge/codex-provider build
+pnpm --filter @codex-provider/core test
+pnpm --filter @codex-provider/core typecheck
+pnpm --filter @codex-provider/core build
 ```
 
 ## AI 执行指令
@@ -919,7 +919,7 @@ import {
   createCodexProviderLocalVectorFileSearchSource,
   createCodexProviderEmbeddingsApiProvider,
   createCodexProviderWebSearchExecutor,
-} from "@codexbridge/codex-provider";
+} from "@codex-provider/core";
 
 const runtime = new CodexProviderRuntime({
   apiKey: process.env.OPENROUTER_API_KEY!,

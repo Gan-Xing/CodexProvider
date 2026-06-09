@@ -302,8 +302,9 @@ test('codex provider root scripts expose the package commands', () => {
   assert.equal(packageJson.scripts?.test, 'tsx --test test/*.test.ts');
   assert.equal(packageJson.scripts?.typecheck, 'tsc -p tsconfig.json --noEmit');
   assert.equal(packageJson.scripts?.['check-boundary'], 'node scripts/check-boundary.mjs');
+  assert.equal(packageJson.scripts?.['check-package-surface'], 'node scripts/check-package-surface.mjs');
   assert.equal(packageJson.scripts?.['consumer:harness'], 'pnpm build && tsx examples/standalone-consumer-harness.ts');
-  assert.equal(packageJson.scripts?.check, 'pnpm test && pnpm typecheck && pnpm build && pnpm consumer:harness && pnpm check-boundary');
+  assert.equal(packageJson.scripts?.check, 'pnpm test && pnpm typecheck && pnpm build && pnpm consumer:harness && pnpm check-boundary && pnpm check-package-surface');
 });
 
 test('codex provider root entrypoint exports primary provider surfaces', () => {

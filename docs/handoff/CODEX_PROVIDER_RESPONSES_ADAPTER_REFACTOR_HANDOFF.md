@@ -7,7 +7,7 @@ Repository: `Gan-Xing/CodexProvider`
 The local path mentioned by the maintainer is:
 
 ```text
-/home/ubuntu/dev/codexprovider/src/converters/responses_adapter.ts
+src/converters/responses_adapter.ts
 ```
 
 The current GitHub `main` snapshot shows:
@@ -945,4 +945,3 @@ pnpm check-boundary
 Also check large files:
 find src -type f -name '*.ts' -print0 | xargs -0 wc -l | sort -nr | head -30
 ```
-

@@ -57,6 +57,7 @@ pnpm typecheck
 pnpm build
 pnpm consumer:harness
 pnpm check-boundary
+pnpm check-package-surface
 pnpm pack:dry-run
 git diff --check
 ```
@@ -86,15 +87,15 @@ The tarball must include only:
 - `examples`
 - `package.json`
 
-It must not include secrets, `.env` files, local indexes, generated caches, Telegram/WeChat artifacts, or host app source.
+It must not include secrets, `.env` files, local indexes, generated caches, Telegram/WeChat artifacts, host app source, host app hard dependencies, or private workspace paths. `pnpm check-package-surface` scans the public package surface for these release blockers.
 
 ## Last Dry-Run Snapshot
 
 Recorded on 2026-06-09 with `pnpm pack:dry-run`:
 
 - Package: `@codex-provider/core@0.1.0-alpha.0`
-- Total files: 568
-- Package size: 290.1 kB
+- Total files: 574
+- Package size: 295.5 kB
 - Unpacked size: 1.3 MB
 - Top-level shipped entries: `dist`, `README.md`, `CHANGELOG.md`, `LICENSE`, `docs`, `examples`, `package.json`
 - Examples are intentionally shipped for alpha host integration reference.

@@ -23,8 +23,9 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "check": "pnpm test && pnpm typecheck && pnpm build && pnpm consumer:harness && pnpm check-boundary",
+    "check": "pnpm test && pnpm typecheck && pnpm build && pnpm consumer:harness && pnpm check-boundary && pnpm check-package-surface",
     "check-boundary": "node scripts/check-boundary.mjs",
+    "check-package-surface": "node scripts/check-package-surface.mjs",
     "consumer:harness": "pnpm build && tsx examples/standalone-consumer-harness.ts",
     "pack:dry-run": "npm pack --dry-run",
     "serve": "node ./dist/cli.js",
