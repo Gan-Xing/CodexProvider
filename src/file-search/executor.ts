@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import path from 'node:path';
 import type {
   CodexProviderFileSearchChunk,
@@ -80,7 +80,11 @@ export function createCodexProviderFileSearchExecutor(
       includeContent,
     });
     const pageToken = fileSearchPageTokenFromRequest(request);
-    const pageOffset = decodeFileSearchPageOffset(pageToken, pageFingerprint);
+    const pageOffset = decodeFileSearchPageOffset(
+      pageToken,
+      pageFingerprint,
+      normalizedOptions.pageTokenSecret,
+    );
     const sourceMaxResults = sourceMaxResultsForPage(pageOffset, maxResults);
 
     await request.emitDelta?.('searching sources', {
@@ -149,7 +153,9 @@ export function createCodexProviderFileSearchExecutor(
         data: openAIResults,
         search_results: openAIResults,
         has_more: hasMore,
-        next_page: hasMore ? encodeFileSearchPageToken(nextOffset, pageFingerprint) : null,
+        next_page: hasMore
+          ? encodeFileSearchPageToken(nextOffset, pageFingerprint, normalizedOptions.pageTokenSecret)
+          : null,
         vector_store_ids: vectorStoreIds,
         ranking_options: rankingOptions,
         sourceCount: searchSources.length,
@@ -183,6 +189,7 @@ function normalizeFileSearchOptions(
     maxPayloadBytes: clampInteger(options.maxPayloadBytes, 1_024, 2 * 1024 * 1024, 128 * 1024),
     snippetLines: clampInteger(options.snippetLines, 1, 8, 2),
     includeContent: typeof options.includeContent === 'boolean' ? options.includeContent : null,
+    pageTokenSecret: normalizeString(options.pageTokenSecret) || randomBytes(32).toString('base64url'),
   };
 }
 
@@ -308,20 +315,38 @@ function sourceMaxResultsForPage(pageOffset: number, maxResults: number): number
   return Math.min(pageOffset + maxResults + 1, 10_000);
 }
 
-function decodeFileSearchPageOffset(token: string | null, fingerprint: string): number {
+const FILE_SEARCH_PAGE_TOKEN_PREFIX = 'fsp_v2.';
+
+function decodeFileSearchPageOffset(
+  token: string | null,
+  fingerprint: string,
+  pageTokenSecret: string,
+): number {
   if (!token) {
     return 0;
   }
+  if (!token.startsWith(FILE_SEARCH_PAGE_TOKEN_PREFIX)) {
+    throw new Error('file_search page token is invalid.');
+  }
+  const tokenBody = token.slice(FILE_SEARCH_PAGE_TOKEN_PREFIX.length);
+  const [encodedPayload, signature, extra] = tokenBody.split('.');
+  if (!encodedPayload || !signature || extra !== undefined) {
+    throw new Error('file_search page token is invalid.');
+  }
+  const expectedSignature = signFileSearchPageTokenPayload(encodedPayload, pageTokenSecret);
+  if (!fileSearchPageTokenSignatureMatches(signature, expectedSignature)) {
+    throw new Error('file_search page token is invalid.');
+  }
   let parsed: JsonRecord;
   try {
-    parsed = JSON.parse(Buffer.from(token, 'base64url').toString('utf8')) as JsonRecord;
+    parsed = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as JsonRecord;
   } catch {
     throw new Error('file_search page token is invalid.');
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error('file_search page token is invalid.');
   }
-  if (parsed.v !== 1 || parsed.fingerprint !== fingerprint) {
+  if (parsed.v !== 2 || parsed.fingerprint !== fingerprint) {
     throw new Error('file_search page token does not match the current request.');
   }
   const offset = Number(parsed.offset);
@@ -331,12 +356,30 @@ function decodeFileSearchPageOffset(token: string | null, fingerprint: string): 
   return offset;
 }
 
-function encodeFileSearchPageToken(offset: number, fingerprint: string): string {
-  return Buffer.from(JSON.stringify({
-    v: 1,
+function encodeFileSearchPageToken(
+  offset: number,
+  fingerprint: string,
+  pageTokenSecret: string,
+): string {
+  const encodedPayload = Buffer.from(JSON.stringify({
+    v: 2,
     offset,
     fingerprint,
   }), 'utf8').toString('base64url');
+  const signature = signFileSearchPageTokenPayload(encodedPayload, pageTokenSecret);
+  return `${FILE_SEARCH_PAGE_TOKEN_PREFIX}${encodedPayload}.${signature}`;
+}
+
+function signFileSearchPageTokenPayload(encodedPayload: string, pageTokenSecret: string): string {
+  return createHmac('sha256', pageTokenSecret)
+    .update(encodedPayload)
+    .digest('base64url');
+}
+
+function fileSearchPageTokenSignatureMatches(actual: string, expected: string): boolean {
+  const actualBuffer = Buffer.from(actual);
+  const expectedBuffer = Buffer.from(expected);
+  return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer);
 }
 
 function createFileSearchPageFingerprint(input: JsonRecord): string {

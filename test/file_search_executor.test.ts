@@ -377,6 +377,7 @@ test('file_search executor paginates results with stable page tokens', async () 
       }),
     ],
     maxResults: 5,
+    pageTokenSecret: 'stable-test-page-token-secret',
   });
 
   const first = await executor(baseRequest({
@@ -388,11 +389,16 @@ test('file_search executor paginates results with stable page tokens', async () 
   assert.equal(firstContent.data.length, 2);
   assert.equal(firstContent.has_more, true);
   assert.equal(typeof firstContent.next_page, 'string');
+  const firstPageToken = firstContent.next_page;
+  if (typeof firstPageToken !== 'string') {
+    assert.fail('expected file_search next_page token');
+  }
+  assert.match(firstPageToken, /^fsp_v2\./u);
 
   const second = await executor(baseRequest({
     query: 'paged alpha beta',
     max_num_results: 2,
-    page_token: firstContent.next_page,
+    page_token: firstPageToken,
   }));
   const secondContent = second.content as CodexProviderFileSearchExecutorContent;
 
@@ -416,11 +422,30 @@ test('file_search executor paginates results with stable page tokens', async () 
   assert.equal(thirdContent.has_more, false);
   assert.equal(thirdContent.next_page, null);
 
+  const tamperedToken = `${firstPageToken.slice(0, -1)}${firstPageToken.endsWith('A') ? 'B' : 'A'}`;
+  await assert.rejects(
+    () => executor(baseRequest({
+      query: 'paged alpha beta',
+      max_num_results: 2,
+      page_token: tamperedToken,
+    })),
+    /page token is invalid/u,
+  );
+
+  await assert.rejects(
+    () => executor(baseRequest({
+      query: 'paged alpha beta',
+      max_num_results: 3,
+      page_token: firstPageToken,
+    })),
+    /page token does not match/u,
+  );
+
   await assert.rejects(
     () => executor(baseRequest({
       query: 'different alpha beta',
       max_num_results: 2,
-      page_token: firstContent.next_page,
+      page_token: firstPageToken,
     })),
     /page token does not match/u,
   );

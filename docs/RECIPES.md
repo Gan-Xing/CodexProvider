@@ -138,10 +138,11 @@ const fileSearch = createCodexProviderFileSearchExecutor({
   }],
   maxResults: 8,
   maxPayloadBytes: 48_000,
+  pageTokenSecret: process.env.CODEX_PROVIDER_FILE_SEARCH_PAGE_TOKEN_SECRET,
 });
 ```
 
-Callers can select both sources by passing `vector_store_ids: ["repo", "docs"]` on the `file_search` request. When the executor returns `has_more: true`, pass `next_page` back as `page_token`, `page`, or `after` with the same query, filters, `vector_store_ids`, and `max_num_results`.
+Callers can select both sources by passing `vector_store_ids: ["repo", "docs"]` on the `file_search` request. When the executor returns `has_more: true`, pass the opaque signed `next_page` token back as `page_token`, `page`, or `after` with the same query, filters, `vector_store_ids`, and `max_num_results`. Set `pageTokenSecret` to a stable secret when page tokens must survive process restarts or multiple server instances.
 
 ## Unsafe Tool Policy
 

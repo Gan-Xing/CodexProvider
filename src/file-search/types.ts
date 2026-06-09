@@ -26,6 +26,7 @@ export interface CodexProviderFileSearchExecutorOptions {
   followSymlinks?: boolean | null;
   ignoreDirectories?: string[] | null;
   ignoreExtensions?: string[] | null;
+  pageTokenSecret?: string | null;
 }
 
 export type CodexProviderFileSearchSourceInput =
@@ -460,6 +461,7 @@ export interface NormalizedFileSearchOptions {
   maxPayloadBytes: number;
   snippetLines: number;
   includeContent: boolean | null;
+  pageTokenSecret: string;
 }
 
 export interface NormalizedRemoteDocumentsFileSearchOptions {
