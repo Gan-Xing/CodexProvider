@@ -16,7 +16,6 @@ import {
 } from '../../hosted_tools.js';
 import {
   createCodexProviderHostedToolExecutorRegistry,
-  formatCodexProviderHostedToolExecutionResult,
   type CodexProviderHostedToolExecutorRegistry,
 } from '../../hosted_tool_executors.js';
 import {
@@ -28,17 +27,12 @@ import {
   normalizeUpstreamError,
 } from './errors.js';
 import {
-  appendDeferredToolsFromToolSearch,
-  buildAssistantToolCallMessage,
-  buildHostedToolSseEvent,
-  collectAdapterHostedToolCalls,
-  groupAdapterHostedToolCallsByMessage,
-  hostedToolOutputPreview,
-  inspectAdapterHostedStreamingTurn,
-  parseToolCallArguments,
   requestUsesExecutableAdapterHostedTool,
-  type AdapterHostedToolCall,
 } from './adapter-hosted-tools.js';
+import {
+  completeAdapterHostedToolLoop,
+  writeAdapterHostedToolStreamingResponse,
+} from './adapter-hosted-tool-loop.js';
 import {
   buildModelsResponseMetadata,
   normalizeModels,
@@ -79,11 +73,9 @@ import {
   responsesObjectToSyntheticSseEvents,
 } from './synthetic-sse.js';
 import {
-  chainSseDataLines,
   readSseDataLines,
 } from './streaming.js';
 import {
-  cloneJson,
   normalizePath,
   normalizePositiveInteger,
   normalizeString,
@@ -390,7 +382,7 @@ export class OpenAICompatibleResponsesAdapterServer {
       body: JSON.stringify(body),
     });
     if (stream && adapterHostedToolExecutionRequired) {
-      await this.writeAdapterHostedToolStreamingResponse({
+      await writeAdapterHostedToolStreamingResponse({
         requestBody,
         chatBody,
         upstreamUrl,
@@ -398,6 +390,18 @@ export class OpenAICompatibleResponsesAdapterServer {
         providerCapabilities: effectiveCapabilities,
         requestedModel,
         response,
+        executableHostedTools: this.executableHostedTools,
+        hostedToolExecutorRegistry: this.hostedToolExecutorRegistry,
+        maxHostedToolIterations: this.maxHostedToolIterations,
+        emitHostedToolSseEvents: this.emitHostedToolSseEvents,
+        providerKind: this.providerKind,
+        providerName: this.providerName,
+        fetchUpstreamWithRetry: (...args) => this.fetchUpstreamWithRetry(...args),
+        writeStreamingDataLinesResponse: (...args) => this.writeStreamingDataLinesResponse(...args),
+        writeStreamingDataLinesResponseWithHostedToolResults: (...args) => (
+          this.writeStreamingDataLinesResponseWithHostedToolResults(...args)
+        ),
+        emitTrace: (event) => this.emitTrace(event),
       });
       return;
     }
@@ -476,14 +480,20 @@ export class OpenAICompatibleResponsesAdapterServer {
       writeJson(response, 502, { error });
       return;
     }
-    const hostedToolLoop = await this.completeAdapterHostedToolLoop({
-      requestBody,
+    const hostedToolLoop = await completeAdapterHostedToolLoop({
       chatBody,
       initialJson: json,
       upstreamUrl,
       buildUpstreamInit,
       providerCapabilities: effectiveCapabilities,
       requestedModel,
+      executableHostedTools: this.executableHostedTools,
+      hostedToolExecutorRegistry: this.hostedToolExecutorRegistry,
+      maxHostedToolIterations: this.maxHostedToolIterations,
+      providerKind: this.providerKind,
+      providerName: this.providerName,
+      fetchUpstreamWithRetry: (...args) => this.fetchUpstreamWithRetry(...args),
+      emitTrace: (event) => this.emitTrace(event),
     });
     if (hostedToolLoop.error) {
       this.emitTrace({
@@ -608,405 +618,6 @@ export class OpenAICompatibleResponsesAdapterServer {
       });
       response.end(text);
     }
-  }
-
-  private async completeAdapterHostedToolLoop({
-    requestBody,
-    chatBody,
-    initialJson,
-    upstreamUrl,
-    buildUpstreamInit,
-    providerCapabilities,
-    requestedModel,
-  }: {
-    requestBody: JsonRecord;
-    chatBody: JsonRecord;
-    initialJson: JsonRecord;
-    upstreamUrl: string;
-    buildUpstreamInit: (body: JsonRecord) => RequestInit;
-    providerCapabilities: OpenAICompatibleProviderCapabilities | null;
-    requestedModel: string;
-  }): Promise<{
-    json: JsonRecord;
-    status: number;
-    error: JsonRecord | null;
-    executions: AdapterHostedToolExecutionRecord[];
-  }> {
-    if (this.executableHostedTools.length === 0) {
-      return {
-        json: initialJson,
-        status: 200,
-        error: null,
-        executions: [],
-      };
-    }
-
-    let currentJson = initialJson;
-    const executions: AdapterHostedToolExecutionRecord[] = [];
-    const loopChatBody = cloneJson(chatBody);
-    for (let iteration = 1; iteration <= this.maxHostedToolIterations; iteration += 1) {
-      const executableCalls = collectAdapterHostedToolCalls(
-        currentJson,
-        this.executableHostedTools,
-        this.hostedToolExecutorRegistry,
-      );
-      if (executableCalls.length === 0) {
-        return {
-          json: currentJson,
-          status: 200,
-          error: null,
-          executions,
-        };
-      }
-
-      for (const { message, toolCalls } of groupAdapterHostedToolCallsByMessage(executableCalls)) {
-        loopChatBody.messages.push(buildAssistantToolCallMessage(message, toolCalls.map((entry) => entry.toolCall)));
-        for (const entry of toolCalls) {
-          const executionResult = await this.executeAdapterHostedToolCall(
-            entry,
-            iteration,
-            requestedModel,
-          );
-          executions.push(executionResult);
-          loopChatBody.messages.push({
-            role: 'tool',
-            tool_call_id: executionResult.callId,
-            content: executionResult.content,
-          });
-          appendDeferredToolsFromToolSearch(loopChatBody, executionResult);
-        }
-      }
-
-      const upstream = await this.fetchUpstreamWithRetry(
-        upstreamUrl,
-        buildUpstreamInit(loopChatBody),
-        'responses',
-        providerCapabilities,
-      );
-      if (!upstream.response.ok) {
-        return {
-          json: currentJson,
-          status: upstream.response.status || 502,
-          error: normalizeUpstreamError(
-            upstream.errorText ?? '',
-            this.providerName,
-            upstream.response.status,
-            upstream.response.headers,
-          ),
-          executions,
-        };
-      }
-      currentJson = await upstream.response.json() as JsonRecord;
-      if (!currentJson || typeof currentJson !== 'object') {
-        return {
-          json: currentJson,
-          status: 502,
-          error: buildMalformedUpstreamPayloadError(
-            this.providerName,
-            'non_object_json_response_after_hosted_tool_execution',
-          ),
-          executions,
-        };
-      }
-    }
-
-    return {
-      json: currentJson,
-      status: 502,
-      error: {
-        message: `Adapter-emulated hosted tool loop exceeded ${this.maxHostedToolIterations} iterations.`,
-        type: 'unsupported_feature',
-        code: 'hosted_tool_loop_exceeded',
-      },
-      executions,
-    };
-  }
-
-  private async writeAdapterHostedToolStreamingResponse({
-    requestBody,
-    chatBody,
-    upstreamUrl,
-    buildUpstreamInit,
-    providerCapabilities,
-    requestedModel,
-    response,
-  }: {
-    requestBody: JsonRecord;
-    chatBody: JsonRecord;
-    upstreamUrl: string;
-    buildUpstreamInit: (body: JsonRecord) => RequestInit;
-    providerCapabilities: OpenAICompatibleProviderCapabilities | null;
-    requestedModel: string;
-    response: ServerResponse;
-  }): Promise<void> {
-    const loopChatBody = cloneJson(chatBody);
-    loopChatBody.stream = true;
-    loopChatBody.stream_options = {
-      ...(loopChatBody.stream_options && typeof loopChatBody.stream_options === 'object' ? loopChatBody.stream_options : {}),
-      include_usage: true,
-    };
-    const executions: AdapterHostedToolExecutionRecord[] = [];
-
-    for (let iteration = 1; iteration <= this.maxHostedToolIterations; iteration += 1) {
-      let upstream = await this.fetchUpstreamWithRetry(
-        upstreamUrl,
-        buildUpstreamInit(loopChatBody),
-        'responses',
-        providerCapabilities,
-      );
-      if (shouldRetryWithoutForcedToolChoice(loopChatBody, upstream)) {
-        const before = loopChatBody.tool_choice;
-        delete loopChatBody.tool_choice;
-        this.emitTrace({
-          type: 'request.adjusted',
-          route: 'responses',
-          model: requestedModel,
-          stream: true,
-          adjustments: [{
-            kind: 'tool_choice_dropped',
-            path: 'tool_choice',
-            reason: 'upstream_rejected_forced_tool_choice',
-            before,
-          }],
-        });
-        this.emitTrace({
-          type: 'upstream.retry',
-          route: 'responses',
-          attempt: 1,
-          nextAttempt: 2,
-          status: upstream.response.status || null,
-          reason: 'status',
-          delayMs: 0,
-        });
-        upstream = await this.fetchUpstreamWithRetry(
-          upstreamUrl,
-          buildUpstreamInit(loopChatBody),
-          'responses',
-          providerCapabilities,
-        );
-      }
-      if (!upstream.response.ok) {
-        const error = normalizeUpstreamError(
-          upstream.errorText ?? '',
-          this.providerName,
-          upstream.response.status,
-          upstream.response.headers,
-        );
-        this.emitTrace({
-          type: 'upstream.error',
-          route: 'responses',
-          status: upstream.response.status || 502,
-          error,
-        });
-        writeJson(response, upstream.response.status || 502, { error });
-        return;
-      }
-      if (!upstream.response.body) {
-        writeJson(response, 502, {
-          error: {
-            message: `${this.providerName} upstream returned no stream body.`,
-            type: 'upstream_error',
-          },
-        });
-        return;
-      }
-
-      const decision = await inspectAdapterHostedStreamingTurn(
-        readSseDataLines(upstream.response.body),
-        this.executableHostedTools,
-        this.hostedToolExecutorRegistry,
-      );
-      if (decision.kind === 'final_stream') {
-        const dataLines = chainSseDataLines(decision.bufferedChunks, decision.remaining);
-        if (executions.length > 0) {
-          await this.writeStreamingDataLinesResponseWithHostedToolResults(
-            requestBody,
-            providerCapabilities,
-            dataLines,
-            executions,
-            response,
-          );
-        } else {
-          await this.writeStreamingDataLinesResponse(
-            requestBody,
-            providerCapabilities,
-            dataLines,
-            response,
-          );
-        }
-        return;
-      }
-      if (decision.kind === 'error') {
-        writeJson(response, 502, {
-          error: {
-            message: decision.message,
-            type: 'unsupported_feature',
-            code: 'adapter_hosted_streaming_tool_mix_unsupported',
-          },
-        });
-        return;
-      }
-
-      loopChatBody.messages.push(buildAssistantToolCallMessage({
-        content: '',
-      }, decision.calls.map((entry) => entry.toolCall)));
-      for (const entry of decision.calls) {
-        const executionResult = await this.executeAdapterHostedToolCall(
-          entry,
-          iteration,
-          requestedModel,
-          {
-            emitSseEvent: this.emitHostedToolSseEvents
-              ? (event) => {
-                ensureSseResponseHeaders(response);
-                response.write(formatResponsesSseEvent(event));
-                this.emitTrace({
-                  type: 'stream.event',
-                  route: 'responses',
-                  event,
-                });
-              }
-              : null,
-          },
-        );
-        executions.push(executionResult);
-        loopChatBody.messages.push({
-          role: 'tool',
-          tool_call_id: executionResult.callId,
-          content: executionResult.content,
-        });
-        appendDeferredToolsFromToolSearch(loopChatBody, executionResult);
-      }
-    }
-
-    writeJson(response, 502, {
-      error: {
-        message: `Adapter-emulated hosted tool streaming loop exceeded ${this.maxHostedToolIterations} iterations.`,
-        type: 'unsupported_feature',
-        code: 'hosted_tool_streaming_loop_exceeded',
-      },
-    });
-  }
-
-  private async executeAdapterHostedToolCall(
-    entry: AdapterHostedToolCall,
-    iteration: number,
-    requestedModel: string,
-    observation: {
-      emitSseEvent?: ((event: JsonRecord) => void) | null;
-    } = {},
-  ): Promise<{
-    callId: string;
-    content: string;
-    toolName: string;
-    emulatedToolName: string;
-    iteration: number;
-    arguments: JsonRecord;
-    resultContent: unknown;
-    resultMetadata: JsonRecord | null;
-  }> {
-    const callId = normalizeString(entry.toolCall?.id) || `call_${iteration}`;
-    const emulatedToolName = normalizeString(entry.toolCall?.function?.name)
-      || normalizeString(entry.declaration.emulatedToolName)
-      || entry.declaration.name;
-    const rawArguments = normalizeString(entry.toolCall?.function?.arguments) || '{}';
-    let content: string;
-    let resultContent: unknown = null;
-    let resultMetadata: JsonRecord | null = null;
-    const startedAt = Date.now();
-    const emitSseEvent = typeof observation.emitSseEvent === 'function'
-      ? observation.emitSseEvent
-      : null;
-    emitSseEvent?.(buildHostedToolSseEvent({
-      type: 'hosted_tool.started',
-      entry,
-      emulatedToolName,
-      callId,
-      iteration,
-      startedAt,
-      argumentsObject: parseToolCallArguments(rawArguments),
-    }));
-    const argumentsObject = parseToolCallArguments(rawArguments);
-    try {
-      const result = await this.hostedToolExecutorRegistry.execute({
-        toolName: entry.declaration.name,
-        emulatedToolName,
-        callId,
-        arguments: argumentsObject,
-        rawArguments,
-        model: requestedModel || null,
-        providerKind: this.providerKind,
-        providerName: this.providerName,
-        emitDelta: emitSseEvent
-          ? async (delta, metadata = null) => {
-            emitSseEvent(buildHostedToolSseEvent({
-              type: 'hosted_tool.delta',
-              entry,
-              emulatedToolName,
-              callId,
-              iteration,
-              startedAt,
-              delta,
-              metadata,
-            }));
-          }
-          : null,
-      });
-      resultContent = result.content ?? null;
-      resultMetadata = result.metadata ?? null;
-      content = formatCodexProviderHostedToolExecutionResult(result);
-      emitSseEvent?.(buildHostedToolSseEvent({
-        type: 'hosted_tool.completed',
-        entry,
-        emulatedToolName,
-        callId,
-        iteration,
-        startedAt,
-        durationMs: Date.now() - startedAt,
-        metadata: result.metadata ?? null,
-        outputPreview: hostedToolOutputPreview(content),
-      }));
-    } catch (error) {
-      resultContent = {
-        error: {
-          message: error instanceof Error ? error.message : String(error),
-          type: 'hosted_tool_execution_error',
-        },
-      };
-      content = JSON.stringify(resultContent);
-      emitSseEvent?.(buildHostedToolSseEvent({
-        type: 'hosted_tool.failed',
-        entry,
-        emulatedToolName,
-        callId,
-        iteration,
-        startedAt,
-        durationMs: Date.now() - startedAt,
-        error: {
-          message: error instanceof Error ? error.message : String(error),
-          type: 'hosted_tool_execution_error',
-        },
-      }));
-    }
-
-    this.emitTrace({
-      type: 'hosted_tool.executed',
-      route: 'responses',
-      toolName: entry.declaration.name,
-      emulatedToolName,
-      callId,
-      iteration,
-    });
-    return {
-      callId,
-      content,
-      toolName: entry.declaration.name,
-      emulatedToolName,
-      iteration,
-      arguments: argumentsObject,
-      resultContent,
-      resultMetadata,
-    };
   }
 
   private async handleCompactResponses(
