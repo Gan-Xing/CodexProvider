@@ -146,10 +146,12 @@ export function buildCodexProviderOpenAiWebSearchToolOutput({
     retrieved_at: now.toISOString(),
     external_web_access: request.externalWebAccess,
     search_context_size: request.searchContextSize,
-    return_token_budget: request.returnTokenBudget,
     unresponsive_engines: searchResponse.unresponsiveEngines,
     timings: searchResponse.timings,
   };
+  if (request.returnTokenBudget) {
+    content.return_token_budget = request.returnTokenBudget;
+  }
   return {
     content,
     metadata: {
@@ -164,6 +166,7 @@ export function buildCodexProviderOpenAiWebSearchToolOutput({
       externalWebAccess: request.externalWebAccess,
       searchContextSize: request.searchContextSize,
       returnTokenBudget: request.returnTokenBudget,
+      warnings: request.parameterWarnings.length > 0 ? request.parameterWarnings : undefined,
       sourceUrls: [...sourceByUrl.keys()],
     },
   };

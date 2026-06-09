@@ -368,6 +368,104 @@ test('adapter server trace sink captures downgrade and filter adjustments', asyn
   }
 });
 
+test('adapter server rejects invalid web_search return_token_budget by default', async () => {
+  let upstreamCalled = false;
+  const server = new OpenAICompatibleResponsesAdapterServer({
+    apiKey: 'test-key',
+    fetchImpl: (async () => {
+      upstreamCalled = true;
+      return new Response('{}', {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as typeof fetch,
+  });
+
+  await server.start();
+  try {
+    const response = await fetch(`${server.baseUrl}/v1/responses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'web-search-strict-model',
+        input: 'search',
+        tools: [{
+          type: 'web_search',
+          return_token_budget: null,
+        }],
+      }),
+    });
+    const body = await response.json() as any;
+
+    assert.equal(response.status, 400);
+    assert.equal(upstreamCalled, false);
+    assert.equal(body.error.type, 'invalid_request_error');
+    assert.equal(body.error.code, 'invalid_request');
+    assert.equal(body.error.param, 'tools[0].return_token_budget');
+    assert.match(body.error.message, /expected "default" or "unlimited"/u);
+  } finally {
+    await server.stop();
+  }
+});
+
+test('adapter server can drop invalid web_search return_token_budget when configured', async () => {
+  const events: any[] = [];
+  const upstreamRequests: any[] = [];
+  const server = new OpenAICompatibleResponsesAdapterServer({
+    apiKey: 'test-key',
+    webSearchInvalidParameterStrategy: 'drop',
+    traceSink: (event) => {
+      events.push(JSON.parse(JSON.stringify(event)));
+    },
+    fetchImpl: (async (_url, init) => {
+      upstreamRequests.push(JSON.parse(String(init?.body ?? '{}')));
+      return new Response(JSON.stringify({
+        id: 'chatcmpl_web_search_drop',
+        created: 1_700_000_212,
+        model: 'web-search-drop-model',
+        choices: [{
+          message: {
+            content: 'drop answer',
+          },
+        }],
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as typeof fetch,
+  });
+
+  await server.start();
+  try {
+    const response = await fetch(`${server.baseUrl}/v1/responses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'web-search-drop-model',
+        input: 'search',
+        tools: [{
+          type: 'web_search',
+          return_token_budget: 400,
+        }],
+      }),
+    });
+    const body = await response.json() as any;
+    const adjustmentEvent = events.find((event) => event.type === 'request.adjusted');
+
+    assert.equal(response.status, 200);
+    assert.equal(body.output[0].content[0].text, 'drop answer');
+    assert.equal(upstreamRequests[0].tools[0].return_token_budget, undefined);
+    assert.deepEqual(adjustmentEvent?.adjustments?.[0], {
+      kind: 'field_filtered',
+      path: 'tools[0].return_token_budget',
+      reason: 'invalid_web_search_parameter_drop',
+      before: 400,
+    });
+  } finally {
+    await server.stop();
+  }
+});
+
 test('adapter server exposes model metadata from package boundary', async () => {
   const server = new OpenAICompatibleResponsesAdapterServer({
     apiKey: 'test-key',

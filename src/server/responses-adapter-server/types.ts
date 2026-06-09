@@ -2,6 +2,9 @@ import type {
   OpenAICompatibleProviderCapabilities,
 } from '../../capabilities/thinking_policy.js';
 import type {
+  CodexProviderWebSearchInvalidParameterStrategy,
+} from '../../web-search/types.js';
+import type {
   CodexProviderHostedToolDeclaration,
 } from '../../hosted_tools.js';
 import type {
@@ -158,4 +161,5 @@ export interface OpenAICompatibleResponsesAdapterServerOptions {
   maxHostedToolIterations?: number | null;
   emitHostedToolSseEvents?: boolean | null;
   exposeHostedToolResultsInResponsesOutput?: boolean | null;
+  webSearchInvalidParameterStrategy?: CodexProviderWebSearchInvalidParameterStrategy | null;
 }

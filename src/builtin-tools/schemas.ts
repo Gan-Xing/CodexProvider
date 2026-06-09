@@ -39,9 +39,9 @@ export const WEB_SEARCH_TOOL_PARAMETERS: JsonRecord = {
       description: 'When false, only configured offline/cache web search sources may be used.',
     },
     return_token_budget: {
-      type: ['string', 'null'],
-      enum: ['default', 'unlimited', null],
-      description: 'OpenAI-compatible web search return token budget hint.',
+      type: 'string',
+      enum: ['default', 'unlimited'],
+      description: 'OpenAI-compatible web search return token budget hint. Only "default" and "unlimited" are valid.',
     },
     mode: {
       type: 'string',

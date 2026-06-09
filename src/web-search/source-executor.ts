@@ -33,7 +33,11 @@ export function createCodexProviderSourceWebSearchExecutor(
     throw new Error('web_search executor requires at least one source or provider API key.');
   }
   return async (request: CodexProviderHostedToolExecutionRequest): Promise<CodexProviderHostedToolExecutionResult> => {
-    const normalizedRequest = normalizeWebSearchRequest(request, options.maxResults);
+    const normalizedRequest = normalizeWebSearchRequest(
+      request,
+      options.maxResults,
+      options.webSearchInvalidParameterStrategy,
+    );
     if (!normalizedRequest.query) {
       throw new Error('web_search executor requires a non-empty query argument.');
     }
@@ -83,19 +87,22 @@ export function createCodexProviderSourceWebSearchExecutor(
       snippet: result.snippet,
       source: result.source ?? null,
     }));
+    const content: CodexProviderWebSearchExecutorContent = {
+      query: normalizedRequest.query,
+      provider: searchableSources.length === 1 ? searchableSources[0].name : 'multi-source',
+      answer: answers[0] ?? null,
+      results: limitedResults,
+      sources: dedupeWebSearchSources([...aggregatedSources, ...sourcesFromResults]),
+      citations: dedupeWebSearchCitations(aggregatedCitations),
+      retrieved_at: new Date().toISOString(),
+      external_web_access: normalizedRequest.externalWebAccess,
+      search_context_size: normalizedRequest.searchContextSize,
+    };
+    if (normalizedRequest.returnTokenBudget) {
+      content.return_token_budget = normalizedRequest.returnTokenBudget;
+    }
     return {
-      content: {
-        query: normalizedRequest.query,
-        provider: searchableSources.length === 1 ? searchableSources[0].name : 'multi-source',
-        answer: answers[0] ?? null,
-        results: limitedResults,
-        sources: dedupeWebSearchSources([...aggregatedSources, ...sourcesFromResults]),
-        citations: dedupeWebSearchCitations(aggregatedCitations),
-        retrieved_at: new Date().toISOString(),
-        external_web_access: normalizedRequest.externalWebAccess,
-        search_context_size: normalizedRequest.searchContextSize,
-        return_token_budget: normalizedRequest.returnTokenBudget,
-      } satisfies CodexProviderWebSearchExecutorContent,
+      content,
       metadata: {
         provider: searchableSources.length === 1 ? searchableSources[0].name : 'multi-source',
         sourceCount: searchableSources.length,
@@ -103,6 +110,9 @@ export function createCodexProviderSourceWebSearchExecutor(
         externalWebAccess: normalizedRequest.externalWebAccess,
         searchContextSize: normalizedRequest.searchContextSize,
         returnTokenBudget: normalizedRequest.returnTokenBudget,
+        warnings: normalizedRequest.parameterWarnings.length > 0
+          ? normalizedRequest.parameterWarnings
+          : undefined,
       },
     };
   };

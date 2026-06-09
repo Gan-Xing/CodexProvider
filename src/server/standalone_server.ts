@@ -16,6 +16,9 @@ import {
   OpenAICompatibleResponsesAdapterServer,
   type OpenAICompatibleResponsesAdapterServerOptions,
 } from './responses-adapter-server/index.js';
+import {
+  normalizeWebSearchInvalidParameterStrategy,
+} from '../web-search/validation.js';
 
 type EnvRecord = Record<string, string | undefined>;
 
@@ -66,6 +69,9 @@ export function createCodexProviderStandaloneServerConfigFromEnv(
   const upstreamChatCompletionsPath = resolveStandaloneEnvValue(resolvedEnv, 'UPSTREAM_CHAT_PATH')
     || preset.upstreamChatCompletionsPath;
   const traceMode = resolveStandaloneTraceMode(resolvedEnv);
+  const webSearchInvalidParameterStrategy = normalizeWebSearchInvalidParameterStrategy(
+    resolveStandaloneEnvValue(resolvedEnv, 'WEB_SEARCH_INVALID_PARAMETER_STRATEGY'),
+  );
 
   const capabilityOverrides = parseOptionalJson(
     resolveStandaloneEnvValue(resolvedEnv, 'CAPABILITY_OVERRIDES_JSON'),
@@ -128,6 +134,7 @@ export function createCodexProviderStandaloneServerConfigFromEnv(
     providerCapabilities,
     upstreamChatCompletionsPath,
     ownedBy,
+    webSearchInvalidParameterStrategy,
   };
 }
 

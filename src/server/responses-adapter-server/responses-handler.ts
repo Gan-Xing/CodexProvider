@@ -51,6 +51,9 @@ import {
   summarizeRequestAdjustments,
 } from './request-adjustments.js';
 import {
+  validateWebSearchRequestParameters,
+} from './web-search-parameters.js';
+import {
   normalizeString,
 } from './utils.js';
 import type {
@@ -91,6 +94,7 @@ export type ResponsesAdapterRequestHandlerContext = {
   maxHostedToolIterations: number;
   emitHostedToolSseEvents: boolean;
   exposeHostedToolResultsInResponsesOutput: boolean;
+  webSearchInvalidParameterStrategy: 'error' | 'drop';
   fetchUpstreamWithRetry: (
     url: string,
     init: RequestInit,
@@ -141,6 +145,7 @@ export async function handleResponsesAdapterRequest({
   maxHostedToolIterations,
   emitHostedToolSseEvents,
   exposeHostedToolResultsInResponsesOutput,
+  webSearchInvalidParameterStrategy,
   fetchUpstreamWithRetry,
   writeStreamingResponse,
   writeStreamingDataLinesResponse,
@@ -162,9 +167,18 @@ export async function handleResponsesAdapterRequest({
     stream,
     request: requestBody,
   });
+  const validatedRequest = validateWebSearchRequestParameters(
+    requestBody,
+    webSearchInvalidParameterStrategy,
+  );
+  if (validatedRequest.error) {
+    writeJson(response, 400, { error: validatedRequest.error });
+    return;
+  }
+  const effectiveRequestBody = validatedRequest.requestBody;
   if (compact) {
     await handleCompactResponses({
-      requestBody,
+      requestBody: effectiveRequestBody,
       response,
       providerCapabilities: effectiveCapabilities,
       upstreamBaseUrl,
@@ -179,7 +193,7 @@ export async function handleResponsesAdapterRequest({
   }
   if (upstreamResponsesPath) {
     await handleDirectResponsesProxy({
-      requestBody,
+      requestBody: effectiveRequestBody,
       response,
       requestedModel,
       stream,
@@ -195,11 +209,11 @@ export async function handleResponsesAdapterRequest({
     return;
   }
   const adapterHostedToolExecutionRequired = requestUsesExecutableAdapterHostedTool(
-    requestBody,
+    effectiveRequestBody,
     executableHostedTools,
   );
   const upstreamStream = stream;
-  const chatBody = responsesRequestToChatCompletions(requestBody, {
+  const chatBody = responsesRequestToChatCompletions(effectiveRequestBody, {
     model: requestedModel,
     stream: upstreamStream,
     providerKind,
@@ -211,15 +225,18 @@ export async function handleResponsesAdapterRequest({
     route: 'responses',
     model: requestedModel,
     stream,
-    request: requestBody,
+    request: effectiveRequestBody,
     upstreamRequest: chatBody,
   });
-  const adjustments = summarizeRequestAdjustments({
-    request: requestBody,
-    upstreamRequest: chatBody,
-    providerCapabilities: effectiveCapabilities,
-    hostedTools: executableHostedTools,
-  });
+  const adjustments = [
+    ...validatedRequest.adjustments,
+    ...summarizeRequestAdjustments({
+      request: effectiveRequestBody,
+      upstreamRequest: chatBody,
+      providerCapabilities: effectiveCapabilities,
+      hostedTools: executableHostedTools,
+    }),
+  ];
   if (adjustments.length > 0) {
     emitTrace({
       type: 'request.adjusted',
@@ -247,7 +264,7 @@ export async function handleResponsesAdapterRequest({
   });
   if (stream && adapterHostedToolExecutionRequired) {
     await writeAdapterHostedToolStreamingResponse({
-      requestBody,
+      requestBody: effectiveRequestBody,
       chatBody,
       upstreamUrl,
       buildUpstreamInit,
@@ -324,7 +341,7 @@ export async function handleResponsesAdapterRequest({
     return;
   }
   if (upstreamStream) {
-    await writeStreamingResponse(requestBody, effectiveCapabilities, upstream.response, response);
+    await writeStreamingResponse(effectiveRequestBody, effectiveCapabilities, upstream.response, response);
     return;
   }
   let json = await upstream.response.json() as JsonRecord;
@@ -371,16 +388,16 @@ export async function handleResponsesAdapterRequest({
   try {
     const modelMetadata = resolveModelMetadata(
       models,
-      normalizeString(requestBody?.model) || normalizeString(json?.model) || defaultModel,
+      normalizeString(effectiveRequestBody?.model) || normalizeString(json?.model) || defaultModel,
     );
     const adaptedResponse = chatCompletionsResponseToResponses(json, {
-      request: requestBody,
+      request: effectiveRequestBody,
       providerCapabilities: effectiveCapabilities,
       modelMetadata,
     });
     appendHostedToolResultsToResponsesOutput({
       response: adaptedResponse,
-      request: requestBody,
+      request: effectiveRequestBody,
       executions: hostedToolLoop.executions,
       exposeByDefault: exposeHostedToolResultsInResponsesOutput,
     });

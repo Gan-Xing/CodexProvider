@@ -136,6 +136,16 @@ test('standalone server config enables stderr-json trace mode from env', () => {
   assert.equal(config.traceMode, 'stderr-json');
 });
 
+test('standalone server config resolves web_search invalid parameter strategy from env', () => {
+  const config = createCodexProviderStandaloneServerConfigFromEnv({
+    CODEX_PROVIDER_CAPABILITY_PRESET: 'openrouter',
+    OPENROUTER_API_KEY: 'trace-key',
+    CODEX_PROVIDER_WEB_SEARCH_INVALID_PARAMETER_STRATEGY: 'drop',
+  });
+
+  assert.equal(config.webSearchInvalidParameterStrategy, 'drop');
+});
+
 test('standalone server exposes primary CodexProvider helpers', () => {
   const config = createCodexProviderStandaloneServerConfigFromEnv({
     CODEX_PROVIDER_CAPABILITY_PRESET: 'openrouter',

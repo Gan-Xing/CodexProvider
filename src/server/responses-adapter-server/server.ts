@@ -46,6 +46,9 @@ import {
   handleResponsesAdapterRequest,
 } from './responses-handler.js';
 import {
+  normalizeWebSearchInvalidParameterStrategy,
+} from '../../web-search/validation.js';
+import {
   normalizePath,
   normalizePositiveInteger,
   normalizeString,
@@ -118,6 +121,8 @@ export class OpenAICompatibleResponsesAdapterServer {
 
   private readonly exposeHostedToolResultsInResponsesOutput: boolean;
 
+  private readonly webSearchInvalidParameterStrategy: 'error' | 'drop';
+
   private server: http.Server | null;
 
   private startedUrl: string | null;
@@ -142,6 +147,7 @@ export class OpenAICompatibleResponsesAdapterServer {
     maxHostedToolIterations = null,
     emitHostedToolSseEvents = false,
     exposeHostedToolResultsInResponsesOutput = false,
+    webSearchInvalidParameterStrategy = 'error',
   }: OpenAICompatibleResponsesAdapterServerOptions) {
     const normalizedKey = normalizeString(apiKey);
     if (!normalizedKey) {
@@ -170,6 +176,9 @@ export class OpenAICompatibleResponsesAdapterServer {
     this.maxHostedToolIterations = normalizePositiveInteger(maxHostedToolIterations) ?? 4;
     this.emitHostedToolSseEvents = Boolean(emitHostedToolSseEvents);
     this.exposeHostedToolResultsInResponsesOutput = Boolean(exposeHostedToolResultsInResponsesOutput);
+    this.webSearchInvalidParameterStrategy = normalizeWebSearchInvalidParameterStrategy(
+      webSearchInvalidParameterStrategy,
+    );
     this.models = normalizeModels(
       models,
       this.defaultModel,
@@ -291,6 +300,7 @@ export class OpenAICompatibleResponsesAdapterServer {
       maxHostedToolIterations: this.maxHostedToolIterations,
       emitHostedToolSseEvents: this.emitHostedToolSseEvents,
       exposeHostedToolResultsInResponsesOutput: this.exposeHostedToolResultsInResponsesOutput,
+      webSearchInvalidParameterStrategy: this.webSearchInvalidParameterStrategy,
       fetchUpstreamWithRetry: (...args) => this.fetchUpstreamWithRetry(...args),
       writeStreamingResponse: (...args) => this.writeStreamingResponse(...args),
       writeStreamingDataLinesResponse: (...args) => this.writeStreamingDataLinesResponse(...args),

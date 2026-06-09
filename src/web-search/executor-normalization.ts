@@ -8,8 +8,8 @@ import type {
   CodexProviderWebSearchContextSize,
   CodexProviderWebSearchExecutorOptions,
   CodexProviderWebSearchFilters,
+  CodexProviderWebSearchParameterWarning,
   CodexProviderWebSearchResult,
-  CodexProviderWebSearchReturnTokenBudget,
   CodexProviderWebSearchSource,
   CodexProviderWebSearchSourceInput,
   CodexProviderWebSearchSourceReference,
@@ -23,6 +23,10 @@ import {
 import {
   createCodexProviderProviderWebSearchSource,
 } from './provider-source.js';
+import {
+  normalizeWebSearchInvalidParameterStrategy,
+  normalizeWebSearchReturnTokenBudget,
+} from './validation.js';
 
 export function normalizeWebSearchSources(
   options: CodexProviderWebSearchExecutorOptions,
@@ -67,7 +71,9 @@ function normalizeWebSearchSource(source: CodexProviderWebSearchSourceInput): Co
 export function normalizeWebSearchRequest(
   request: CodexProviderHostedToolExecutionRequest,
   fallbackMaxResults: unknown,
+  invalidParameterStrategy: unknown = null,
 ): Omit<CodexProviderWebSearchSourceRequest, 'toolRequest'> {
+  const parameterWarnings: CodexProviderWebSearchParameterWarning[] = [];
   return {
     query: webSearchQueryFromRequest(request),
     maxResults: clampInteger(
@@ -80,7 +86,11 @@ export function normalizeWebSearchRequest(
     userLocation: normalizeUserLocation(request.arguments.user_location),
     filters: normalizeWebSearchFilters(request.arguments.filters),
     externalWebAccess: request.arguments.external_web_access !== false,
-    returnTokenBudget: normalizeReturnTokenBudget(request.arguments.return_token_budget),
+    returnTokenBudget: normalizeWebSearchReturnTokenBudget(request.arguments.return_token_budget, {
+      strategy: normalizeWebSearchInvalidParameterStrategy(invalidParameterStrategy),
+      warnings: parameterWarnings,
+    }),
+    parameterWarnings,
   };
 }
 
@@ -100,14 +110,6 @@ function normalizeSearchContextSize(value: unknown): CodexProviderWebSearchConte
     return normalized;
   }
   return 'medium';
-}
-
-function normalizeReturnTokenBudget(value: unknown): CodexProviderWebSearchReturnTokenBudget {
-  const normalized = normalizeString(value).toLowerCase();
-  if (normalized === 'default' || normalized === 'unlimited') {
-    return normalized;
-  }
-  return null;
 }
 
 function normalizeUserLocation(value: unknown): JsonRecord | null {

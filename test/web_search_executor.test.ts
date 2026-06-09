@@ -231,7 +231,7 @@ test('web_search executor uses cache source when external_web_access is false', 
   assert.equal(content.citations?.[0].url, 'https://example.com/cache');
 });
 
-test('web_search executor normalizes string return_token_budget and drops numbers', async () => {
+test('web_search executor accepts valid return_token_budget and rejects invalid values by default', async () => {
   const seenBudgets: unknown[] = [];
   const executor = createCodexProviderWebSearchExecutor({
     sources: [{
@@ -255,15 +255,62 @@ test('web_search executor normalizes string return_token_budget and drops number
     query: 'unlimited budget',
     return_token_budget: 'unlimited',
   }));
-  const numericResult = await executor(baseRequest({
+
+  await assert.rejects(
+    () => executor(baseRequest({
+      query: 'numeric budget',
+      return_token_budget: 400,
+    })),
+    /expected "default" or "unlimited"/u,
+  );
+  await assert.rejects(
+    () => executor(baseRequest({
+      query: 'null budget',
+      return_token_budget: null,
+    })),
+    /expected "default" or "unlimited"/u,
+  );
+  await assert.rejects(
+    () => executor(baseRequest({
+      query: 'bad string budget',
+      return_token_budget: 'large',
+    })),
+    /expected "default" or "unlimited"/u,
+  );
+
+  assert.deepEqual(seenBudgets, ['default', 'unlimited']);
+  assert.equal((defaultResult.content as CodexProviderWebSearchExecutorContent).return_token_budget, 'default');
+  assert.equal((unlimitedResult.content as CodexProviderWebSearchExecutorContent).return_token_budget, 'unlimited');
+});
+
+test('web_search executor can explicitly drop invalid return_token_budget values with warnings', async () => {
+  const seenBudgets: unknown[] = [];
+  const executor = createCodexProviderWebSearchExecutor({
+    webSearchInvalidParameterStrategy: 'drop',
+    sources: [{
+      name: 'budget-source',
+      type: 'custom',
+      live: true,
+      search(request) {
+        seenBudgets.push(request.returnTokenBudget);
+        return {
+          results: [],
+        };
+      },
+    }],
+  });
+
+  const result = await executor(baseRequest({
     query: 'numeric budget',
     return_token_budget: 400,
   }));
+  const content = result.content as CodexProviderWebSearchExecutorContent;
 
-  assert.deepEqual(seenBudgets, ['default', 'unlimited', null]);
-  assert.equal((defaultResult.content as CodexProviderWebSearchExecutorContent).return_token_budget, 'default');
-  assert.equal((unlimitedResult.content as CodexProviderWebSearchExecutorContent).return_token_budget, 'unlimited');
-  assert.equal((numericResult.content as CodexProviderWebSearchExecutorContent).return_token_budget, null);
+  assert.deepEqual(seenBudgets, [null]);
+  assert.equal(content.return_token_budget, undefined);
+  assert.equal(result.metadata?.returnTokenBudget, null);
+  assert.equal(result.metadata?.warnings?.[0]?.param, 'return_token_budget');
+  assert.equal(result.metadata?.warnings?.[0]?.strategy, 'drop');
 });
 
 test('web_search executor passes v2 fields and filters source results', async () => {
@@ -426,6 +473,31 @@ test('metasearch web_search executor returns sources, chunks, and citation instr
   assert.match(content.chunks[0].text, /retrieval citations/u);
   assert.match(content.instructions, /\[\[source:N\]\]/u);
   assert.equal(result.metadata?.chunkCount, 1);
+});
+
+test('metasearch web_search executor rejects invalid return_token_budget by default', async () => {
+  const executor = createCodexProviderWebSearchExecutor({
+    search: {
+      async search(request) {
+        return {
+          query: request.query,
+          mode: request.mode ?? 'balanced',
+          results: [],
+          unresponsiveEngines: [],
+          timings: {},
+          searchedAt: '2026-06-08T00:00:00.000Z',
+        };
+      },
+    },
+  });
+
+  await assert.rejects(
+    () => executor(baseRequest({
+      query: 'invalid metasearch budget',
+      return_token_budget: 'large',
+    })),
+    /expected "default" or "unlimited"/u,
+  );
 });
 
 test('metasearch web_search executor passes external_web_access=false through retrieval', async () => {

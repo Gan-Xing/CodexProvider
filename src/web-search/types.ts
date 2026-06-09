@@ -21,8 +21,23 @@ export type CodexProviderWebSearchContextSize = 'low' | 'medium' | 'high';
 
 export type CodexProviderWebSearchReturnTokenBudget =
   | 'default'
-  | 'unlimited'
+  | 'unlimited';
+
+export type CodexProviderNormalizedWebSearchReturnTokenBudget =
+  | CodexProviderWebSearchReturnTokenBudget
   | null;
+
+export type CodexProviderWebSearchInvalidParameterStrategy =
+  | 'error'
+  | 'drop';
+
+export interface CodexProviderWebSearchParameterWarning {
+  code: 'invalid_web_search_return_token_budget';
+  param: string;
+  message: string;
+  strategy: 'drop';
+  valueType: string;
+}
 
 export interface CodexProviderWebSearchExecutorOptions {
   search?: CodexProviderMetaSearchService | null;
@@ -43,6 +58,7 @@ export interface CodexProviderWebSearchExecutorOptions {
   country?: string | null;
   language?: string | null;
   sources?: CodexProviderWebSearchSourceInput[] | null;
+  webSearchInvalidParameterStrategy?: CodexProviderWebSearchInvalidParameterStrategy | null;
   now?: (() => Date) | null;
 }
 
@@ -77,7 +93,8 @@ export interface CodexProviderWebSearchSourceRequest {
   userLocation: JsonRecord | null;
   filters: CodexProviderWebSearchFilters | null;
   externalWebAccess: boolean;
-  returnTokenBudget: CodexProviderWebSearchReturnTokenBudget;
+  returnTokenBudget: CodexProviderNormalizedWebSearchReturnTokenBudget;
+  parameterWarnings: CodexProviderWebSearchParameterWarning[];
   toolRequest: CodexProviderHostedToolExecutionRequest;
 }
 

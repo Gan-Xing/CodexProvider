@@ -20,6 +20,9 @@ import {
 import {
   normalizeCodexProviderOpenAiWebSearchRequest,
 } from './request.js';
+import type {
+  CodexProviderWebSearchInvalidParameterStrategy,
+} from '../types.js';
 import {
   buildCodexProviderOpenAiWebSearchToolOutput,
   type CodexProviderOpenAiWebSearchRetrievalBundle,
@@ -38,6 +41,7 @@ export interface CodexProviderOpenAiWebSearchExecutorOptions {
   maxChunks?: number | null;
   chunkChars?: number | null;
   chunkOverlapChars?: number | null;
+  webSearchInvalidParameterStrategy?: CodexProviderWebSearchInvalidParameterStrategy | null;
   now?: (() => Date) | null;
 }
 
@@ -59,6 +63,7 @@ export function createCodexProviderOpenAiWebSearchExecutor(
       maxChunks: options.maxChunks,
       chunkChars: options.chunkChars,
       chunkOverlapChars: options.chunkOverlapChars,
+      webSearchInvalidParameterStrategy: options.webSearchInvalidParameterStrategy,
     });
     if (!normalizedRequest.query) {
       throw new Error('web_search executor requires a non-empty query argument.');

@@ -3,7 +3,9 @@ import type {
   JsonRecord,
 } from '../../hosted_tool_executors.js';
 import type {
-  CodexProviderWebSearchReturnTokenBudget,
+  CodexProviderNormalizedWebSearchReturnTokenBudget,
+  CodexProviderWebSearchInvalidParameterStrategy,
+  CodexProviderWebSearchParameterWarning,
 } from '../types.js';
 import type {
   CodexProviderSafeSearchMode,
@@ -11,6 +13,9 @@ import type {
   CodexProviderSearchMode,
   CodexProviderSearchTimeRange,
 } from '../metasearch/index.js';
+import {
+  normalizeWebSearchReturnTokenBudget,
+} from '../validation.js';
 
 export type CodexProviderOpenAiWebSearchContextSize = 'low' | 'medium' | 'high';
 
@@ -36,8 +41,9 @@ export interface CodexProviderOpenAiWebSearchRequest {
   blockedDomains: string[];
   externalWebAccess: boolean;
   searchContextSize: CodexProviderOpenAiWebSearchContextSize;
-  returnTokenBudget: CodexProviderWebSearchReturnTokenBudget;
+  returnTokenBudget: CodexProviderNormalizedWebSearchReturnTokenBudget;
   userLocation: JsonRecord | null;
+  parameterWarnings: CodexProviderWebSearchParameterWarning[];
   budget: CodexProviderOpenAiWebSearchBudget;
   rawRequest: CodexProviderHostedToolExecutionRequest;
 }
@@ -49,6 +55,7 @@ export interface CodexProviderOpenAiWebSearchRequestOptions {
   maxChunks?: number | null;
   chunkChars?: number | null;
   chunkOverlapChars?: number | null;
+  webSearchInvalidParameterStrategy?: CodexProviderWebSearchInvalidParameterStrategy | null;
 }
 
 export function normalizeCodexProviderOpenAiWebSearchRequest(
@@ -71,6 +78,7 @@ export function normalizeCodexProviderOpenAiWebSearchRequest(
     chunkOverlapChars: clampInteger(options.chunkOverlapChars, 0, 1_000, baseBudget.chunkOverlapChars),
   };
   const filters = normalizeWebSearchFilters(request.arguments.filters);
+  const parameterWarnings: CodexProviderWebSearchParameterWarning[] = [];
   return {
     query: webSearchQueryFromRequest(request),
     mode: normalizeSearchMode(request.arguments.mode) ?? options.mode ?? null,
@@ -85,8 +93,13 @@ export function normalizeCodexProviderOpenAiWebSearchRequest(
     blockedDomains: filters.blockedDomains,
     externalWebAccess: request.arguments.external_web_access !== false,
     searchContextSize,
-    returnTokenBudget: normalizeReturnTokenBudget(request.arguments.return_token_budget),
+    returnTokenBudget: normalizeReturnTokenBudget(
+      request.arguments.return_token_budget,
+      options.webSearchInvalidParameterStrategy,
+      parameterWarnings,
+    ),
     userLocation: normalizeUserLocation(request.arguments.user_location),
+    parameterWarnings,
     budget,
     rawRequest: request,
   };
@@ -142,12 +155,15 @@ function normalizeSearchContextSize(value: unknown): CodexProviderOpenAiWebSearc
   return 'medium';
 }
 
-function normalizeReturnTokenBudget(value: unknown): CodexProviderWebSearchReturnTokenBudget {
-  const normalized = normalizeString(value).toLowerCase();
-  if (normalized === 'default' || normalized === 'unlimited') {
-    return normalized;
-  }
-  return null;
+function normalizeReturnTokenBudget(
+  value: unknown,
+  invalidParameterStrategy: CodexProviderWebSearchInvalidParameterStrategy | null | undefined,
+  warnings: CodexProviderWebSearchParameterWarning[],
+): CodexProviderNormalizedWebSearchReturnTokenBudget {
+  return normalizeWebSearchReturnTokenBudget(value, {
+    strategy: invalidParameterStrategy,
+    warnings,
+  });
 }
 
 function normalizeSearchMode(value: unknown): CodexProviderSearchMode | null {
