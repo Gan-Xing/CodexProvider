@@ -68,6 +68,13 @@ export {
 export type {
   StreamingToolCallAccumulator,
 } from './streaming.js';
+export {
+  fetchUpstreamWithRetry,
+  pipeUpstreamStream,
+} from './upstream.js';
+export type {
+  UpstreamFetchResult,
+} from './upstream.js';
 export type {
   CodexProviderTraceEvent,
   CodexProviderTraceSink,
