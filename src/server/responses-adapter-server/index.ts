@@ -27,6 +27,14 @@ export {
 export {
   summarizeRequestAdjustments,
 } from './request-adjustments.js';
+export {
+  buildAppendedOutputItemSseEvents,
+  ensureSseResponseHeaders,
+  formatResponsesSseEvent,
+  parseResponsesSseEventFrame,
+  resequenceInsertedStreamEvents,
+  responsesObjectToSyntheticSseEvents,
+} from './synthetic-sse.js';
 export type {
   CodexProviderTraceEvent,
   CodexProviderTraceSink,
