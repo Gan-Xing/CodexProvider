@@ -2,21 +2,13 @@ import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import { Readable } from 'node:stream';
 import {
   chatCompletionsResponseToResponses,
-  inspectOpenAICompatiblePayloadCompatibility,
   responsesRequestToCompactionResponse,
   responsesRequestToChatCompletions,
   translateChatCompletionsSseStreamToResponsesSse,
 } from '../../converters/responses_adapter.js';
 import {
-  buildOpenAICompatibleCapabilityCatalogMetadata,
-} from '../../capabilities/capability_presets.js';
-import {
-  getOpenAICompatibleThinkingPolicy,
-  getProviderThinkingSupport,
   resolveOpenAICompatibleProviderCapabilitiesForModel,
-  type OpenAICompatibleModelCapabilities,
-  OpenAICompatibleProviderCapabilities,
-  OpenAICompatibleRetryCapabilities,
+  type OpenAICompatibleProviderCapabilities,
 } from '../../capabilities/thinking_policy.js';
 import {
   normalizeCodexProviderHostedTools,
@@ -47,6 +39,16 @@ import {
   writeJson,
 } from './body.js';
 import {
+  buildMalformedUpstreamPayloadError,
+  extractUpstreamError,
+  normalizeUpstreamError,
+} from './errors.js';
+import {
+  buildModelsResponseMetadata,
+  normalizeModels,
+  resolveModelMetadata,
+} from './models.js';
+import {
   buildChatCompletionsUrl,
   buildOpenAICompatibleChatCompletionsUrl,
   buildOpenAICompatibleModelsUrl,
@@ -61,10 +63,14 @@ import {
   reserveLocalPort,
 } from './ports.js';
 import {
-  clampInteger,
+  normalizeRetryCapabilities,
+  resolveRetryDelayMs,
+  shouldRetryWithoutForcedToolChoice,
+  sleep,
+} from './retry.js';
+import {
   cloneJson,
   normalizeArray,
-  normalizeNullableBoolean,
   normalizePath,
   normalizePositiveInteger,
   normalizePositiveNumber,
@@ -79,8 +85,6 @@ import type {
   CodexProviderTraceSink,
   JsonRecord,
   OpenAICompatibleResponsesAdapterServerOptions,
-  ProviderErrorCategory,
-  ProviderRetryHint,
 } from './types.js';
 export {
   buildOpenAICompatibleChatCompletionsUrl,
@@ -98,7 +102,6 @@ export type {
 
 const DEFAULT_UPSTREAM_BASE_URL = 'https://api.openai.com/v1';
 const DEFAULT_MODEL = 'gpt-5.4';
-const DEFAULT_RETRY_STATUSES = [403, 408, 429, 500, 502, 503, 504];
 
 export class OpenAICompatibleResponsesAdapterServer {
   private readonly apiKey: string;
@@ -2264,223 +2267,6 @@ function extractSseData(frame: string): string | null {
   return data;
 }
 
-function normalizeModels(
-  models: OpenAICompatibleResponsesAdapterServerOptions['models'],
-  defaultModel: string,
-  ownedBy: string,
-  providerKind: string,
-  providerCapabilities: OpenAICompatibleProviderCapabilities | null,
-) {
-  const now = Math.floor(Date.now() / 1000);
-  const entries = (Array.isArray(models) ? models : [])
-    .map((model) => {
-      const id = normalizeString(model?.id) || normalizeString(model?.model);
-      if (!id) {
-        return null;
-      }
-      return {
-        ...model,
-        id,
-        slug: normalizeString(model?.slug) || id,
-        object: normalizeString(model?.object) || 'model',
-        created: Number.isFinite(Number(model?.created)) ? Number(model.created) : now,
-        owned_by: normalizeString(model?.owned_by) || ownedBy,
-        displayName: normalizeString(model?.displayName) || normalizeString(model?.display_name) || id,
-        display_name: normalizeString(model?.display_name) || normalizeString(model?.displayName) || id,
-        capabilityCatalog: model?.capabilityCatalog && typeof model.capabilityCatalog === 'object'
-          ? model.capabilityCatalog
-          : buildOpenAICompatibleCapabilityCatalogMetadata({
-            modelId: id,
-            providerKind,
-            providerCapabilities,
-            modelCapabilities: model?.capabilities && typeof model.capabilities === 'object'
-              ? model.capabilities as OpenAICompatibleModelCapabilities
-              : null,
-          }),
-        protocol: buildProtocolMetadataForModel({
-          modelId: id,
-          modelEntry: model,
-          providerKind,
-          providerCapabilities,
-        }),
-      };
-    })
-    .filter(Boolean);
-  if (entries.length > 0) {
-    const seen = new Set<string>();
-    return entries.filter((entry) => {
-      if (!entry || seen.has(entry.id)) {
-        return false;
-      }
-      seen.add(entry.id);
-      return true;
-    });
-  }
-  return [{
-    id: defaultModel,
-    slug: defaultModel,
-    object: 'model',
-    created: now,
-    owned_by: ownedBy,
-    capabilityCatalog: buildOpenAICompatibleCapabilityCatalogMetadata({
-      modelId: defaultModel,
-      providerKind,
-      providerCapabilities,
-      modelCapabilities: null,
-    }),
-    protocol: buildProtocolMetadataForModel({
-      modelId: defaultModel,
-      modelEntry: null,
-      providerKind,
-      providerCapabilities,
-    }),
-  }];
-}
-
-function buildProtocolMetadataForModel({
-  modelId,
-  modelEntry,
-  providerKind,
-  providerCapabilities,
-}: {
-  modelId: string;
-  modelEntry: Record<string, any> | null | undefined;
-  providerKind: string;
-  providerCapabilities: OpenAICompatibleProviderCapabilities | null;
-}): JsonRecord {
-  const modelCapabilities = modelEntry?.capabilities && typeof modelEntry.capabilities === 'object'
-    ? modelEntry.capabilities as OpenAICompatibleModelCapabilities
-    : null;
-  const effectiveCapabilities = resolveOpenAICompatibleProviderCapabilitiesForModel(
-    modelCapabilities
-      ? {
-        ...(providerCapabilities ?? {}),
-        modelCapabilities: {
-          ...(providerCapabilities?.modelCapabilities ?? {}),
-          [modelId]: modelCapabilities,
-        },
-      }
-      : providerCapabilities,
-    modelId,
-  );
-  const reasoning = getProviderThinkingSupport(providerKind, effectiveCapabilities);
-  const thinkingPolicy = getOpenAICompatibleThinkingPolicy(providerKind, effectiveCapabilities);
-  const multimodal = effectiveCapabilities?.multimodal ?? null;
-  const payloadCompatibility = inspectOpenAICompatiblePayloadCompatibility({
-    model: modelId,
-    protocol: providerKind,
-    providerCapabilities: effectiveCapabilities,
-  });
-
-  return {
-    tools: {
-      supported: effectiveCapabilities?.supportsTools !== false,
-      builtinWebSearch: effectiveCapabilities?.supportsBuiltinWebSearchTool !== false,
-      parallelToolCalls: typeof modelCapabilities?.parallelToolCalls === 'boolean'
-        ? modelCapabilities.parallelToolCalls
-        : !payloadBlocksPath(effectiveCapabilities?.payload, 'parallel_tool_calls'),
-    },
-    multimodal: {
-      imageInput: normalizeNullableBoolean(multimodal?.supportsImageInput),
-      imageUrlInput: normalizeNullableBoolean(multimodal?.supportsImageUrlInput),
-      imageBase64Input: normalizeNullableBoolean(multimodal?.supportsImageBase64Input),
-      fileInput: normalizeNullableBoolean(multimodal?.supportsFileInput),
-      pdfInput: normalizeNullableBoolean(multimodal?.supportsPdfInput)
-        ?? (normalizeNullableBoolean(multimodal?.supportsFileInput) === false ? false : null),
-      fileDataInput: normalizeNullableBoolean(multimodal?.supportsFileDataInput),
-      fileIdInput: normalizeNullableBoolean(multimodal?.supportsFileIdInput),
-      fileUrlInput: normalizeNullableBoolean(multimodal?.supportsFileUrlInput),
-      unsupportedInputPartStrategy: normalizeString(multimodal?.unsupportedInputPartStrategy) || null,
-    },
-    reasoning: {
-      supported: reasoning.supportedReasoningEfforts.length > 0,
-      supportedReasoningEfforts: reasoning.supportedReasoningEfforts,
-      defaultReasoningEffort: reasoning.defaultReasoningEffort,
-      transport: {
-        mode: thinkingPolicy.mode,
-        booleanField: normalizeString(thinkingPolicy.booleanField) || null,
-        strippedFields: [...thinkingPolicy.stripFields],
-      },
-    },
-    retry: buildNormalizedRetryMetadata(effectiveCapabilities?.retry),
-    structuredOutput: {
-      jsonSchema: typeof modelCapabilities?.jsonSchema === 'boolean'
-        ? modelCapabilities.jsonSchema
-        : !payloadBlocksPath(effectiveCapabilities?.payload, 'response_format'),
-    },
-    responses: {
-      supportsCompact: effectiveCapabilities?.supportsResponsesCompact === true,
-    },
-    routing: {
-      upstreamModel: payloadCompatibility.upstreamModel,
-      requiresModelAlias: payloadCompatibility.upstreamModel !== modelId,
-    },
-    limits: {
-      maxOutputTokens: normalizePositiveNumber(modelCapabilities?.maxOutputTokens),
-    },
-  };
-}
-
-function buildModelsResponseMetadata({
-  defaultModel,
-  ownedBy,
-  providerKind,
-  providerName,
-  providerCapabilities,
-  upstreamChatCompletionsPath,
-}: {
-  defaultModel: string;
-  ownedBy: string;
-  providerKind: string;
-  providerName: string;
-  providerCapabilities: OpenAICompatibleProviderCapabilities | null;
-  upstreamChatCompletionsPath: string;
-}): JsonRecord {
-  return {
-    provider: {
-      kind: providerKind,
-      name: providerName,
-      ownedBy,
-    },
-    defaults: {
-      model: defaultModel,
-    },
-    retry: buildNormalizedRetryMetadata(providerCapabilities?.retry),
-    routes: {
-      primary: {
-        models: '/models',
-        responses: '/responses',
-        responsesCompact: '/responses/compact',
-      },
-      compatibility: {
-        models: '/v1/models',
-        responses: '/v1/responses',
-        responsesCompact: '/v1/responses/compact',
-      },
-      upstream: {
-        chatCompletions: upstreamChatCompletionsPath,
-        responsesCompact: providerCapabilities?.supportsResponsesCompact === true
-          ? normalizePath(providerCapabilities.upstreamResponsesCompactPath) || '/responses/compact'
-          : null,
-      },
-    },
-  };
-}
-
-function payloadBlocksPath(
-  payload: OpenAICompatibleProviderCapabilities['payload'] | null | undefined,
-  path: string,
-): boolean {
-  const normalizedPath = normalizeString(path);
-  if (!normalizedPath) {
-    return false;
-  }
-  return Boolean(payload?.filter?.some((rule) => (
-    Array.isArray(rule?.paths)
-    && rule.paths.some((entry) => normalizeString(entry) === normalizedPath)
-  )));
-}
-
 function summarizeRequestAdjustments({
   request,
   upstreamRequest,
@@ -2642,441 +2428,6 @@ function countForwardedInputParts(messages: unknown): { image: number; file: num
     }
   }
   return counts;
-}
-
-function resolveModelMetadata(
-  models: Array<Record<string, any> & { id?: string; slug?: string; model?: string }>,
-  modelId: string,
-): JsonRecord | null {
-  const normalizedModelId = normalizeString(modelId);
-  if (!normalizedModelId) {
-    return null;
-  }
-  return models.find((model) => (
-    normalizeString(model?.id) === normalizedModelId
-    || normalizeString(model?.slug) === normalizedModelId
-    || normalizeString(model?.model) === normalizedModelId
-  )) ?? null;
-}
-
-function extractUpstreamError(text: string): string | null {
-  const trimmed = normalizeString(text);
-  if (!trimmed) {
-    return null;
-  }
-  try {
-    const parsed = JSON.parse(trimmed);
-    return normalizeString(parsed?.error?.message)
-      || normalizeString(parsed?.message)
-      || trimmed;
-  } catch {
-    return trimmed;
-  }
-}
-
-function normalizeUpstreamError(
-  text: string,
-  providerName: string,
-  status: number,
-  headers?: Headers | null,
-): JsonRecord {
-  const trimmed = normalizeString(text);
-  const retryAfterMs = parseRetryAfterMs(headers?.get('retry-after') ?? null) ?? parseRetryAfterMsFromBody(trimmed);
-  const metadata = buildUpstreamErrorMetadata(headers);
-  const fallbackCode = upstreamErrorCode(status);
-  const fallbackCategory = classifyProviderErrorCategory({
-    status,
-    code: fallbackCode,
-    type: 'upstream_error',
-    message: trimmed,
-  });
-  const fallbackRetry = buildProviderRetryMetadata(fallbackCategory, retryAfterMs);
-  if (trimmed) {
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (parsed?.error && typeof parsed.error === 'object') {
-        const message = normalizeString(parsed.error.message) || `${providerName} upstream returned HTTP ${status}`;
-        const type = normalizeString(parsed.error.type) || 'upstream_error';
-        const code = parsed.error.code ?? fallbackCode;
-        const category = classifyProviderErrorCategory({
-          status,
-          code,
-          type,
-          message,
-        });
-        return omitUndefined({
-          message,
-          type,
-          code,
-          category,
-          retry: buildProviderRetryMetadata(category, retryAfterMs),
-          param: parsed.error.param,
-          retry_after_ms: retryAfterMs,
-          metadata,
-        });
-      }
-      const message = normalizeString(parsed?.message) || trimmed;
-      const type = normalizeString(parsed?.type) || 'upstream_error';
-      const code = parsed?.code ?? fallbackCode;
-      const category = classifyProviderErrorCategory({
-        status,
-        code,
-        type,
-        message,
-      });
-      return omitUndefined({
-        message,
-        type,
-        code,
-        category,
-        retry: buildProviderRetryMetadata(category, retryAfterMs),
-        retry_after_ms: retryAfterMs,
-        metadata,
-      });
-    } catch {
-      return omitUndefined({
-        message: trimmed,
-        type: 'upstream_error',
-        code: fallbackCode,
-        category: fallbackCategory,
-        retry: fallbackRetry,
-        retry_after_ms: retryAfterMs,
-        metadata,
-      });
-    }
-  }
-  return omitUndefined({
-    message: `${providerName} upstream returned HTTP ${status}`,
-    type: 'upstream_error',
-    code: fallbackCode,
-    category: fallbackCategory,
-    retry: fallbackRetry,
-    retry_after_ms: retryAfterMs,
-    metadata,
-  });
-}
-
-function buildMalformedUpstreamPayloadError(
-  providerName: string,
-  detail: string,
-): JsonRecord {
-  const message = normalizeString(detail)
-    ? `${providerName} upstream returned a malformed success payload: ${normalizeString(detail)}`
-    : `${providerName} upstream returned a malformed success payload.`;
-  return {
-    message,
-    type: 'upstream_error',
-    code: 'malformed_upstream_payload',
-    category: 'malformed_upstream',
-    retry: buildProviderRetryMetadata('malformed_upstream', null),
-  };
-}
-
-function buildUpstreamErrorMetadata(headers?: Headers | null): JsonRecord | undefined {
-  if (!headers) {
-    return undefined;
-  }
-  const requestId = normalizeString(headers.get('x-request-id') ?? headers.get('request-id'));
-  const region = normalizeString(headers.get('x-ms-region') ?? headers.get('openai-processing-ms'));
-  const rateLimitHeaders = collectRateLimitHeaders(headers);
-  if (!requestId && !region && !rateLimitHeaders) {
-    return undefined;
-  }
-  return omitUndefined({
-    request_id: requestId || undefined,
-    region: region || undefined,
-    rate_limit_headers: rateLimitHeaders ?? undefined,
-  });
-}
-
-function collectRateLimitHeaders(headers: Headers): JsonRecord | undefined {
-  const values: JsonRecord = {};
-  for (const [key, value] of headers.entries()) {
-    const normalizedKey = key.toLowerCase();
-    if (!normalizedKey.startsWith('x-ratelimit-') && !normalizedKey.startsWith('ratelimit-')) {
-      continue;
-    }
-    const normalizedValue = normalizeString(value);
-    if (!normalizedValue) {
-      continue;
-    }
-    values[normalizedKey] = normalizedValue;
-  }
-  return Object.keys(values).length > 0 ? values : undefined;
-}
-
-function normalizeRetryCapabilities(capabilities: OpenAICompatibleRetryCapabilities | null | undefined): {
-  maxAttempts: number;
-  retryStatuses: Set<number>;
-  baseDelayMs: number;
-  maxDelayMs: number;
-  retryAfterMaxMs: number;
-  retryNetworkErrors: boolean;
-} {
-  if (!capabilities || typeof capabilities !== 'object') {
-    return {
-      maxAttempts: 1,
-      retryStatuses: new Set(DEFAULT_RETRY_STATUSES),
-      baseDelayMs: 0,
-      maxDelayMs: 0,
-      retryAfterMaxMs: 0,
-      retryNetworkErrors: false,
-    };
-  }
-  const maxAttempts = clampInteger(capabilities.maxAttempts, 1, 5, 1);
-  return {
-    maxAttempts,
-    retryStatuses: new Set(normalizeRetryStatuses(capabilities.retryStatuses) ?? DEFAULT_RETRY_STATUSES),
-    baseDelayMs: clampInteger(capabilities.baseDelayMs, 0, 30_000, 250),
-    maxDelayMs: clampInteger(capabilities.maxDelayMs, 0, 60_000, 2_000),
-    retryAfterMaxMs: clampInteger(capabilities.retryAfterMaxMs, 0, 300_000, 30_000),
-    retryNetworkErrors: Boolean(capabilities.retryNetworkErrors),
-  };
-}
-
-function buildNormalizedRetryMetadata(
-  capabilities: OpenAICompatibleRetryCapabilities | null | undefined,
-): JsonRecord {
-  const normalized = normalizeRetryCapabilities(capabilities);
-  const enabled = normalized.maxAttempts > 1;
-  return {
-    enabled,
-    maxAttempts: normalized.maxAttempts,
-    retryStatuses: enabled ? [...normalized.retryStatuses].sort((left, right) => left - right) : [],
-    baseDelayMs: enabled ? normalized.baseDelayMs : 0,
-    maxDelayMs: enabled ? normalized.maxDelayMs : 0,
-    retryAfterMaxMs: enabled ? normalized.retryAfterMaxMs : 0,
-    retryNetworkErrors: enabled ? normalized.retryNetworkErrors : false,
-  };
-}
-
-function normalizeRetryStatuses(value: unknown): number[] | null {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-  const statuses = value
-    .map((entry) => Number(entry))
-    .filter((entry) => Number.isInteger(entry) && entry >= 100 && entry <= 599);
-  return statuses.length > 0 ? [...new Set(statuses)] : null;
-}
-
-function shouldRetryWithoutForcedToolChoice(
-  chatBody: JsonRecord,
-  upstream: {
-    response: Response;
-    errorText: string | null;
-  },
-): boolean {
-  if (upstream.response.ok || upstream.response.status < 400 || upstream.response.status >= 500) {
-    return false;
-  }
-  if (!isForcedChatToolChoice(chatBody?.tool_choice) || normalizeArray(chatBody?.tools).length === 0) {
-    return false;
-  }
-  const errorText = normalizeString(upstream.errorText).toLowerCase();
-  if (!errorText.includes('tool_choice')) {
-    return false;
-  }
-  return errorText.includes('not support')
-    || errorText.includes('does not support')
-    || errorText.includes('unsupported')
-    || errorText.includes('invalidparameter')
-    || errorText.includes('invalid parameter');
-}
-
-function isForcedChatToolChoice(value: unknown): boolean {
-  if (value && typeof value === 'object') {
-    return true;
-  }
-  const normalized = normalizeString(value).toLowerCase();
-  if (!normalized || normalized === 'auto' || normalized === 'none') {
-    return false;
-  }
-  return true;
-}
-
-function resolveRetryDelayMs(
-  headers: Headers | null,
-  text: string,
-  attempt: number,
-  retry: ReturnType<typeof normalizeRetryCapabilities>,
-): number {
-  const retryAfter = parseRetryAfterMs(headers?.get('retry-after') ?? null)
-    ?? parseRetryAfterMsFromBody(text);
-  if (retryAfter !== null) {
-    return retry.retryAfterMaxMs > 0 ? Math.min(retryAfter, retry.retryAfterMaxMs) : retryAfter;
-  }
-  if (retry.baseDelayMs <= 0 || retry.maxDelayMs <= 0) {
-    return 0;
-  }
-  return Math.min(retry.maxDelayMs, retry.baseDelayMs * (2 ** Math.max(0, attempt - 1)));
-}
-
-function parseRetryAfterMs(value: string | null): number | null {
-  const normalized = normalizeString(value);
-  if (!normalized) {
-    return null;
-  }
-  const seconds = Number(normalized);
-  if (Number.isFinite(seconds) && seconds >= 0) {
-    return Math.round(seconds * 1000);
-  }
-  const timestamp = Date.parse(normalized);
-  if (Number.isFinite(timestamp)) {
-    return Math.max(0, timestamp - Date.now());
-  }
-  return null;
-}
-
-function parseRetryAfterMsFromBody(text: string): number | null {
-  const trimmed = normalizeString(text);
-  if (!trimmed) {
-    return null;
-  }
-  try {
-    const parsed = JSON.parse(trimmed);
-    return parseRetryAfterMs(
-      parsed?.retry_after
-        ?? parsed?.retryAfter
-        ?? parsed?.error?.retry_after
-        ?? parsed?.error?.retryAfter
-        ?? null,
-    );
-  } catch {
-    return null;
-  }
-}
-
-async function sleep(ms: number): Promise<void> {
-  if (!Number.isFinite(ms) || ms <= 0) {
-    return;
-  }
-  await new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function upstreamErrorCode(status: number): string {
-  switch (status) {
-    case 401:
-      return 'invalid_api_key';
-    case 403:
-      return 'insufficient_quota';
-    case 404:
-      return 'model_not_found';
-    case 408:
-      return 'request_timeout';
-    case 429:
-      return 'rate_limit_exceeded';
-    default:
-      if (status >= 500) {
-        return 'internal_server_error';
-      }
-      if (status >= 400) {
-        return 'invalid_request_error';
-      }
-      return 'unknown_error';
-  }
-}
-
-function classifyProviderErrorCategory({
-  status,
-  code,
-  type,
-  message,
-}: {
-  status: number;
-  code: unknown;
-  type: unknown;
-  message: unknown;
-}): ProviderErrorCategory {
-  const normalizedCode = normalizeString(code).toLowerCase();
-  const normalizedType = normalizeString(type).toLowerCase();
-  const normalizedMessage = normalizeString(message).toLowerCase();
-  if (
-    status === 401
-    || normalizedCode.includes('invalid_api_key')
-    || normalizedCode.includes('authentication')
-    || normalizedType.includes('authentication')
-    || normalizedMessage.includes('invalid api key')
-    || normalizedMessage.includes('unauthorized')
-  ) {
-    return 'authentication';
-  }
-  if (
-    status === 429
-    || normalizedCode.includes('rate_limit')
-    || normalizedType.includes('rate_limit')
-    || normalizedMessage.includes('rate limit')
-    || normalizedMessage.includes('too many requests')
-  ) {
-    return 'rate_limit';
-  }
-  if (
-    normalizedCode.includes('unsupported')
-    || normalizedType.includes('unsupported')
-    || normalizedMessage.includes('not support')
-    || normalizedMessage.includes('unsupported')
-    || normalizedMessage.includes('does not support')
-  ) {
-    return 'unsupported_feature';
-  }
-  if (status === 404 || normalizedCode.includes('not_found') || normalizedMessage.includes('not found')) {
-    return 'not_found';
-  }
-  if (status === 408 || status >= 500) {
-    return 'transient_upstream';
-  }
-  if (status >= 400 && status < 500) {
-    return 'invalid_request';
-  }
-  return 'upstream_failure';
-}
-
-function buildProviderRetryMetadata(
-  category: ProviderErrorCategory,
-  retryAfterMs: number | null,
-): { retryable: boolean; hint: ProviderRetryHint; retry_after_ms?: number } {
-  switch (category) {
-    case 'authentication':
-      return omitUndefined({
-        retryable: false,
-        hint: 'check_api_key_or_access',
-      });
-    case 'rate_limit':
-      return omitUndefined({
-        retryable: true,
-        hint: 'respect_retry_after',
-        retry_after_ms: retryAfterMs ?? undefined,
-      });
-    case 'transient_upstream':
-      return omitUndefined({
-        retryable: true,
-        hint: 'retry_with_backoff',
-        retry_after_ms: retryAfterMs ?? undefined,
-      });
-    case 'unsupported_feature':
-      return {
-        retryable: false,
-        hint: 'remove_or_downgrade_unsupported_feature',
-      };
-    case 'not_found':
-      return {
-        retryable: false,
-        hint: 'check_model_or_route',
-      };
-    case 'invalid_request':
-      return {
-        retryable: false,
-        hint: 'fix_request',
-      };
-    case 'malformed_upstream':
-    case 'upstream_failure':
-    default:
-      return omitUndefined({
-        retryable: true,
-        hint: 'retry_or_inspect_upstream',
-        retry_after_ms: retryAfterMs ?? undefined,
-      });
-  }
 }
 
 function isBuiltinWebSearchToolType(type: unknown): boolean {
