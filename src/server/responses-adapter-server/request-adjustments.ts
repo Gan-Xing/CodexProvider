@@ -1,10 +1,12 @@
 import {
-  isCodexProviderAdapterEmulatedBuiltinToolType,
   normalizeCodexProviderBuiltinToolName,
 } from '../../builtin-tools/index.js';
 import type {
   NormalizedCodexProviderHostedToolDeclaration,
 } from '../../hosted_tools.js';
+import {
+  isAdapterHostedBuiltinChatTool,
+} from './adapter-hosted-tools.js';
 import type {
   OpenAICompatibleProviderCapabilities,
 } from '../../capabilities/thinking_policy.js';
@@ -183,23 +185,4 @@ function countForwardedInputParts(messages: unknown): { image: number; file: num
 
 function isBuiltinWebSearchToolType(type: unknown): boolean {
   return normalizeCodexProviderBuiltinToolName(type) === 'web_search';
-}
-
-function isAdapterHostedBuiltinChatTool(
-  tool: unknown,
-  hostedTools: NormalizedCodexProviderHostedToolDeclaration[],
-): boolean {
-  if (!tool || typeof tool !== 'object') {
-    return false;
-  }
-  const record = tool as JsonRecord;
-  if (normalizeString(record.type) !== 'function') {
-    return false;
-  }
-  const functionName = normalizeString(record.function?.name);
-  return Boolean(functionName && hostedTools.some((hostedTool) => (
-    isCodexProviderAdapterEmulatedBuiltinToolType(hostedTool.name)
-    && hostedTool.mode === 'adapter-emulated'
-    && normalizeString(hostedTool.emulatedToolName || hostedTool.name) === functionName
-  )));
 }

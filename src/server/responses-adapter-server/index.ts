@@ -13,6 +13,22 @@ export {
   normalizeUpstreamError,
 } from './errors.js';
 export {
+  appendDeferredToolsFromToolSearch,
+  buildAssistantToolCallMessage,
+  buildHostedToolSseEvent,
+  collectAdapterHostedToolCalls,
+  groupAdapterHostedToolCallsByMessage,
+  hostedToolOutputPreview,
+  inspectAdapterHostedStreamingTurn,
+  isAdapterHostedBuiltinChatTool,
+  parseToolCallArguments,
+  requestUsesExecutableAdapterHostedTool,
+} from './adapter-hosted-tools.js';
+export type {
+  AdapterHostedStreamingDecision,
+  AdapterHostedToolCall,
+} from './adapter-hosted-tools.js';
+export {
   buildModelsResponseMetadata,
   normalizeModels,
   resolveModelMetadata,
