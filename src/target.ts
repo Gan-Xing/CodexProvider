@@ -6,7 +6,7 @@ export const CODEX_PROVIDER_TARGET_ZH =
 
 export const CODEX_PROVIDER_PACKAGE_NAME = '@codex-provider/core' as const;
 
-export const CODEX_PROVIDER_PACKAGE_PHASE = 'phase-1-public-api-rename-aliases' as const;
+export const CODEX_PROVIDER_PACKAGE_PHASE = 'phase-2-canonical-api' as const;
 
 export const CODEX_PROVIDER_RELEASE_CHANNEL = 'internal-only' as const;
 

@@ -75,16 +75,12 @@ export function buildCodexToolContext(tools: unknown): CodexToolContext {
         addNamespaceToolsToContext(context, record);
         break;
       case 'web_search':
-      case 'web_search_preview':
-      case 'web_search_preview_2025_03_11':
       case 'file_search':
       case 'tool_search':
       case 'image_generation':
       case 'code_interpreter':
       case 'local_shell':
       case 'computer':
-      case 'computer_use':
-      case 'computer_use_preview':
         addBuiltInToolToContext(context, record, type);
         break;
       default:
@@ -153,16 +149,12 @@ export function responsesToolsToChatTools(
       }
       case 'custom':
       case 'web_search':
-      case 'web_search_preview':
-      case 'web_search_preview_2025_03_11':
       case 'file_search':
       case 'tool_search':
       case 'image_generation':
       case 'code_interpreter':
       case 'local_shell':
-      case 'computer':
-      case 'computer_use':
-      case 'computer_use_preview': {
+      case 'computer': {
         if (isHostedWebSearchToolType(type) && options.builtinToolConverter) {
           const builtin = options.builtinToolConverter(record);
           if (builtin) {
@@ -271,7 +263,7 @@ function detectCodexCustomToolKind(tool: JsonRecord, name: string): CodexCustomT
     return 'apply_patch';
   }
   const type = stringValue(tool.type);
-  if (isHostedWebSearchToolType(type) || ['local_shell', 'computer', 'computer_use', 'computer_use_preview'].includes(type)) {
+  if (isHostedWebSearchToolType(type) || ['local_shell', 'computer'].includes(type)) {
     return 'built_in';
   }
   return 'raw';
@@ -279,15 +271,11 @@ function detectCodexCustomToolKind(tool: JsonRecord, name: string): CodexCustomT
 
 function isHostedWebSearchToolType(type: string): boolean {
   return type === 'web_search'
-    || type === 'web_search_preview'
-    || type === 'web_search_preview_2025_03_11'
     || type === 'file_search'
     || type === 'tool_search'
     || type === 'image_generation'
     || type === 'code_interpreter'
-    || type === 'computer'
-    || type === 'computer_use'
-    || type === 'computer_use_preview';
+    || type === 'computer';
 }
 
 function responsesFunctionToolToChatTool(

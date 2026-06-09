@@ -124,7 +124,7 @@ function applyOpenAICompatiblePayloadRules(
 function payloadRuleList(
   payload: OpenAICompatibleProviderCapabilities['payload'],
   key: keyof NonNullable<OpenAICompatibleProviderCapabilities['payload']>,
-  legacyKey?: string,
+  alternateKey?: string,
 ): OpenAICompatiblePayloadRule[] {
   if (!payload || typeof payload !== 'object') {
     return [];
@@ -133,10 +133,10 @@ function payloadRuleList(
   if (Array.isArray(primary)) {
     return primary;
   }
-  if (legacyKey) {
-    const legacy = (payload as JsonRecord)[legacyKey];
-    if (Array.isArray(legacy)) {
-      return legacy;
+  if (alternateKey) {
+    const alternate = (payload as JsonRecord)[alternateKey];
+    if (Array.isArray(alternate)) {
+      return alternate;
     }
   }
   return [];

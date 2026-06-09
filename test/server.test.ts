@@ -266,7 +266,7 @@ test('adapter server trace sink captures downgrade and filter adjustments', asyn
         model: 'trace-model',
         max_output_tokens: 4000,
         parallel_tool_calls: true,
-        tool_choice: 'web_search_preview',
+        tool_choice: 'web_search',
         text: {
           format: {
             type: 'json_schema',
@@ -286,7 +286,7 @@ test('adapter server trace sink captures downgrade and filter adjustments', asyn
             },
           },
           {
-            type: 'web_search_preview',
+            type: 'web_search',
           },
         ],
         input: [{
@@ -344,7 +344,7 @@ test('adapter server trace sink captures downgrade and filter adjustments', asyn
         kind: 'tool_choice_dropped',
         path: 'tool_choice',
         reason: 'unsupported_or_filtered',
-        before: 'web_search_preview',
+        before: 'web_search',
       },
       {
         kind: 'image_input_downgraded',
@@ -1009,9 +1009,9 @@ test('adapter server executes adapter-emulated web_search inside the Chat Comple
         model: 'adapter-search-model',
         input: 'Find current adapter info.',
         tools: [{
-          type: 'web_search_preview',
+          type: 'web_search',
         }],
-        tool_choice: 'web_search_preview',
+        tool_choice: 'web_search',
       }),
     });
     const body = await response.json() as any;
@@ -1544,9 +1544,9 @@ test('adapter server executes adapter-emulated computer actions inside the Chat 
         model: 'adapter-computer-model',
         input: 'Use the computer.',
         tools: [{
-          type: 'computer_use_preview',
+          type: 'computer',
         }],
-        tool_choice: 'computer_use_preview',
+        tool_choice: 'computer',
       }),
     });
     const body = await response.json() as any;
@@ -1755,7 +1755,7 @@ test('adapter server streams final answer after adapter-emulated web_search exec
         input: 'Find current adapter info.',
         stream: true,
         tools: [{
-          type: 'web_search_preview',
+          type: 'web_search',
         }],
       }),
     });
@@ -2227,7 +2227,7 @@ test('adapter server emits opt-in hosted tool SSE lifecycle events', async () =>
         input: 'Find observable adapter info.',
         stream: true,
         tools: [{
-          type: 'web_search_preview',
+          type: 'web_search',
         }],
       }),
     });
@@ -2459,7 +2459,7 @@ test('adapter server emits hosted tool failed SSE events when an executor throws
         input: 'Find failed adapter info.',
         stream: true,
         tools: [{
-          type: 'web_search_preview',
+          type: 'web_search',
         }],
       }),
     });
@@ -2547,7 +2547,7 @@ test('adapter server rejects streamed turns that mix adapter and non-adapter too
         input: 'Find current adapter info.',
         stream: true,
         tools: [{
-          type: 'web_search_preview',
+          type: 'web_search',
         }, {
           type: 'function',
           name: 'regular_tool',

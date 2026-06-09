@@ -11,7 +11,6 @@ export * from './runtime.js';
 export * from './target.js';
 export * from './tool_search_executor.js';
 export * from './web-search/index.js';
-export * from './web_search_executor.js';
 export {
   OPENAI_COMPATIBLE_PROFILE_PRESET_REGISTRATIONS,
   buildOpenAICompatibleCapabilityCatalogMetadata,
@@ -73,12 +72,12 @@ export {
   responsesRequestToCompactionResponse,
   translateChatCompletionsSseStreamToResponsesSse,
   translateChatCompletionsSseToResponsesEvents,
-} from './converters/responses_adapter.js';
+} from './converters/responses-adapter/index.js';
 export type {
   ChatToResponsesOptions,
   ResponsesSseTranslateOptions,
   ResponsesToChatOptions,
-} from './converters/responses_adapter.js';
+} from './converters/responses-adapter/index.js';
 export {
   buildOpenAICompatibleChatCompletionsUrl,
   buildOpenAICompatibleModelsUrl,

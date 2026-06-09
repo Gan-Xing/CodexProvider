@@ -25,7 +25,7 @@ import type {
   CodexProviderWebSearchSourceReference,
 } from './types.js';
 
-export function createLegacyCodexProviderWebSearchExecutor(
+export function createCodexProviderSourceWebSearchExecutor(
   options: CodexProviderWebSearchExecutorOptions,
 ): CodexProviderHostedToolExecutor {
   const sources = normalizeWebSearchSources(options);

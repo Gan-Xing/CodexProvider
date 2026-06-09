@@ -6,11 +6,11 @@
 
 - [x] `private: true` is retained while the API is still stabilizing.
 - [x] Root `exports` exposes only the stable root entrypoint and `./package.json`.
-- [x] Historical `CodexProvider*` server/trace names remain available as deprecated aliases.
+- [x] Historical server/trace names are removed from the active package surface.
 - [x] Formal `CodexProvider*` server/trace names are exported from the root entrypoint.
-- [x] Formal `CodexProvider*` public API aliases are exported from the root entrypoint.
+- [x] Formal `CodexProvider*` public APIs are exported from the root entrypoint.
 - [x] Package metadata uses `@codex-provider/core` and `0.1.0-alpha.0` while retaining `private: true`.
-- [x] New `codex-provider:*` root scripts exist and legacy `codex-provider:*` scripts remain.
+- [x] Root scripts use canonical `codex-provider:*` names only.
 - [x] Built-in hosted tools require explicit declarations.
 - [x] Adapter-emulated hosted tools require explicit executors.
 - [x] Unsafe tools have no default executor.
@@ -50,7 +50,7 @@ The package does not own:
 
 Prefer adding new root exports over subpath exports until the package reaches a stable semver release. Internal folders can be refactored without breaking consumers as long as the root entrypoint remains compatible.
 
-Deprecated names must stay as type/function aliases for at least one stabilization cycle after the package becomes publishable.
+Deprecated names are not part of the active package surface.
 
 ## Current Blocker
 

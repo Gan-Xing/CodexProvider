@@ -135,7 +135,7 @@ test('responses output exposes adapter web_search call with sources, results, an
           'web_search_call.results',
         ],
         tools: [{
-          type: 'web_search_preview',
+          type: 'web_search',
         }],
       }),
     });
@@ -233,7 +233,7 @@ test('responses output does not fabricate citation annotations without placehold
         model: 'adapter-search-model',
         input: 'Search without citation marker.',
         tools: [{
-          type: 'web_search_preview',
+          type: 'web_search',
         }],
       }),
     });
@@ -352,7 +352,7 @@ test('streaming responses completed event includes adapter web_search call outpu
           'web_search_call.results',
         ],
         tools: [{
-          type: 'web_search_preview',
+          type: 'web_search',
         }],
       }),
     });

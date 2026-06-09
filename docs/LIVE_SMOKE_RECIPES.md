@@ -2,7 +2,7 @@
 
 These recipes are for validating `@codex-provider/core` against real upstream services before public packaging.
 
-Historical names under `@codexbridge/codex-provider` and `codex-provider-server` remain as deprecated aliases during the stabilization cycle.
+Historical package names are documented only in archived migration notes. Active smoke recipes use canonical `@codex-provider/core` package behavior.
 
 Live smoke tests are intentionally manual or opt-in. They require provider credentials, may call paid APIs, and should never run in ordinary unit test flows.
 

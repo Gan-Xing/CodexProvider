@@ -23,7 +23,7 @@ Last updated: 2026-06-07
 - [x] P4 apply-patch proxy: Codex freeform `apply_patch` is exposed to Chat providers as structured proxy tools and reconstructed back to Codex-compatible patch text.
 - [x] P5 reasoning normalization: provider reasoning fields and explicit inline think blocks are surfaced through Responses reasoning events/items instead of leaking into answer text.
 - [x] P6 SSE parser/error handling: upstream `event: error` frames and split UTF-8 chunks are covered by server tests.
-- [x] P7 public facade compatibility: existing `responses_adapter.ts` exports remain stable and existing provider adapter contract tests pass.
+- [x] P7 canonical converter module surface: existing `responses-adapter/` exports remain stable and existing provider adapter contract tests pass.
 - [x] P8 provider adapter config generation: `codex-provider` now generates protocol-aware Codex provider config and `openai_compatible` launch args reuse it.
 - [x] SDK runtime wrapper: `CodexProviderRuntime` owns adapter server start/stop, local Responses base URL exposure, and Codex CLI config generation. A host may inject an adapter server factory, but the default server is package-local.
 - [x] HTTP adapter tool-loop coverage: adapter server tests now verify custom tools, namespace/MCP tools, and `apply_patch` proxy calls over full Responses -> Chat Completions -> Responses request cycles.
@@ -50,7 +50,6 @@ Last updated: 2026-06-07
 
 ### Still To Do
 
-- [ ] Split `responses_adapter.ts` into the proposed smaller modules: `responses_to_chat.ts`, `chat_to_responses.ts`, and `chat_sse_to_responses.ts`.
 - [ ] Add external vector and remote-docs `file_search` source adapters, such as Qdrant, LanceDB, pgvector, and remote-doc stores, behind the existing executor contract.
 - [ ] Add concrete hosted-tool adapters for code interpreter, image generation, and computer-use as separate opt-ins.
 
@@ -70,13 +69,10 @@ Proposed target files:
 
 - `packages/codex-provider/src/converters/codex_tool_context.ts`
 - `packages/codex-provider/src/converters/apply_patch_proxy.ts`
-- `packages/codex-provider/src/converters/responses_to_chat.ts`
-- `packages/codex-provider/src/converters/chat_to_responses.ts`
-- `packages/codex-provider/src/converters/chat_sse_to_responses.ts`
-- `packages/codex-provider/src/converters/responses_adapter.ts`
+- `packages/codex-provider/src/converters/responses-adapter/`
 - `packages/codex-provider/test/codex_plus_plus_protocol.test.ts`
 
-`responses_adapter.ts` should become a compatibility facade that preserves the current public exports while delegating to the smaller modules.
+`responses-adapter/` is the canonical converter module surface with request, response, and SSE submodules.
 
 ## Migration Order
 
@@ -112,7 +108,7 @@ Important behavior:
 - String tool names can be custom tool proxy names.
 - `apply_patch_add_file`, `apply_patch_delete_file`, `apply_patch_update_file`, `apply_patch_replace_file`, and `apply_patch_batch` must map back to original `apply_patch`.
 - `namespace` tools must preserve namespace metadata and flatten child function names only for upstream compatibility.
-- `web_search`, `local_shell`, and `computer_use` should be represented as built-in/custom proxy candidates, not silently dropped.
+- `web_search`, `local_shell`, and `computer` should be represented as built-in/custom proxy candidates, not silently dropped.
 
 Tests to port:
 
@@ -127,7 +123,7 @@ Done when:
 
 ### P1. Responses Request To Chat Completions
 
-Status: Behavior implemented in `packages/codex-provider/src/converters/responses_adapter.ts`; follow-up module split still pending.
+Status: Implemented under `packages/codex-provider/src/converters/responses-adapter/request-to-chat/`.
 
 Source:
 
@@ -140,11 +136,7 @@ Source:
 
 Current target:
 
-- `packages/codex-provider/src/converters/responses_adapter.ts:76` `responsesRequestToChatCompletions`
-
-Future target:
-
-- `packages/codex-provider/src/converters/responses_to_chat.ts`
+- `packages/codex-provider/src/converters/responses-adapter/request-to-chat/`
 
 Port:
 
@@ -180,7 +172,7 @@ Done when:
 
 ### P2. Non-Streaming Chat Response To Responses
 
-Status: Behavior implemented in `packages/codex-provider/src/converters/responses_adapter.ts`; follow-up module split still pending.
+Status: Implemented under `packages/codex-provider/src/converters/responses-adapter/chat-to-responses/`.
 
 Source:
 
@@ -194,11 +186,7 @@ Source:
 
 Current target:
 
-- `packages/codex-provider/src/converters/responses_adapter.ts:174` `chatCompletionsResponseToResponses`
-
-Future target:
-
-- `packages/codex-provider/src/converters/chat_to_responses.ts`
+- `packages/codex-provider/src/converters/responses-adapter/chat-to-responses/`
 
 Port:
 
@@ -231,7 +219,7 @@ Done when:
 
 ### P3. Streaming Chat SSE To Responses SSE
 
-Status: Behavior implemented for custom/apply-patch tool-call reconstruction, reasoning streams, upstream errors, UTF-8 chunking, and inline `<think>` handling in `packages/codex-provider/src/converters/responses_adapter.ts`; follow-up module split still pending.
+Status: Implemented for custom/apply-patch tool-call reconstruction, reasoning streams, upstream errors, UTF-8 chunking, and inline `<think>` handling under `packages/codex-provider/src/converters/responses-adapter/sse/`.
 
 Source:
 
@@ -254,12 +242,7 @@ Source:
 
 Current target:
 
-- `packages/codex-provider/src/converters/responses_adapter.ts:316` `translateChatCompletionsSseStreamToResponsesSse`
-- `packages/codex-provider/src/converters/responses_adapter.ts:740` stream chunk handling
-
-Future target:
-
-- `packages/codex-provider/src/converters/chat_sse_to_responses.ts`
+- `packages/codex-provider/src/converters/responses-adapter/sse/`
 
 Port:
 
@@ -341,7 +324,7 @@ Done when:
 
 ### P5. Reasoning And Thinking Normalization
 
-Status: Implemented for `reasoning_content`, `reasoning_details`, non-streaming inline `<think>`, and streaming inline `<think>` in `packages/codex-provider/src/converters/responses_adapter.ts`
+Status: Implemented for `reasoning_content`, `reasoning_details`, non-streaming inline `<think>`, and streaming inline `<think>` in `packages/codex-provider/src/converters/responses-adapter/`
 
 Source:
 
@@ -354,12 +337,8 @@ Source:
 Current target:
 
 - `packages/codex-provider/src/capabilities/thinking_policy.ts`
-- `packages/codex-provider/src/converters/responses_adapter.ts`
-
-Future target:
-
-- `packages/codex-provider/src/converters/chat_to_responses.ts`
-- `packages/codex-provider/src/converters/chat_sse_to_responses.ts`
+- `packages/codex-provider/src/converters/responses-adapter/chat-to-responses/`
+- `packages/codex-provider/src/converters/responses-adapter/sse/`
 
 Port:
 
@@ -387,7 +366,7 @@ Done when:
 
 ### P6. SSE Parser And Error Handling
 
-Status: Implemented for current server architecture in `packages/codex-provider/src/server/responses_adapter_server.ts`
+Status: Implemented for current server architecture in `packages/codex-provider/src/server/responses-adapter-server/`
 
 Source:
 
@@ -401,12 +380,12 @@ Source:
 
 Current target:
 
-- `packages/codex-provider/src/server/responses_adapter_server.ts:771` `readSseDataLines`
-- `packages/codex-provider/src/converters/responses_adapter.ts:316` streaming generator
+- `packages/codex-provider/src/server/responses-adapter-server/:771` `readSseDataLines`
+- `packages/codex-provider/src/converters/responses-adapter/sse/` streaming generator
 
 Future target:
 
-- `packages/codex-provider/src/converters/chat_sse_to_responses.ts`
+- Keep extending `packages/codex-provider/src/converters/responses-adapter/sse/`.
 
 Port:
 
@@ -432,17 +411,17 @@ Done when:
 
 - Streaming conversion is stable under chunk boundaries, upstream errors, and malformed non-terminal SSE blocks.
 
-### P7. Public Adapter Facade Compatibility
+### P7. Public Adapter Module Surface
 
-Status: Implemented for the current compatibility facade in `packages/codex-provider/src/converters/responses_adapter.ts`
+Status: Implemented for the current canonical module surface in `packages/codex-provider/src/converters/responses-adapter/`
 
 Source:
 
-- Current public functions in `packages/codex-provider/src/converters/responses_adapter.ts`
+- Current public functions in `packages/codex-provider/src/converters/responses-adapter/`
 
 Target:
 
-- `packages/codex-provider/src/converters/responses_adapter.ts`
+- `packages/codex-provider/src/converters/responses-adapter/`
 - `packages/codex-provider/src/index.ts`
 
 Port:
@@ -581,6 +560,6 @@ Start with P0 and P4 together:
 1. Add `codex_tool_context.ts`.
 2. Add `apply_patch_proxy.ts`.
 3. Add request conversion tests for apply-patch proxy tools.
-4. Wire only enough into `responses_adapter.ts` to pass the new tests.
+4. Wire only enough into `responses-adapter/` to pass the new tests.
 
 This creates the reversible identity map needed by every later conversion step. Without it, streaming and non-streaming tool calls cannot be reliably reconstructed.

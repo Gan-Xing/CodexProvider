@@ -37,9 +37,9 @@ test('responses conversion exposes adapter-emulated web_search as a Chat functio
     model: 'example-model',
     input: 'search the web',
     tools: [{
-      type: 'web_search_preview',
+      type: 'web_search',
     }],
-    tool_choice: 'web_search_preview',
+    tool_choice: 'web_search',
   }, {
     providerCapabilities: {
       supportsBuiltinWebSearchTool: false,
@@ -239,14 +239,14 @@ test('responses conversion does not expose code_interpreter without an adapter d
   assert.equal(chat.tool_choice, undefined);
 });
 
-test('responses conversion exposes adapter-emulated computer aliases as a Chat function tool', () => {
+test('responses conversion exposes adapter-emulated computer as a Chat function tool', () => {
   const chat = responsesRequestToChatCompletions({
     model: 'example-model',
     input: 'use computer',
     tools: [{
-      type: 'computer_use_preview',
+      type: 'computer',
     }],
-    tool_choice: 'computer_use_preview',
+    tool_choice: 'computer',
   }, {
     providerCapabilities: {
       supportsBuiltinWebSearchTool: false,

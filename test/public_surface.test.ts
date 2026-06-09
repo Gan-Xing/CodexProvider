@@ -55,7 +55,7 @@ const legacyExampleNamePattern = new RegExp([
 
 test('codex provider package exposes the unified provider boundary contract', () => {
   assert.equal(CODEX_PROVIDER_PACKAGE_NAME, '@codex-provider/core');
-  assert.equal(CODEX_PROVIDER_PACKAGE_PHASE, 'phase-1-public-api-rename-aliases');
+  assert.equal(CODEX_PROVIDER_PACKAGE_PHASE, 'phase-2-canonical-api');
   assert.equal(CODEX_PROVIDER_RELEASE_CHANNEL, 'internal-only');
   assert.equal(CODEX_PROVIDER_TARGET, 'Let non-OpenAI models participate in the Codex native tool-call loop.');
   assert.equal(CODEX_PROVIDER_OWNS.includes('codex-provider-config'), true);

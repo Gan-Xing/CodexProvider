@@ -10,7 +10,7 @@ import {
 } from '../../capabilities/thinking_policy.js';
 import {
   inspectOpenAICompatiblePayloadCompatibility,
-} from '../../converters/responses_adapter.js';
+} from '../../converters/responses-adapter/index.js';
 import type {
   JsonRecord,
   OpenAICompatibleResponsesAdapterServerOptions,

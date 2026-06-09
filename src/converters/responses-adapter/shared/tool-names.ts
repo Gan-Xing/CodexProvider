@@ -64,7 +64,7 @@ function collectChatToolNamesForRequest(request: JsonRecord | null | undefined):
       }
       continue;
     }
-    if (type === 'web_search' || type === 'local_shell' || type === 'computer_use') {
+    if (type === 'web_search' || type === 'local_shell' || type === 'computer') {
       names.push(normalizeString(record.name) || type);
     }
   }

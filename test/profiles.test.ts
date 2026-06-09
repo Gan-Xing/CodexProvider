@@ -81,7 +81,7 @@ test('provider-native hosted tools must be declared explicitly', () => {
     hostedTools: [{
       name: 'web_search',
       mode: 'provider-native',
-      providerToolName: 'web_search_preview',
+      providerToolName: 'web_search',
       description: 'OpenAI hosted web search.',
     }],
   });
@@ -89,7 +89,7 @@ test('provider-native hosted tools must be declared explicitly', () => {
   assert.deepEqual(profile.hostedTools, [{
     name: 'web_search',
     mode: 'provider-native',
-    providerToolName: 'web_search_preview',
+    providerToolName: 'web_search',
     emulatedToolName: null,
     description: 'OpenAI hosted web search.',
   }]);

@@ -2,7 +2,7 @@
 
 `@codex-provider/core` defines contracts for unsafe tools but must not become the default executor for dangerous actions.
 
-Historical names under `@codexbridge/codex-provider` and `CodexProvider*` remain as deprecated aliases during the stabilization cycle.
+Historical package names are documented only in archived migration notes. Active code uses canonical `@codex-provider/core` exports and canonical hosted tool names.
 
 ## Default Policy
 
@@ -27,7 +27,7 @@ OpenAI's Code Interpreter uses a sandboxed container concept. This package only 
 
 ### Computer
 
-OpenAI's GA computer tool uses `computer` and returns batched `actions[]`; legacy preview integrations used `computer_use_preview`.
+The computer tool uses canonical `computer` declarations and returns batched `actions[]`.
 
 A host that wires `computer` must own:
 

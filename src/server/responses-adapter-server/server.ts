@@ -2,7 +2,7 @@ import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import {
   chatCompletionsResponseToResponses,
   responsesRequestToChatCompletions,
-} from '../../converters/responses_adapter.js';
+} from '../../converters/responses-adapter/index.js';
 import {
   resolveOpenAICompatibleProviderCapabilitiesForModel,
   type OpenAICompatibleProviderCapabilities,

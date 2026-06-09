@@ -3,7 +3,7 @@ import type {
 } from 'node:http';
 import {
   translateChatCompletionsSseStreamToResponsesSse,
-} from '../../converters/responses_adapter.js';
+} from '../../converters/responses-adapter/index.js';
 import type {
   OpenAICompatibleProviderCapabilities,
 } from '../../capabilities/thinking_policy.js';

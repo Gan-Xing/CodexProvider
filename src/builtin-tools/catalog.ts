@@ -18,7 +18,7 @@ export const CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS: Record<
 > = {
   web_search: {
     name: 'web_search',
-    openaiToolTypes: ['web_search', 'web_search_preview', 'web_search_preview_2025_03_11'],
+    openaiToolTypes: ['web_search'],
     toolModes: ['provider-native', 'adapter-emulated'],
     adapterEmulatedSupported: true,
     providerNativeSupported: true,
@@ -109,7 +109,7 @@ export const CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS: Record<
   },
   computer: {
     name: 'computer',
-    openaiToolTypes: ['computer', 'computer_use', 'computer_use_preview'],
+    openaiToolTypes: ['computer'],
     toolModes: ['provider-native', 'adapter-emulated', 'codex-local-first'],
     adapterEmulatedSupported: true,
     providerNativeSupported: true,
@@ -163,8 +163,6 @@ export const CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS: Record<
 
 export const CODEX_PROVIDER_BUILTIN_TOOL_ALIASES: Record<string, CodexProviderBuiltinToolName> = {
   web_search: 'web_search',
-  web_search_preview: 'web_search',
-  web_search_preview_2025_03_11: 'web_search',
   file_search: 'file_search',
   tool_search: 'tool_search',
   mcp: 'mcp',
@@ -172,8 +170,6 @@ export const CODEX_PROVIDER_BUILTIN_TOOL_ALIASES: Record<string, CodexProviderBu
   shell: 'shell',
   local_shell: 'local_shell',
   computer: 'computer',
-  computer_use: 'computer',
-  computer_use_preview: 'computer',
   code_interpreter: 'code_interpreter',
   image_generation: 'image_generation',
   apply_patch: 'apply_patch',

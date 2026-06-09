@@ -2,7 +2,7 @@
 
 This document tracks how `@codex-provider/core` maps OpenAI Responses built-in tools to package-owned behavior.
 
-Historical names under `@codexbridge/codex-provider` and `CodexProvider*` remain as deprecated aliases during the stabilization cycle.
+Historical package and tool names are documented only in archived migration notes. The active package surface uses canonical `@codex-provider/core` exports and canonical hosted tool names.
 
 The package goal is not to pretend every upstream provider supports OpenAI hosted tools. It must make each tool mode explicit:
 
@@ -29,14 +29,14 @@ Official OpenAI docs checked for this matrix:
 
 | Tool | OpenAI tool type | Current support | Tool mode | Executor required | Output parity | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Web search | `web_search` | Strong v1. `web_search_preview*` aliases normalize to canonical `web_search`; adapter executor supports native metasearch, Tavily/Brave/Serper API engines, no-key HTML engines, SearXNG/OpenSERP endpoint adapters, retrieval/chunking, local cache indexes, and optional deep-search custom tooling. | `provider-native` / `adapter-emulated` | Yes for `adapter-emulated` | Strong adapter parity for synthetic `web_search_call`, include-gated `action.sources` / `results`, and `[[source:N]]` to `url_citation` annotations. Exact OpenAI hosted index quality is not claimed. | P1 done |
+| Web search | `web_search` | Strong v1. Adapter executor supports native metasearch, Tavily/Brave/Serper API engines, no-key HTML engines, SearXNG/OpenSERP endpoint adapters, retrieval/chunking, local cache indexes, and optional deep-search custom tooling. | `provider-native` / `adapter-emulated` | Yes for `adapter-emulated` | Strong adapter parity for synthetic `web_search_call`, include-gated `action.sources` / `results`, and `[[source:N]]` to `url_citation` annotations. Exact OpenAI hosted index quality is not claimed. | P1 done |
 | File search | `file_search` | Strong v1. Local-fs, memory, sqlite-fts, in-memory-vector, local-vector, cache fingerprint, RRF, safety bounds, vector-store contract, remote-doc contract, and `include: ["file_search_call.results"]` exposure exist. | `adapter-emulated` | Yes | Strong adapter parity for OpenAI-like `data[]` and synthetic `file_search_call.results`; exact OpenAI-hosted retrieval annotations are not claimed. | P1 done |
 | Tool search | `tool_search` as package-owned deferred discovery surface. | Partial. Registry/converter/server loop support adapter-emulated `tool_search`; `createCodexProviderToolSearchExecutor()` can return deferred function tools and namespaces. | `adapter-emulated` / client-deferred | Yes | Partial. Returned tools are appended to the next Chat request; no provider-native output item is synthesized. | P2 done |
 | Remote MCP / connectors | `mcp` | No package executor. OpenAI-hosted Responses can use `mcp`; Codex hosts may also handle MCP locally. | `provider-native` / `codex-local-first`; future `adapter-emulated` only with explicit host adapter | Yes for adapter | No | P2 |
 | Skills | Not an OpenAI Responses hosted tool type; Codex-local customization surface. | No package support. Should stay host/Codex-local unless modeled as deferred tool definitions later. | `codex-local-first` | No package executor by default | Not applicable | P2 |
 | Image generation | `image_generation` | Partial. Registry/converter/server loop support adapter-emulated `image_generation`; `createCodexProviderImageGenerationExecutor()` exposes a host-supplied provider contract. | `provider-native` / `adapter-emulated` | Yes for adapter | Partial. Opt-in `image_generation_call` output can be appended; no default image provider is bundled. | P3 done |
 | Code interpreter | `code_interpreter` | Partial. Registry/converter/server loop support adapter-emulated `code_interpreter`; `createCodexProviderCodeInterpreterExecutor()` exposes a host-supplied sandbox contract. | `provider-native` / `adapter-emulated` | Yes for adapter | Partial. stdout/stderr/result/files are returned as tool output; stdout/stderr can stream through hosted tool SSE deltas. No default sandbox is bundled. | P4 done |
-| Computer | `computer` canonical name, with `computer_use` and `computer_use_preview` legacy aliases. | Partial. Registry/converter/server loop support adapter-emulated `computer`; `createCodexProviderComputerExecutor()` exposes a host-supplied computer adapter contract. | `codex-local-first` first / `provider-native` / `adapter-emulated` only with explicit executor | Yes for adapter | Partial. actions/display are normalized and screenshot/observations are returned as tool output. No default computer control is bundled. | P5 done |
+| Computer | `computer` | Partial. Registry/converter/server loop support adapter-emulated `computer`; `createCodexProviderComputerExecutor()` exposes a host-supplied computer adapter contract. | `codex-local-first` first / `provider-native` / `adapter-emulated` only with explicit executor | Yes for adapter | Partial. actions/display are normalized and screenshot/observations are returned as tool output. No default computer control is bundled. | P5 done |
 | Shell | Codex-local tool surface, not a general OpenAI hosted tool. Existing converter has Codex built-in context handling for `local_shell`. | Partial Codex-local conversion only. No hosted adapter shell executor. | `codex-local-first`; future `adapter-emulated` should remain unsafe and opt-in only | Yes for adapter | Partial for Codex-local custom-tool conversion only | P5 |
 | Local shell | `local_shell` in Codex-local context, not a general public OpenAI hosted tool. | Partial Codex-local conversion only. | `codex-local-first` | No package executor by default | Partial | Keep local-first |
 | Apply patch | Codex custom tool `apply_patch` | Strong Codex++ proxy conversion for structured Chat tool calls and response reconstruction. | `codex-local-first` | Codex executes; package only translates/proxies | Strong for current Codex custom-tool bridge | Keep |
@@ -61,8 +61,8 @@ Current implementation now centralizes canonical built-in metadata in `src/built
 
 - `src/hosted_tools.ts`
 - `src/hosted_tool_executors.ts`
-- `src/converters/responses_adapter.ts`
-- `src/server/responses_adapter_server.ts`
+- `src/converters/responses-adapter/`
+- `src/server/responses-adapter-server/`
 - `src/converters/codex_tool_context.ts`
 
 The next phase should keep moving heavy or unsafe tools behind explicit executor contracts without changing existing public behavior.
@@ -79,7 +79,6 @@ The next phase should keep moving heavy or unsafe tools behind explicit executor
 
 4. Unsafe tools remain disabled by default:
    - `computer`
-   - `computer_use_preview`
    - `shell`
    - `local_shell`
    - `code_interpreter`
@@ -89,17 +88,13 @@ The next phase should keep moving heavy or unsafe tools behind explicit executor
 
 ## Priority Plan
 
-### P1: Registry and alias normalization
+### P1: Registry and canonical names
 
 - Done: added `src/builtin-tools/`.
 - Done: defined canonical tool names.
-- Done: normalized legacy aliases:
-  - `web_search_preview` -> `web_search`
-  - `web_search_preview_2025_03_11` -> `web_search`
-  - `computer_use` -> `computer`
-  - `computer_use_preview` -> `computer`
+- Done: canonical hosted tool names are required at declaration and execution boundaries.
 - Done: replaced distributed built-in checks with registry-backed facade functions where they affect hosted adapter exposure.
-- Done: preserved existing public API and tests.
+- Done: canonical public API and tests are enforced.
 
 ### P1: File search parity hardening
 
@@ -149,7 +144,7 @@ The next phase should keep moving heavy or unsafe tools behind explicit executor
   - `createCodexProviderStandaloneServerFromEnv`
   - `loadCodexProviderStandaloneEnvFile`
   - `resolveCodexProviderStandaloneServerEnv`
-- Done: deprecated `CodexProvider*` aliases remain available for old consumers.
+- Done: only canonical `CodexProvider*` exports are part of the active root surface.
 - Done: standalone deployments can use `CODEX_PROVIDER_*` environment variables while the env namespace remains stable.
 - Done: host-neutral examples and recipes exist under `examples/` and `docs/RECIPES.md`.
 - Done: live smoke recipes, unsafe tool security notes, and release-readiness policy docs exist.

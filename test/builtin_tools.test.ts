@@ -20,31 +20,35 @@ test('builtin tool registry exposes canonical tool definitions', () => {
   assert.equal(CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS.apply_patch.status, 'supported');
 });
 
-test('builtin tool aliases normalize without enabling unsupported adapter tools', () => {
-  assert.equal(normalizeCodexProviderBuiltinToolName('web_search_preview'), 'web_search');
-  assert.equal(normalizeCodexProviderBuiltinToolName('web_search_preview_2025_03_11'), 'web_search');
+test('builtin tool registry accepts only canonical tool names', () => {
+  assert.equal(normalizeCodexProviderBuiltinToolName('web_search'), 'web_search');
   assert.equal(normalizeCodexProviderBuiltinToolName('tool_search'), 'tool_search');
   assert.equal(normalizeCodexProviderBuiltinToolName('image_generation'), 'image_generation');
   assert.equal(normalizeCodexProviderBuiltinToolName('code_interpreter'), 'code_interpreter');
-  assert.equal(normalizeCodexProviderBuiltinToolName('computer_use'), 'computer');
-  assert.equal(normalizeCodexProviderBuiltinToolName('computer_use_preview'), 'computer');
+  assert.equal(normalizeCodexProviderBuiltinToolName('computer'), 'computer');
+  assert.equal(normalizeCodexProviderBuiltinToolName('web_search_preview'), null);
+  assert.equal(normalizeCodexProviderBuiltinToolName('web_search_preview_2025_03_11'), null);
+  assert.equal(normalizeCodexProviderBuiltinToolName('computer_use'), null);
+  assert.equal(normalizeCodexProviderBuiltinToolName('computer_use_preview'), null);
   assert.equal(normalizeCodexProviderBuiltinToolName('not_a_builtin_tool'), null);
-  assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('web_search_preview'), true);
+  assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('web_search'), true);
+  assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('web_search_preview'), false);
   assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('file_search'), true);
   assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('tool_search'), true);
   assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('image_generation'), true);
   assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('code_interpreter'), true);
-  assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('computer_use_preview'), true);
+  assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('computer'), true);
+  assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('computer_use_preview'), false);
 });
 
-test('hosted tool declarations normalize legacy aliases to canonical names', () => {
+test('hosted tool declarations require canonical tool names', () => {
   const hostedTools = normalizeCodexProviderHostedTools([
     {
-      name: 'web_search_preview',
+      name: 'web_search',
       mode: 'adapter-emulated',
     },
     {
-      name: 'computer_use_preview',
+      name: 'computer',
       mode: 'provider-native',
     },
   ]);
@@ -66,18 +70,26 @@ test('hosted tool declarations normalize legacy aliases to canonical names', () 
     },
   ]);
   assert.throws(() => normalizeCodexProviderHostedTools([{
+    name: 'web_search_preview',
+    mode: 'adapter-emulated',
+  } as any]), /Unsupported hosted tool name/u);
+  assert.throws(() => normalizeCodexProviderHostedTools([{
+    name: 'computer_use_preview',
+    mode: 'adapter-emulated',
+  } as any]), /Unsupported hosted tool name/u);
+  assert.throws(() => normalizeCodexProviderHostedTools([{
     name: 'unknown_builtin',
     mode: 'adapter-emulated',
   } as any]), /Unsupported hosted tool name/u);
 });
 
-test('hosted tool executor registry resolves legacy aliases to canonical names', async () => {
+test('hosted tool executor registry uses canonical tool names', async () => {
   const registry = createCodexProviderHostedToolExecutorRegistry({
-    computer_use_preview: () => ({ content: 'ok' }),
+    computer: () => ({ content: 'ok' }),
   });
 
   assert.equal(registry.has('computer'), true);
-  assert.equal(registry.has('computer_use'), true);
+  assert.equal(registry.has('computer_use' as any), false);
   assert.deepEqual(await registry.execute({
     toolName: 'computer',
     emulatedToolName: 'adapter_computer',

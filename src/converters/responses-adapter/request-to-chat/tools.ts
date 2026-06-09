@@ -114,8 +114,6 @@ export function normalizeBuiltinToolType(
   }
   switch (normalizeString(type)) {
     case 'web_search':
-    case 'web_search_preview':
-    case 'web_search_preview_2025_03_11':
       return 'web_search';
     default:
       return '';

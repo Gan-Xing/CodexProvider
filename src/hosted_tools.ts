@@ -9,10 +9,6 @@ import {
 
 export type CodexProviderHostedToolName =
   | CodexProviderBuiltinToolName
-  | 'web_search_preview'
-  | 'web_search_preview_2025_03_11'
-  | 'computer_use'
-  | 'computer_use_preview'
   | `custom:${string}`;
 
 export type CodexProviderHostedToolMode =

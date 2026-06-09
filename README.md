@@ -68,7 +68,7 @@ The profile surface exposes the safe presets app-servers should use:
 | `mixed` | `codex-auth-compatible` | `chat-completions` | Yes | Codex++ style adapter: Codex sees Responses, the provider adapter owns upstream API calls. |
 | `pure-api` | `api-key-compatible` | `chat-completions` | Yes | API-key-only fallback for OpenAI-compatible providers. |
 
-The next implementation phase is splitting the low-level adapter converter into smaller request, response, and SSE modules while preserving the current public facade.
+The low-level adapter converter is split into request, response, and SSE modules under `src/converters/responses-adapter/`; new code should use the canonical root package surface instead of underscore-era module paths.
 
 See [docs/TARGET.md](docs/TARGET.md) for the locked target and phased migration plan.
 
