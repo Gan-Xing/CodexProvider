@@ -106,7 +106,7 @@ The next phase should keep moving heavy or unsafe tools behind explicit executor
 
 ### P2: Web search v2
 
-- Done: parse `search_context_size`, `user_location`, `filters`, `external_web_access`, and `return_token_budget`.
+- Done: parse `search_context_size`, `user_location`, `filters`, `external_web_access`, and OpenAI-compatible `return_token_budget` values (`default` / `unlimited`).
 - Done: Tavily/Brave/Serper providers are available as API search engines.
 - Done: added no-key HTML engines, SearXNG/OpenSERP endpoint adapters, retrieval/chunking, local cache indexes, and optional deep-search graph runtime.
 - Done: synthetic Responses output now appends `web_search_call`, supports `include: ["web_search_call.action.sources", "web_search_call.results"]`, and converts `[[source:N]]` placeholders into `url_citation` annotations.

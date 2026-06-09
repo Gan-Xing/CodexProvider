@@ -179,7 +179,7 @@ test('web_search executor uses cache source when external_web_access is false', 
         live: false,
         search(request) {
           assert.equal(request.externalWebAccess, false);
-          assert.equal(request.returnTokenBudget, 400);
+          assert.equal(request.returnTokenBudget, 'default');
           assert.deepEqual(request.userLocation, {
             type: 'approximate',
             country: 'US',
@@ -212,7 +212,7 @@ test('web_search executor uses cache source when external_web_access is false', 
   const result = await executor(baseRequest({
     query: 'cached query',
     external_web_access: false,
-    return_token_budget: 400,
+    return_token_budget: 'default',
     user_location: {
       type: 'approximate',
       country: 'US',
@@ -226,9 +226,44 @@ test('web_search executor uses cache source when external_web_access is false', 
   assert.equal(content.answer, 'cached answer');
   assert.equal(content.external_web_access, false);
   assert.equal(content.search_context_size, 'medium');
-  assert.equal(content.return_token_budget, 400);
+  assert.equal(content.return_token_budget, 'default');
   assert.equal(content.sources?.[0].url, 'https://example.com/cache');
   assert.equal(content.citations?.[0].url, 'https://example.com/cache');
+});
+
+test('web_search executor normalizes string return_token_budget and drops numbers', async () => {
+  const seenBudgets: unknown[] = [];
+  const executor = createCodexProviderWebSearchExecutor({
+    sources: [{
+      name: 'budget-source',
+      type: 'custom',
+      live: true,
+      search(request) {
+        seenBudgets.push(request.returnTokenBudget);
+        return {
+          results: [],
+        };
+      },
+    }],
+  });
+
+  const defaultResult = await executor(baseRequest({
+    query: 'default budget',
+    return_token_budget: 'default',
+  }));
+  const unlimitedResult = await executor(baseRequest({
+    query: 'unlimited budget',
+    return_token_budget: 'unlimited',
+  }));
+  const numericResult = await executor(baseRequest({
+    query: 'numeric budget',
+    return_token_budget: 400,
+  }));
+
+  assert.deepEqual(seenBudgets, ['default', 'unlimited', null]);
+  assert.equal((defaultResult.content as CodexProviderWebSearchExecutorContent).return_token_budget, 'default');
+  assert.equal((unlimitedResult.content as CodexProviderWebSearchExecutorContent).return_token_budget, 'unlimited');
+  assert.equal((numericResult.content as CodexProviderWebSearchExecutorContent).return_token_budget, null);
 });
 
 test('web_search executor passes v2 fields and filters source results', async () => {
@@ -264,7 +299,7 @@ test('web_search executor passes v2 fields and filters source results', async ()
   const result = await executor(baseRequest({
     query: 'filtered query',
     search_context_size: 'high',
-    return_token_budget: 900,
+    return_token_budget: 'unlimited',
     filters: {
       allowed_domains: ['docs.example.com'],
       blocked_domains: ['blocked.example.com'],
@@ -275,7 +310,7 @@ test('web_search executor passes v2 fields and filters source results', async ()
   assert.equal(sourceRequests[0].query, 'filtered query');
   assert.equal(sourceRequests[0].searchContextSize, 'high');
   assert.equal(sourceRequests[0].externalWebAccess, true);
-  assert.equal(sourceRequests[0].returnTokenBudget, 900);
+  assert.equal(sourceRequests[0].returnTokenBudget, 'unlimited');
   assert.deepEqual(sourceRequests[0].filters.allowedDomains, ['docs.example.com']);
   assert.deepEqual(sourceRequests[0].filters.blockedDomains, ['blocked.example.com']);
   assert.equal(content.results.length, 1);
@@ -369,7 +404,7 @@ test('metasearch web_search executor returns sources, chunks, and citation instr
   const result = await executor(baseRequest({
     query: 'codex provider retrieval citations',
     search_context_size: 'high',
-    return_token_budget: 900,
+    return_token_budget: 'default',
     filters: {
       allowed_domains: ['docs.example.com'],
       blocked_domains: ['blocked.example.com'],
@@ -384,6 +419,7 @@ test('metasearch web_search executor returns sources, chunks, and citation instr
   assert.equal(retrievalRequests[0].url, 'https://docs.example.com/web-search');
   assert.equal(retrievalRequests[0].externalWebAccess, true);
   assert.equal(content.provider, 'metasearch');
+  assert.equal(content.return_token_budget, 'default');
   assert.equal(content.results[0].url, 'https://docs.example.com/web-search');
   assert.equal(content.sources[0].id, 1);
   assert.equal(content.documents[0].from_cache, false);

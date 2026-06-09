@@ -56,6 +56,13 @@ test('responses conversion exposes adapter-emulated web_search as a Chat functio
   assert.equal(chat.tools[0].type, 'function');
   assert.equal(chat.tools[0].function.name, 'adapter_web_search');
   assert.equal(chat.tools[0].function.parameters.required[0], 'query');
+  assert.equal(chat.tools[0].function.parameters.properties.filters.type, 'object');
+  assert.equal(chat.tools[0].function.parameters.properties.filters.properties.allowed_domains.type, 'array');
+  assert.equal(chat.tools[0].function.parameters.properties.filters.properties.blocked_domains.type, 'array');
+  assert.equal(chat.tools[0].function.parameters.properties.external_web_access.type, 'boolean');
+  assert.deepEqual(chat.tools[0].function.parameters.properties.return_token_budget.enum, ['default', 'unlimited', null]);
+  assert.equal(chat.tools[0].function.parameters.properties.max_results.type, 'integer');
+  assert.equal(chat.tools[0].function.parameters.properties.max_num_results.type, 'integer');
   assert.deepEqual(chat.tool_choice, {
     type: 'function',
     function: {

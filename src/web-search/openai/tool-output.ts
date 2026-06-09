@@ -13,6 +13,9 @@ import type {
 import type {
   CodexProviderOpenAiWebSearchRequest,
 } from './request.js';
+import type {
+  CodexProviderWebSearchReturnTokenBudget,
+} from '../types.js';
 
 export interface CodexProviderOpenAiWebSearchResult {
   title: string;
@@ -64,7 +67,7 @@ export interface CodexProviderOpenAiWebSearchExecutorContent {
   retrieved_at: string;
   external_web_access: boolean;
   search_context_size: string;
-  return_token_budget?: number | null;
+  return_token_budget?: CodexProviderWebSearchReturnTokenBudget;
   unresponsive_engines: CodexProviderUnresponsiveEngine[];
   timings: Record<string, number>;
 }

@@ -3,6 +3,9 @@ import type {
   JsonRecord,
 } from '../../hosted_tool_executors.js';
 import type {
+  CodexProviderWebSearchReturnTokenBudget,
+} from '../types.js';
+import type {
   CodexProviderSafeSearchMode,
   CodexProviderSearchCategory,
   CodexProviderSearchMode,
@@ -33,7 +36,7 @@ export interface CodexProviderOpenAiWebSearchRequest {
   blockedDomains: string[];
   externalWebAccess: boolean;
   searchContextSize: CodexProviderOpenAiWebSearchContextSize;
-  returnTokenBudget: number | null;
+  returnTokenBudget: CodexProviderWebSearchReturnTokenBudget;
   userLocation: JsonRecord | null;
   budget: CodexProviderOpenAiWebSearchBudget;
   rawRequest: CodexProviderHostedToolExecutionRequest;
@@ -82,7 +85,7 @@ export function normalizeCodexProviderOpenAiWebSearchRequest(
     blockedDomains: filters.blockedDomains,
     externalWebAccess: request.arguments.external_web_access !== false,
     searchContextSize,
-    returnTokenBudget: normalizePositiveInteger(request.arguments.return_token_budget),
+    returnTokenBudget: normalizeReturnTokenBudget(request.arguments.return_token_budget),
     userLocation: normalizeUserLocation(request.arguments.user_location),
     budget,
     rawRequest: request,
@@ -137,6 +140,14 @@ function normalizeSearchContextSize(value: unknown): CodexProviderOpenAiWebSearc
     return normalized;
   }
   return 'medium';
+}
+
+function normalizeReturnTokenBudget(value: unknown): CodexProviderWebSearchReturnTokenBudget {
+  const normalized = normalizeString(value).toLowerCase();
+  if (normalized === 'default' || normalized === 'unlimited') {
+    return normalized;
+  }
+  return null;
 }
 
 function normalizeSearchMode(value: unknown): CodexProviderSearchMode | null {
@@ -235,11 +246,6 @@ function normalizeNullableString(value: unknown): string | null {
 
 function normalizeString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function normalizePositiveInteger(value: unknown): number | null {
-  const number = Number(value);
-  return Number.isInteger(number) && number > 0 ? number : null;
 }
 
 function clampInteger(value: unknown, min: number, max: number, fallback: number): number {

@@ -9,6 +9,7 @@ import type {
   CodexProviderWebSearchExecutorOptions,
   CodexProviderWebSearchFilters,
   CodexProviderWebSearchResult,
+  CodexProviderWebSearchReturnTokenBudget,
   CodexProviderWebSearchSource,
   CodexProviderWebSearchSourceInput,
   CodexProviderWebSearchSourceReference,
@@ -17,7 +18,6 @@ import type {
 import {
   clampInteger,
   normalizeFiniteNumber,
-  normalizePositiveInteger,
   normalizeString,
 } from './executor-utils.js';
 import {
@@ -80,7 +80,7 @@ export function normalizeWebSearchRequest(
     userLocation: normalizeUserLocation(request.arguments.user_location),
     filters: normalizeWebSearchFilters(request.arguments.filters),
     externalWebAccess: request.arguments.external_web_access !== false,
-    returnTokenBudget: normalizePositiveInteger(request.arguments.return_token_budget),
+    returnTokenBudget: normalizeReturnTokenBudget(request.arguments.return_token_budget),
   };
 }
 
@@ -100,6 +100,14 @@ function normalizeSearchContextSize(value: unknown): CodexProviderWebSearchConte
     return normalized;
   }
   return 'medium';
+}
+
+function normalizeReturnTokenBudget(value: unknown): CodexProviderWebSearchReturnTokenBudget {
+  const normalized = normalizeString(value).toLowerCase();
+  if (normalized === 'default' || normalized === 'unlimited') {
+    return normalized;
+  }
+  return null;
 }
 
 function normalizeUserLocation(value: unknown): JsonRecord | null {

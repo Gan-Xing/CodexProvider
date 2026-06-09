@@ -17,6 +17,49 @@ export const WEB_SEARCH_TOOL_PARAMETERS: JsonRecord = {
       description: 'Optional user location hints from the original request.',
       additionalProperties: true,
     },
+    filters: {
+      type: 'object',
+      description: 'Optional OpenAI-compatible domain filters for web search.',
+      properties: {
+        allowed_domains: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Domains the search results are allowed to include.',
+        },
+        blocked_domains: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Domains the search results must exclude.',
+        },
+      },
+      additionalProperties: true,
+    },
+    external_web_access: {
+      type: 'boolean',
+      description: 'When false, only configured offline/cache web search sources may be used.',
+    },
+    return_token_budget: {
+      type: ['string', 'null'],
+      enum: ['default', 'unlimited', null],
+      description: 'OpenAI-compatible web search return token budget hint.',
+    },
+    mode: {
+      type: 'string',
+      enum: ['fast', 'any', 'balanced', 'exhaustive'],
+      description: 'Optional CodexProvider metasearch execution mode.',
+    },
+    max_results: {
+      type: 'integer',
+      minimum: 1,
+      maximum: 50,
+      description: 'Maximum number of web search results to return.',
+    },
+    max_num_results: {
+      type: 'integer',
+      minimum: 1,
+      maximum: 50,
+      description: 'OpenAI-compatible maximum number of web search results to return.',
+    },
   },
   required: ['query'],
   additionalProperties: true,

@@ -19,6 +19,11 @@ export type CodexProviderWebSearchProvider =
 
 export type CodexProviderWebSearchContextSize = 'low' | 'medium' | 'high';
 
+export type CodexProviderWebSearchReturnTokenBudget =
+  | 'default'
+  | 'unlimited'
+  | null;
+
 export interface CodexProviderWebSearchExecutorOptions {
   search?: CodexProviderMetaSearchService | null;
   retrieval?: CodexProviderWebRetrievalFetcher | null;
@@ -72,7 +77,7 @@ export interface CodexProviderWebSearchSourceRequest {
   userLocation: JsonRecord | null;
   filters: CodexProviderWebSearchFilters | null;
   externalWebAccess: boolean;
-  returnTokenBudget: number | null;
+  returnTokenBudget: CodexProviderWebSearchReturnTokenBudget;
   toolRequest: CodexProviderHostedToolExecutionRequest;
 }
 
@@ -124,5 +129,5 @@ export interface CodexProviderWebSearchExecutorContent {
   retrieved_at: string;
   external_web_access: boolean;
   search_context_size: CodexProviderWebSearchContextSize;
-  return_token_budget?: number | null;
+  return_token_budget?: CodexProviderWebSearchReturnTokenBudget;
 }
