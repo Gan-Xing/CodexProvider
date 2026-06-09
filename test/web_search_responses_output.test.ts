@@ -75,6 +75,24 @@ test('responses output exposes adapter web_search call with sources, results, an
             url: 'https://example.com/phase-7-result',
             snippet: 'Phase 7 result snippet.',
           }],
+          documents: [{
+            source_id: 1,
+            url: 'https://example.com/phase-7-source',
+            final_url: 'https://example.com/phase-7-source',
+            title: 'Phase 7 Source',
+            text: 'Phase 7 retrieved page text.',
+            content_type: 'text/html',
+            fetched_at: '2026-06-09T00:00:00.000Z',
+            from_cache: false,
+          }],
+          chunks: [{
+            source_id: 1,
+            chunk_id: 'chunk_phase_7_1',
+            url: 'https://example.com/phase-7-source',
+            title: 'Phase 7 Source',
+            text: 'Phase 7 chunk text for find in page.',
+            score: 0.93,
+          }],
         },
       }),
     },
@@ -155,6 +173,10 @@ test('responses output exposes adapter web_search call with sources, results, an
     assert.equal(webSearchCall.action.type, 'search');
     assert.equal(webSearchCall.action.query, 'phase 7 search');
     assert.equal(webSearchCall.action.sources[0].url, 'https://example.com/phase-7-source');
+    assert.deepEqual(webSearchCall.actions.map((action: any) => action.type), ['search', 'open_page', 'find_in_page']);
+    assert.equal(webSearchCall.actions[1].url, 'https://example.com/phase-7-source');
+    assert.equal(webSearchCall.actions[2].chunk_id, 'chunk_phase_7_1');
+    assert.match(webSearchCall.actions[2].text, /find in page/u);
     assert.equal(webSearchCall.results[0].url, 'https://example.com/phase-7-result');
   } finally {
     await server.stop();
@@ -244,6 +266,7 @@ test('responses output does not fabricate citation annotations without placehold
     assert.equal(textPart.text, 'Answer without citation marker.');
     assert.deepEqual(textPart.annotations ?? [], []);
     assert.equal(outputItem(body, 'web_search_call').action.type, 'search');
+    assert.equal(outputItem(body, 'web_search_call').actions, undefined);
   } finally {
     await server.stop();
   }
@@ -272,6 +295,24 @@ test('streaming responses completed event includes adapter web_search call outpu
           results: [{
             title: 'Streaming Phase 7 Result',
             url: 'https://example.com/streaming-phase-7-result',
+          }],
+          documents: [{
+            source_id: 1,
+            url: 'https://example.com/streaming-phase-7',
+            final_url: 'https://example.com/streaming-phase-7',
+            title: 'Streaming Phase 7 Source',
+            text: 'Streaming retrieved page text.',
+            content_type: 'text/html',
+            fetched_at: '2026-06-09T00:00:00.000Z',
+            from_cache: false,
+          }],
+          chunks: [{
+            source_id: 1,
+            chunk_id: 'chunk_streaming_phase_7_1',
+            url: 'https://example.com/streaming-phase-7',
+            title: 'Streaming Phase 7 Source',
+            text: 'Streaming chunk text for find in page.',
+            score: 0.88,
           }],
         },
       }),
@@ -372,6 +413,9 @@ test('streaming responses completed event includes adapter web_search call outpu
     assert.equal(webSearchCall.action.type, 'search');
     assert.equal(webSearchCall.action.query, 'streaming phase 7');
     assert.equal(webSearchCall.action.sources[0].url, 'https://example.com/streaming-phase-7');
+    assert.deepEqual(webSearchCall.actions.map((action: any) => action.type), ['search', 'open_page', 'find_in_page']);
+    assert.equal(webSearchCall.actions[1].url, 'https://example.com/streaming-phase-7');
+    assert.equal(webSearchCall.actions[2].chunk_id, 'chunk_streaming_phase_7_1');
     assert.equal(webSearchCall.results[0].url, 'https://example.com/streaming-phase-7-result');
   } finally {
     await server.stop();

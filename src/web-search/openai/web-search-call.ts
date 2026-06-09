@@ -34,6 +34,14 @@ export function buildCodexProviderWebSearchCallOutputItem(
     || normalizeString(payload?.query);
   const sources = normalizeWebSearchSources(payload);
   const results = normalizeWebSearchResults(payload);
+  const detailedActions = options.includeSources || options.includeResults
+    ? buildDetailedWebSearchActions({
+      query,
+      sources,
+      documents: normalizeWebSearchDocuments(payload),
+      chunks: normalizeWebSearchChunks(payload),
+    })
+    : [];
   const item = {
     id: `ws_${options.callId}`,
     type: 'web_search_call',
@@ -44,6 +52,7 @@ export function buildCodexProviderWebSearchCallOutputItem(
       query: query || null,
       ...(options.includeSources && sources.length > 0 ? { sources } : {}),
     },
+    ...(detailedActions.length > 1 ? { actions: detailedActions } : {}),
     ...(options.includeResults && results.length > 0 ? { results } : {}),
   };
   return {
@@ -51,6 +60,43 @@ export function buildCodexProviderWebSearchCallOutputItem(
     payload,
     citationSources: normalizeWebSearchCitationSources(sources.length > 0 ? sources : results),
   };
+}
+
+function buildDetailedWebSearchActions({
+  query,
+  sources,
+  documents,
+  chunks,
+}: {
+  query: string;
+  sources: JsonRecord[];
+  documents: JsonRecord[];
+  chunks: JsonRecord[];
+}): JsonRecord[] {
+  const searchAction = {
+    type: 'search',
+    query: query || null,
+    ...(sources.length > 0 ? { sources } : {}),
+  };
+  return [
+    searchAction,
+    ...documents.map((document) => omitUndefined({
+      type: 'open_page',
+      source_id: document.source_id,
+      url: document.final_url || document.url,
+      title: document.title,
+    })),
+    ...chunks.map((chunk) => omitUndefined({
+      type: 'find_in_page',
+      source_id: chunk.source_id,
+      chunk_id: chunk.chunk_id,
+      url: chunk.url,
+      title: chunk.title,
+      query: query || undefined,
+      text: chunk.text,
+      score: chunk.score,
+    })),
+  ];
 }
 
 function normalizeWebSearchPayload(value: unknown): JsonRecord | null {
@@ -114,6 +160,52 @@ function normalizeWebSearchResults(payload: JsonRecord | null): JsonRecord[] {
         snippet: normalizeString(record.snippet) || undefined,
         source: normalizeString(record.source) || undefined,
         published_at: normalizeString(record.publishedAt ?? record.published_at) || undefined,
+        score: Number.isFinite(Number(record.score)) ? Number(record.score) : undefined,
+      });
+    })
+    .filter(Boolean) as JsonRecord[];
+}
+
+function normalizeWebSearchDocuments(payload: JsonRecord | null): JsonRecord[] {
+  return normalizeArray(payload?.documents)
+    .map((document) => {
+      if (!document || typeof document !== 'object') {
+        return null;
+      }
+      const record = document as JsonRecord;
+      const url = normalizeString(record.url);
+      const finalUrl = normalizeString(record.final_url ?? record.finalUrl);
+      if (!url && !finalUrl) {
+        return null;
+      }
+      return omitUndefined({
+        source_id: normalizePositiveInteger(record.source_id ?? record.sourceId),
+        url: url || finalUrl,
+        final_url: finalUrl || url || undefined,
+        title: normalizeString(record.title) || finalUrl || url,
+      });
+    })
+    .filter(Boolean) as JsonRecord[];
+}
+
+function normalizeWebSearchChunks(payload: JsonRecord | null): JsonRecord[] {
+  return normalizeArray(payload?.chunks)
+    .map((chunk) => {
+      if (!chunk || typeof chunk !== 'object') {
+        return null;
+      }
+      const record = chunk as JsonRecord;
+      const url = normalizeString(record.url);
+      const text = normalizeString(record.text);
+      if (!url || !text) {
+        return null;
+      }
+      return omitUndefined({
+        source_id: normalizePositiveInteger(record.source_id ?? record.sourceId),
+        chunk_id: normalizeString(record.chunk_id ?? record.chunkId) || undefined,
+        url,
+        title: normalizeString(record.title) || url,
+        text,
         score: Number.isFinite(Number(record.score)) ? Number(record.score) : undefined,
       });
     })
