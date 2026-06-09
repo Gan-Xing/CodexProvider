@@ -29,6 +29,9 @@ export type {
   AdapterHostedToolCall,
 } from './adapter-hosted-tools.js';
 export {
+  executeAdapterHostedToolCall,
+} from './adapter-hosted-tool-execution.js';
+export {
   buildModelsResponseMetadata,
   normalizeModels,
   resolveModelMetadata,
