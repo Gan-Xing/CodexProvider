@@ -38,6 +38,20 @@ export {
   resequenceInsertedStreamEvents,
   responsesObjectToSyntheticSseEvents,
 } from './synthetic-sse.js';
+export {
+  asyncIteratorToIterable,
+  chainSseDataLines,
+  chatStreamChunkFinishedToolCalls,
+  chatStreamChunkHasAssistantText,
+  collectStreamingToolCallDeltas,
+  drainAsyncIterator,
+  emptyAsyncIterable,
+  parseChatStreamData,
+  readSseDataLines,
+} from './streaming.js';
+export type {
+  StreamingToolCallAccumulator,
+} from './streaming.js';
 export type {
   CodexProviderTraceEvent,
   CodexProviderTraceSink,
