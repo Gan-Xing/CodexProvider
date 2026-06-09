@@ -1,11 +1,6 @@
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
-import {
-  chatCompletionsResponseToResponses,
-  responsesRequestToChatCompletions,
-} from '../../converters/responses-adapter/index.js';
-import {
-  resolveOpenAICompatibleProviderCapabilitiesForModel,
-  type OpenAICompatibleProviderCapabilities,
+import type {
+  OpenAICompatibleProviderCapabilities,
 } from '../../capabilities/thinking_policy.js';
 import {
   normalizeCodexProviderHostedTools,
@@ -20,34 +15,10 @@ import {
   writeJson,
 } from './body.js';
 import {
-  buildMalformedUpstreamPayloadError,
-  normalizeUpstreamError,
-} from './errors.js';
-import {
-  requestUsesExecutableAdapterHostedTool,
-} from './adapter-hosted-tools.js';
-import {
-  completeAdapterHostedToolLoop,
-} from './adapter-hosted-tool-loop.js';
-import {
-  writeAdapterHostedToolStreamingResponse,
-} from './adapter-hosted-tool-streaming-loop.js';
-import {
-  handleCompactResponses,
-} from './compact-responses.js';
-import {
-  handleDirectResponsesProxy,
-} from './direct-responses-proxy.js';
-import {
   buildModelsResponseMetadata,
   normalizeModels,
-  resolveModelMetadata,
 } from './models.js';
 import {
-  appendHostedToolResultsToResponsesOutput,
-} from './hosted-tool-output.js';
-import {
-  buildChatCompletionsUrl,
   buildOpenAICompatibleChatCompletionsUrl,
   buildOpenAICompatibleModelsUrl,
   isModelsPath,
@@ -61,14 +32,8 @@ import {
   reserveLocalPort,
 } from './ports.js';
 import {
-  shouldRetryWithoutForcedToolChoice,
-} from './retry.js';
-import {
   fetchUpstreamWithRetry as fetchUpstreamWithRetryRequest,
 } from './upstream.js';
-import {
-  summarizeRequestAdjustments,
-} from './request-adjustments.js';
 import {
   writeStreamingDataLinesResponse as writeStreamingDataLinesSseResponse,
   writeStreamingDataLinesResponseWithHostedToolResults as writeStreamingDataLinesSseResponseWithHostedToolResults,
@@ -77,6 +42,9 @@ import {
 import {
   readSseDataLines,
 } from './streaming.js';
+import {
+  handleResponsesAdapterRequest,
+} from './responses-handler.js';
 import {
   normalizePath,
   normalizePositiveInteger,
@@ -90,6 +58,7 @@ import type {
   JsonRecord,
   OpenAICompatibleResponsesAdapterServerOptions,
 } from './types.js';
+
 export {
   buildOpenAICompatibleChatCompletionsUrl,
   buildOpenAICompatibleModelsUrl,
@@ -98,6 +67,7 @@ export {
   isOpenAICompatibleResponsesProxyPath,
   reserveLocalPort,
 };
+
 export type {
   CodexProviderTraceEvent,
   CodexProviderTraceSink,
@@ -303,269 +273,33 @@ export class OpenAICompatibleResponsesAdapterServer {
     response: ServerResponse,
     { compact = false }: { compact?: boolean } = {},
   ): Promise<void> {
-    const route: AdapterRoute = compact ? 'responses.compact' : 'responses';
-    const requestedModel = normalizeString(requestBody?.model) || this.defaultModel;
-    const effectiveCapabilities = resolveOpenAICompatibleProviderCapabilitiesForModel(
-      this.providerCapabilities,
-      requestedModel,
-    );
-    const stream = Boolean(requestBody?.stream);
-    this.emitTrace({
-      type: 'request.received',
-      route,
-      model: requestedModel,
-      stream,
-      request: requestBody,
-    });
-    if (compact) {
-      await handleCompactResponses({
-        requestBody,
-        response,
-        providerCapabilities: effectiveCapabilities,
-        upstreamBaseUrl: this.upstreamBaseUrl,
-        apiKey: this.apiKey,
-        providerName: this.providerName,
-        models: this.models,
-        defaultModel: this.defaultModel,
-        fetchUpstreamWithRetry: (...args) => this.fetchUpstreamWithRetry(...args),
-        emitTrace: (event) => this.emitTrace(event),
-      });
-      return;
-    }
-    if (this.upstreamResponsesPath) {
-      await handleDirectResponsesProxy({
-        requestBody,
-        response,
-        requestedModel,
-        stream,
-        route,
-        providerCapabilities: effectiveCapabilities,
-        upstreamBaseUrl: this.upstreamBaseUrl,
-        upstreamResponsesPath: this.upstreamResponsesPath,
-        apiKey: this.apiKey,
-        providerName: this.providerName,
-        fetchUpstreamWithRetry: (...args) => this.fetchUpstreamWithRetry(...args),
-        emitTrace: (event) => this.emitTrace(event),
-      });
-      return;
-    }
-    const adapterHostedToolExecutionRequired = requestUsesExecutableAdapterHostedTool(
+    await handleResponsesAdapterRequest({
       requestBody,
-      this.executableHostedTools,
-    );
-    const upstreamStream = stream;
-    const chatBody = responsesRequestToChatCompletions(requestBody, {
-      model: requestedModel,
-      stream: upstreamStream,
+      response,
+      compact,
+      apiKey: this.apiKey,
+      upstreamBaseUrl: this.upstreamBaseUrl,
+      defaultModel: this.defaultModel,
+      models: this.models,
       providerKind: this.providerKind,
-      providerCapabilities: effectiveCapabilities,
-      hostedTools: this.executableHostedTools,
-    });
-    this.emitTrace({
-      type: 'request.translated',
-      route: 'responses',
-      model: requestedModel,
-      stream,
-      request: requestBody,
-      upstreamRequest: chatBody,
-    });
-    const adjustments = summarizeRequestAdjustments({
-      request: requestBody,
-      upstreamRequest: chatBody,
-      providerCapabilities: effectiveCapabilities,
-      hostedTools: this.executableHostedTools,
-    });
-    if (adjustments.length > 0) {
-      this.emitTrace({
-        type: 'request.adjusted',
-        route: 'responses',
-        model: requestedModel,
-        stream,
-        adjustments,
-      });
-    }
-    if (upstreamStream) {
-      chatBody.stream_options = {
-        ...(chatBody.stream_options && typeof chatBody.stream_options === 'object' ? chatBody.stream_options : {}),
-        include_usage: true,
-      };
-    }
-    const upstreamUrl = buildChatCompletionsUrl(this.upstreamBaseUrl, this.upstreamChatCompletionsPath);
-    const buildUpstreamInit = (body: JsonRecord): RequestInit => ({
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-        Accept: body?.stream ? 'text/event-stream' : 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-    if (stream && adapterHostedToolExecutionRequired) {
-      await writeAdapterHostedToolStreamingResponse({
-        requestBody,
-        chatBody,
-        upstreamUrl,
-        buildUpstreamInit,
-        providerCapabilities: effectiveCapabilities,
-        requestedModel,
-        response,
-        executableHostedTools: this.executableHostedTools,
-        hostedToolExecutorRegistry: this.hostedToolExecutorRegistry,
-        maxHostedToolIterations: this.maxHostedToolIterations,
-        emitHostedToolSseEvents: this.emitHostedToolSseEvents,
-        providerKind: this.providerKind,
-        providerName: this.providerName,
-        fetchUpstreamWithRetry: (...args) => this.fetchUpstreamWithRetry(...args),
-        writeStreamingDataLinesResponse: (...args) => this.writeStreamingDataLinesResponse(...args),
-        writeStreamingDataLinesResponseWithHostedToolResults: (...args) => (
-          this.writeStreamingDataLinesResponseWithHostedToolResults(...args)
-        ),
-        emitTrace: (event) => this.emitTrace(event),
-      });
-      return;
-    }
-    let upstream = await this.fetchUpstreamWithRetry(
-      upstreamUrl,
-      buildUpstreamInit(chatBody),
-      'responses',
-      effectiveCapabilities,
-    );
-    if (shouldRetryWithoutForcedToolChoice(chatBody, upstream)) {
-      const downgradedChatBody = {
-        ...chatBody,
-      };
-      const before = downgradedChatBody.tool_choice;
-      delete downgradedChatBody.tool_choice;
-      this.emitTrace({
-        type: 'request.adjusted',
-        route: 'responses',
-        model: requestedModel,
-        stream,
-        adjustments: [{
-          kind: 'tool_choice_dropped',
-          path: 'tool_choice',
-          reason: 'upstream_rejected_forced_tool_choice',
-          before,
-        }],
-      });
-      this.emitTrace({
-        type: 'upstream.retry',
-        route: 'responses',
-        attempt: 1,
-        nextAttempt: 2,
-        status: upstream.response.status || null,
-        reason: 'status',
-        delayMs: 0,
-      });
-      upstream = await this.fetchUpstreamWithRetry(
-        upstreamUrl,
-        buildUpstreamInit(downgradedChatBody),
-        'responses',
-        effectiveCapabilities,
-      );
-    }
-    if (!upstream.response.ok) {
-      const error = normalizeUpstreamError(
-        upstream.errorText ?? '',
-        this.providerName,
-        upstream.response.status,
-        upstream.response.headers,
-      );
-      this.emitTrace({
-        type: 'upstream.error',
-        route: 'responses',
-        status: upstream.response.status || 502,
-        error,
-      });
-      writeJson(response, upstream.response.status || 502, { error });
-      return;
-    }
-    if (upstreamStream) {
-      await this.writeStreamingResponse(requestBody, effectiveCapabilities, upstream.response, response);
-      return;
-    }
-    let json = await upstream.response.json() as JsonRecord;
-    if (!json || typeof json !== 'object') {
-      const error = buildMalformedUpstreamPayloadError(
-        this.providerName,
-        'non_object_json_response',
-      );
-      this.emitTrace({
-        type: 'upstream.error',
-        route: 'responses',
-        status: 502,
-        error,
-      });
-      writeJson(response, 502, { error });
-      return;
-    }
-    const hostedToolLoop = await completeAdapterHostedToolLoop({
-      chatBody,
-      initialJson: json,
-      upstreamUrl,
-      buildUpstreamInit,
-      providerCapabilities: effectiveCapabilities,
-      requestedModel,
+      providerName: this.providerName,
+      providerCapabilities: this.providerCapabilities,
+      upstreamResponsesPath: this.upstreamResponsesPath,
+      upstreamChatCompletionsPath: this.upstreamChatCompletionsPath,
       executableHostedTools: this.executableHostedTools,
       hostedToolExecutorRegistry: this.hostedToolExecutorRegistry,
       maxHostedToolIterations: this.maxHostedToolIterations,
-      providerKind: this.providerKind,
-      providerName: this.providerName,
+      emitHostedToolSseEvents: this.emitHostedToolSseEvents,
+      exposeHostedToolResultsInResponsesOutput: this.exposeHostedToolResultsInResponsesOutput,
       fetchUpstreamWithRetry: (...args) => this.fetchUpstreamWithRetry(...args),
+      writeStreamingResponse: (...args) => this.writeStreamingResponse(...args),
+      writeStreamingDataLinesResponse: (...args) => this.writeStreamingDataLinesResponse(...args),
+      writeStreamingDataLinesResponseWithHostedToolResults: (...args) => (
+        this.writeStreamingDataLinesResponseWithHostedToolResults(...args)
+      ),
+      writeSyntheticStreamingResponse: (...args) => this.writeSyntheticStreamingResponse(...args),
       emitTrace: (event) => this.emitTrace(event),
     });
-    if (hostedToolLoop.error) {
-      this.emitTrace({
-        type: 'upstream.error',
-        route: 'responses',
-        status: hostedToolLoop.status,
-        error: hostedToolLoop.error,
-      });
-      writeJson(response, hostedToolLoop.status, { error: hostedToolLoop.error });
-      return;
-    }
-    json = hostedToolLoop.json;
-    try {
-      const modelMetadata = resolveModelMetadata(
-        this.models,
-        normalizeString(requestBody?.model) || normalizeString(json?.model) || this.defaultModel,
-      );
-      const adaptedResponse = chatCompletionsResponseToResponses(json, {
-        request: requestBody,
-        providerCapabilities: effectiveCapabilities,
-        modelMetadata,
-      });
-      appendHostedToolResultsToResponsesOutput({
-        response: adaptedResponse,
-        request: requestBody,
-        executions: hostedToolLoop.executions,
-        exposeByDefault: this.exposeHostedToolResultsInResponsesOutput,
-      });
-      this.emitTrace({
-        type: 'response.translated',
-        route: 'responses',
-        model: requestedModel,
-        stream: false,
-        response: adaptedResponse,
-      });
-      if (stream && adapterHostedToolExecutionRequired) {
-        await this.writeSyntheticStreamingResponse(adaptedResponse, response);
-        return;
-      }
-      writeJson(response, 200, adaptedResponse);
-    } catch (error) {
-      const malformedError = buildMalformedUpstreamPayloadError(
-        this.providerName,
-        error instanceof Error ? error.message : String(error),
-      );
-      this.emitTrace({
-        type: 'upstream.error',
-        route: 'responses',
-        status: 502,
-        error: malformedError,
-      });
-      writeJson(response, 502, { error: malformedError });
-    }
   }
 
   private async fetchUpstreamWithRetry(

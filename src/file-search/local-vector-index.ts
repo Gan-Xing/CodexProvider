@@ -3,16 +3,12 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type {
   CandidateFile,
-  CodexProviderEmbeddingProvider,
-  CodexProviderEmbeddingProviderResult,
   CodexProviderFileSearchSourceMatch,
   CodexProviderFileSearchSourceRequest,
   CodexProviderFileSearchSourceResult,
   CodexProviderLocalVectorIndexChunk,
   CodexProviderLocalVectorIndexDocument,
   CodexProviderLocalVectorIndexSearchChunksRequest,
-  LocalVectorTextChunk,
-  NormalizedLocalVectorChunkingOptions,
   NormalizedLocalVectorFileSearchOptions,
 } from './types.js';
 import {
@@ -26,17 +22,23 @@ import {
   stableFileSearchFileId,
 } from './shared.js';
 import { collectCandidateFiles } from './sources/local-shared.js';
-
-const LOCAL_VECTOR_INDEX_VERSION = 'local-vector-index-v1';
-const LOCAL_VECTOR_CHUNKER_VERSION = 'line-window-chunker-v1';
-const LOCAL_VECTOR_RRF_K = 60;
-
-type LocalVectorScoredChunk = {
-  chunk: CodexProviderLocalVectorIndexChunk;
-  score: number;
-  vectorScore: number;
-  lexicalScore: number;
-};
+import {
+  chunkLocalVectorText,
+} from './local-vector/chunking.js';
+import {
+  createLocalVectorDocumentFingerprint,
+  localVectorDocumentId,
+  localVectorDocumentMatchesFingerprint,
+} from './local-vector/documents.js';
+import {
+  embedSingleText,
+  embedTextsInBatches,
+} from './local-vector/embedding.js';
+import {
+  applyRrfScores,
+  isRrfRanker,
+  type LocalVectorScoredChunk,
+} from './local-vector/ranking.js';
 
 export function createCodexProviderLocalVectorIndex(
   options: NormalizedLocalVectorFileSearchOptions,
@@ -401,259 +403,4 @@ class CodexProviderLocalVectorIndex {
     }
     return this.options.indexStore.listChunks(request.sourceName);
   }
-}
-
-function localVectorDocumentId(sourceName: string, candidate: CandidateFile): string {
-  return stableFileSearchFileId(sourceName, `${candidate.root.path}:${candidate.relativePath}`);
-}
-
-function isRrfRanker(ranker: string): boolean {
-  return ranker.toLowerCase() === 'rrf';
-}
-
-function applyRrfScores(
-  scoredChunks: LocalVectorScoredChunk[],
-  vectorWeight: number,
-  textWeight: number,
-): void {
-  const denseRanks = rankScoredChunks(
-    scoredChunks.filter((entry) => entry.vectorScore > 0),
-    (left, right) => right.vectorScore - left.vectorScore || compareChunkPath(left, right),
-  );
-  const lexicalRanks = rankScoredChunks(
-    scoredChunks.filter((entry) => entry.lexicalScore > 0),
-    (left, right) => right.lexicalScore - left.lexicalScore || compareChunkPath(left, right),
-  );
-  for (const entry of scoredChunks) {
-    const denseRank = denseRanks.get(entry);
-    const lexicalRank = lexicalRanks.get(entry);
-    const denseScore = denseRank ? vectorWeight * (1 / (LOCAL_VECTOR_RRF_K + denseRank)) : 0;
-    const lexicalScore = lexicalRank ? textWeight * (1 / (LOCAL_VECTOR_RRF_K + lexicalRank)) : 0;
-    entry.score = (denseScore + lexicalScore) * 100;
-  }
-}
-
-function rankScoredChunks(
-  entries: LocalVectorScoredChunk[],
-  compare: (left: LocalVectorScoredChunk, right: LocalVectorScoredChunk) => number,
-): Map<LocalVectorScoredChunk, number> {
-  const ranks = new Map<LocalVectorScoredChunk, number>();
-  [...entries]
-    .sort(compare)
-    .forEach((entry, index) => {
-      ranks.set(entry, index + 1);
-    });
-  return ranks;
-}
-
-function compareChunkPath(left: LocalVectorScoredChunk, right: LocalVectorScoredChunk): number {
-  return (
-    left.chunk.path.localeCompare(right.chunk.path)
-    || left.chunk.chunkIndex - right.chunk.chunkIndex
-  );
-}
-
-function createLocalVectorDocumentFingerprint({
-  options,
-  size,
-  mtimeMs,
-  contentHash,
-  embeddingDimensions,
-}: {
-  options: NormalizedLocalVectorFileSearchOptions;
-  size: number;
-  mtimeMs: number;
-  contentHash: string;
-  embeddingDimensions: number;
-}): Required<Pick<
-  CodexProviderLocalVectorIndexDocument,
-  | 'size'
-  | 'mtimeMs'
-  | 'contentHash'
-  | 'embeddingModel'
-  | 'indexVersion'
-  | 'chunkerVersion'
-  | 'chunkingConfigHash'
-  | 'embeddingDimensions'
-  | 'contentHashAlgorithm'
-  | 'statFingerprint'
->> {
-  return {
-    size,
-    mtimeMs,
-    contentHash,
-    embeddingModel: options.embeddingProvider.model,
-    indexVersion: LOCAL_VECTOR_INDEX_VERSION,
-    chunkerVersion: LOCAL_VECTOR_CHUNKER_VERSION,
-    chunkingConfigHash: localVectorChunkingConfigHash(options.chunking),
-    embeddingDimensions,
-    contentHashAlgorithm: contentHash.split(':')[0] || 'unknown',
-    statFingerprint: `${size}:${mtimeMs}`,
-  };
-}
-
-function localVectorDocumentMatchesFingerprint(
-  document: CodexProviderLocalVectorIndexDocument,
-  fingerprint: Required<Pick<
-    CodexProviderLocalVectorIndexDocument,
-    | 'size'
-    | 'mtimeMs'
-    | 'contentHash'
-    | 'embeddingModel'
-    | 'indexVersion'
-    | 'chunkerVersion'
-    | 'chunkingConfigHash'
-    | 'embeddingDimensions'
-    | 'contentHashAlgorithm'
-    | 'statFingerprint'
-  >>,
-): boolean {
-  return (
-    document.size === fingerprint.size
-    && document.mtimeMs === fingerprint.mtimeMs
-    && document.contentHash === fingerprint.contentHash
-    && document.embeddingModel === fingerprint.embeddingModel
-    && document.indexVersion === fingerprint.indexVersion
-    && document.chunkerVersion === fingerprint.chunkerVersion
-    && document.chunkingConfigHash === fingerprint.chunkingConfigHash
-    && document.embeddingDimensions === fingerprint.embeddingDimensions
-    && document.contentHashAlgorithm === fingerprint.contentHashAlgorithm
-    && document.statFingerprint === fingerprint.statFingerprint
-  );
-}
-
-function localVectorChunkingConfigHash(options: NormalizedLocalVectorChunkingOptions): string {
-  return stableContentHash(JSON.stringify({
-    chunkerVersion: LOCAL_VECTOR_CHUNKER_VERSION,
-    maxChars: options.maxChars,
-    overlapChars: options.overlapChars,
-    maxChunksPerFile: options.maxChunksPerFile,
-  }));
-}
-
-function chunkLocalVectorText(
-  content: string,
-  options: NormalizedLocalVectorChunkingOptions,
-): LocalVectorTextChunk[] {
-  const lines = content.split(/\r?\n/u);
-  const chunks: LocalVectorTextChunk[] = [];
-  let lineIndex = 0;
-  while (lineIndex < lines.length && chunks.length < options.maxChunksPerFile) {
-    const previousStartIndex = lineIndex;
-    const startLine = lineIndex + 1;
-    const selectedLines: string[] = [];
-    let charCount = 0;
-    while (lineIndex < lines.length) {
-      const line = lines[lineIndex];
-      const nextLength = charCount + line.length + (selectedLines.length > 0 ? 1 : 0);
-      if (selectedLines.length > 0 && nextLength > options.maxChars) {
-        break;
-      }
-      selectedLines.push(line);
-      charCount = nextLength;
-      lineIndex += 1;
-      if (charCount >= options.maxChars) {
-        break;
-      }
-    }
-    if (selectedLines.length === 0) {
-      const line = lines[lineIndex] ?? '';
-      selectedLines.push(line.slice(0, options.maxChars));
-      lineIndex += 1;
-    }
-    const endLine = Math.max(startLine, lineIndex);
-    const text = selectedLines.join('\n').trim();
-    if (text) {
-      chunks.push({
-        text,
-        chunkIndex: chunks.length,
-        startLine,
-        endLine,
-      });
-    }
-    if (options.overlapChars > 0 && lineIndex < lines.length) {
-      const nextLineIndex = lineIndex;
-      let overlapChars = 0;
-      let overlapLineIndex = Math.max(0, lineIndex - 1);
-      while (overlapLineIndex > 0 && overlapChars < options.overlapChars) {
-        overlapChars += lines[overlapLineIndex].length + 1;
-        overlapLineIndex -= 1;
-      }
-      lineIndex = Math.max(overlapLineIndex + 1, previousStartIndex + 1);
-      if (lineIndex >= nextLineIndex) {
-        lineIndex = nextLineIndex;
-      }
-    }
-  }
-  return chunks;
-}
-
-async function embedTextsInBatches(
-  embeddingProvider: CodexProviderEmbeddingProvider,
-  texts: string[],
-  batchSize: number,
-  expectedDimensions: number,
-): Promise<number[][]> {
-  const embeddings: number[][] = [];
-  for (let index = 0; index < texts.length; index += batchSize) {
-    const batch = texts.slice(index, index + batchSize);
-    const result = await embeddingProvider.embed(batch);
-    embeddings.push(...normalizeEmbeddingResult({
-      result,
-      expectedCount: batch.length,
-      expectedDimensions,
-      context: 'local-vector chunk embedding',
-    }));
-  }
-  return embeddings;
-}
-
-async function embedSingleText(
-  embeddingProvider: CodexProviderEmbeddingProvider,
-  text: string,
-  context: string,
-): Promise<number[]> {
-  const result = await embeddingProvider.embed([text]);
-  return normalizeEmbeddingResult({
-    result,
-    expectedCount: 1,
-    expectedDimensions: null,
-    context,
-  })[0];
-}
-
-function normalizeEmbeddingResult({
-  result,
-  expectedCount,
-  expectedDimensions,
-  context,
-}: {
-  result: CodexProviderEmbeddingProviderResult;
-  expectedCount: number;
-  expectedDimensions: number | null;
-  context: string;
-}): number[][] {
-  if (!Array.isArray(result.embeddings)) {
-    throw new Error(`${context} provider must return an embeddings array.`);
-  }
-  if (result.embeddings.length !== expectedCount) {
-    throw new Error(`${context} provider returned ${result.embeddings.length} embeddings for ${expectedCount} inputs.`);
-  }
-  const embeddings = result.embeddings.map((embedding, index) => {
-    const normalized = normalizeEmbeddingVector(embedding);
-    if (normalized.length === 0) {
-      throw new Error(`${context} provider returned an empty embedding at index ${index}.`);
-    }
-    return normalized;
-  });
-  const dimensions = expectedDimensions ?? embeddings[0]?.length ?? 0;
-  for (const [index, embedding] of embeddings.entries()) {
-    if (embedding.length !== dimensions) {
-      throw new Error(`${context} provider returned embedding dimension ${embedding.length} at index ${index}; expected ${dimensions}.`);
-    }
-  }
-  if (Number.isFinite(Number(result.dimensions)) && Number(result.dimensions) > 0 && Number(result.dimensions) !== dimensions) {
-    throw new Error(`${context} provider reported dimensions ${result.dimensions}; expected ${dimensions}.`);
-  }
-  return embeddings;
 }
