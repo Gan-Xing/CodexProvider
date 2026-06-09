@@ -28,8 +28,10 @@ import {
 } from './adapter-hosted-tools.js';
 import {
   completeAdapterHostedToolLoop,
-  writeAdapterHostedToolStreamingResponse,
 } from './adapter-hosted-tool-loop.js';
+import {
+  writeAdapterHostedToolStreamingResponse,
+} from './adapter-hosted-tool-streaming-loop.js';
 import {
   handleCompactResponses,
 } from './compact-responses.js';
