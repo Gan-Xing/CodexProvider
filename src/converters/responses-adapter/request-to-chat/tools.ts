@@ -112,7 +112,7 @@ export function normalizeBuiltinToolType(
   if (!supportsBuiltinWebSearchTool(providerKind, providerCapabilities)) {
     return '';
   }
-  switch (normalizeString(type)) {
+  switch (normalizeCodexProviderBuiltinToolName(type) ?? normalizeString(type)) {
     case 'web_search':
       return 'web_search';
     default:

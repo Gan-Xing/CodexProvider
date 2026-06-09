@@ -71,6 +71,57 @@ test('responses conversion exposes adapter-emulated web_search as a Chat functio
   });
 });
 
+test('responses conversion accepts dated web_search alias for adapter-emulated web_search', () => {
+  const chat = responsesRequestToChatCompletions({
+    model: 'example-model',
+    input: 'search the web',
+    tools: [{
+      type: 'web_search_2025_08_26',
+    }],
+    tool_choice: 'web_search_2025_08_26',
+  }, {
+    providerCapabilities: {
+      supportsBuiltinWebSearchTool: false,
+    },
+    hostedTools: [{
+      name: 'web_search',
+      mode: 'adapter-emulated',
+      providerToolName: null,
+      emulatedToolName: 'adapter_web_search',
+      description: 'Search through the adapter.',
+    }],
+  });
+
+  assert.equal(chat.tools[0].type, 'function');
+  assert.equal(chat.tools[0].function.name, 'adapter_web_search');
+  assert.deepEqual(chat.tool_choice, {
+    type: 'function',
+    function: {
+      name: 'adapter_web_search',
+    },
+  });
+});
+
+test('responses conversion normalizes dated web_search alias for provider-native web_search', () => {
+  const chat = responsesRequestToChatCompletions({
+    model: 'example-model',
+    input: 'search the web',
+    tools: [{
+      type: 'web_search_2025_08_26',
+      search_context_size: 'low',
+    }],
+    tool_choice: 'web_search_2025_08_26',
+  }, {
+    providerCapabilities: {
+      supportsBuiltinWebSearchTool: true,
+    },
+  });
+
+  assert.equal(chat.tools[0].type, 'web_search');
+  assert.equal(chat.tools[0].search_context_size, 'low');
+  assert.equal(chat.tool_choice, 'web_search');
+});
+
 test('responses conversion exposes adapter-emulated file_search as a Chat function tool', () => {
   const chat = responsesRequestToChatCompletions({
     model: 'example-model',

@@ -18,7 +18,7 @@ export const CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS: Record<
 > = {
   web_search: {
     name: 'web_search',
-    openaiToolTypes: ['web_search'],
+    openaiToolTypes: ['web_search', 'web_search_2025_08_26'],
     toolModes: ['provider-native', 'adapter-emulated'],
     adapterEmulatedSupported: true,
     providerNativeSupported: true,
@@ -163,6 +163,7 @@ export const CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS: Record<
 
 export const CODEX_PROVIDER_BUILTIN_TOOL_ALIASES: Record<string, CodexProviderBuiltinToolName> = {
   web_search: 'web_search',
+  web_search_2025_08_26: 'web_search',
   file_search: 'file_search',
   tool_search: 'tool_search',
   mcp: 'mcp',

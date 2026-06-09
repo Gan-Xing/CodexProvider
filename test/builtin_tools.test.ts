@@ -10,6 +10,10 @@ import {
 
 test('builtin tool registry exposes canonical tool definitions', () => {
   assert.equal(CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS.web_search.name, 'web_search');
+  assert.deepEqual(CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS.web_search.openaiToolTypes, [
+    'web_search',
+    'web_search_2025_08_26',
+  ]);
   assert.equal(CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS.file_search.adapterEmulatedSupported, true);
   assert.equal(CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS.tool_search.adapterEmulatedSupported, true);
   assert.equal(CODEX_PROVIDER_BUILTIN_TOOL_DEFINITIONS.image_generation.adapterEmulatedSupported, true);
@@ -22,6 +26,7 @@ test('builtin tool registry exposes canonical tool definitions', () => {
 
 test('builtin tool registry accepts only canonical tool names', () => {
   assert.equal(normalizeCodexProviderBuiltinToolName('web_search'), 'web_search');
+  assert.equal(normalizeCodexProviderBuiltinToolName('web_search_2025_08_26'), 'web_search');
   assert.equal(normalizeCodexProviderBuiltinToolName('tool_search'), 'tool_search');
   assert.equal(normalizeCodexProviderBuiltinToolName('image_generation'), 'image_generation');
   assert.equal(normalizeCodexProviderBuiltinToolName('code_interpreter'), 'code_interpreter');
@@ -32,6 +37,7 @@ test('builtin tool registry accepts only canonical tool names', () => {
   assert.equal(normalizeCodexProviderBuiltinToolName('computer_use_preview'), null);
   assert.equal(normalizeCodexProviderBuiltinToolName('not_a_builtin_tool'), null);
   assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('web_search'), true);
+  assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('web_search_2025_08_26'), true);
   assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('web_search_preview'), false);
   assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('file_search'), true);
   assert.equal(isCodexProviderAdapterEmulatedBuiltinToolType('tool_search'), true);

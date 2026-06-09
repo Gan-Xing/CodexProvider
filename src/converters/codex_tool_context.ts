@@ -75,6 +75,7 @@ export function buildCodexToolContext(tools: unknown): CodexToolContext {
         addNamespaceToolsToContext(context, record);
         break;
       case 'web_search':
+      case 'web_search_2025_08_26':
       case 'file_search':
       case 'tool_search':
       case 'image_generation':
@@ -149,6 +150,7 @@ export function responsesToolsToChatTools(
       }
       case 'custom':
       case 'web_search':
+      case 'web_search_2025_08_26':
       case 'file_search':
       case 'tool_search':
       case 'image_generation':
@@ -162,7 +164,7 @@ export function responsesToolsToChatTools(
           }
           break;
         }
-        const name = stringValue(record.name) || type;
+        const name = stringValue(record.name) || canonicalHostedBuiltinToolType(type);
         const description = stringValue(record.description);
         if (isApplyPatchToolDefinition(record, name)) {
           converted.push(...buildApplyPatchProxyTools(name, description));
@@ -249,7 +251,7 @@ function addNamespaceToolsToContext(context: CodexToolContext, namespaceTool: Js
 }
 
 function addBuiltInToolToContext(context: CodexToolContext, tool: JsonRecord, type: string): void {
-  const name = stringValue(tool.name) || type;
+  const name = stringValue(tool.name) || canonicalHostedBuiltinToolType(type);
   context.customTools.set(name, {
     openaiName: name,
     kind: 'built_in',
@@ -271,11 +273,16 @@ function detectCodexCustomToolKind(tool: JsonRecord, name: string): CodexCustomT
 
 function isHostedWebSearchToolType(type: string): boolean {
   return type === 'web_search'
+    || type === 'web_search_2025_08_26'
     || type === 'file_search'
     || type === 'tool_search'
     || type === 'image_generation'
     || type === 'code_interpreter'
     || type === 'computer';
+}
+
+function canonicalHostedBuiltinToolType(type: string): string {
+  return type === 'web_search_2025_08_26' ? 'web_search' : type;
 }
 
 function responsesFunctionToolToChatTool(
