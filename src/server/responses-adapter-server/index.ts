@@ -24,6 +24,9 @@ export {
   shouldRetryWithoutForcedToolChoice,
   sleep,
 } from './retry.js';
+export {
+  summarizeRequestAdjustments,
+} from './request-adjustments.js';
 export type {
   CodexProviderTraceEvent,
   CodexProviderTraceSink,
