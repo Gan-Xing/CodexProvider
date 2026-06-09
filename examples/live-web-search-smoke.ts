@@ -3,10 +3,16 @@ import fs from 'node:fs/promises';
 import {
   OpenAICompatibleResponsesAdapterServer,
   createCodexProviderBraveApiEngine,
+  createCodexProviderBraveHtmlEngine,
+  createCodexProviderDuckDuckGoHtmlEngine,
+  createCodexProviderEcosiaHtmlEngine,
   createCodexProviderLocalIndexSearchEngine,
   createCodexProviderMemoryWebSearchLocalIndex,
   createCodexProviderMetaSearchService,
+  createCodexProviderMojeekHtmlEngine,
+  createCodexProviderOpenSerpEndpointEngine,
   createCodexProviderSerperApiEngine,
+  createCodexProviderSearxngEndpointEngine,
   createCodexProviderTavilyApiEngine,
   createCodexProviderWebRetrievalFetcher,
   createCodexProviderWebSearchExecutor,
@@ -19,9 +25,11 @@ type SmokeEnv = {
   upstreamApiKey: string;
   upstreamBaseUrl: string;
   model: string;
-  searchKeyName: string;
-  searchProvider: 'brave' | 'serper' | 'tavily';
-  searchApiKey: string;
+  searchCredentialName: string | null;
+  searchCredentialKind: 'api-key' | 'endpoint' | 'none';
+  searchProvider: 'brave' | 'serper' | 'tavily' | 'searxng' | 'openserp' | 'builtin-metasearch';
+  searchApiKey: string | null;
+  searchEndpoint: string | null;
 };
 
 type TimedResult<T> = {
@@ -50,9 +58,9 @@ const localEngine = createCodexProviderLocalIndexSearchEngine({
 const retrieval = createCodexProviderWebRetrievalFetcher();
 
 const env = resolveSmokeEnv();
-const liveEngine = env ? createLiveSearchEngine(env) : null;
+const liveEngines = env ? createLiveSearchEngines(env) : [];
 const search = createCodexProviderMetaSearchService({
-  engines: [liveEngine, localEngine].filter((engine): engine is CodexProviderSearchEngine => Boolean(engine)),
+  engines: [...liveEngines, localEngine],
   mode: 'balanced',
   maxResults: 6,
 });
@@ -68,8 +76,9 @@ await runOfflineLocalIndexSmoke();
 
 if (!env) {
   console.log([
-    'live web_search smoke skipped: missing environment variables.',
-    'Required: CODEX_PROVIDER_API_KEY or a provider preset API key; CODEX_PROVIDER_BASE_URL and CODEX_PROVIDER_MODEL unless inferred; one of BRAVE_SEARCH_API_KEY, SERPER_API_KEY, TAVILY_API_KEY.',
+    'live web_search smoke skipped: missing upstream environment variables.',
+    'Required: CODEX_PROVIDER_API_KEY or a provider preset API key; CODEX_PROVIDER_BASE_URL and CODEX_PROVIDER_MODEL unless inferred.',
+    'Search credentials are optional: SEARXNG_ENDPOINT/OPENSERP_ENDPOINT, Brave/Serper/Tavily keys, or built-in no-key metasearch can be used.',
     'Offline local-index web_search smoke passed.',
   ].join('\n'));
   process.exit(0);
@@ -100,9 +109,12 @@ await server.start();
 try {
   const nonStreaming = await time(() => postResponses(server.baseUrl, buildResponsesRequest(false, env.model)));
   assertResponsesWebSearchOutput(nonStreaming.value, 'non-streaming');
+  assertLiveSearchOutput(nonStreaming.value, 'non-streaming');
 
   const streaming = await time(() => postResponsesStream(server.baseUrl, buildResponsesRequest(true, env.model)));
   assertStreamingWebSearchOutput(streaming.value);
+  const completed = streaming.value.find((event) => event?.type === 'response.completed');
+  assertLiveSearchOutput(completed?.response ?? {}, 'streaming completed');
 
   await appendSmokeEvidence({
     env,
@@ -206,6 +218,40 @@ function assertResponsesWebSearchOutput(response: Record<string, any>, label: st
   );
 }
 
+function assertLiveSearchOutput(response: Record<string, any>, label: string): void {
+  const liveUrls = collectWebSearchUrls(response).filter((url) => !isLocalCacheSmokeUrl(url));
+  assert.ok(
+    liveUrls.length > 0,
+    `${label} response should include at least one live web_search source/result outside the local cache`,
+  );
+}
+
+function collectWebSearchUrls(response: Record<string, any>): string[] {
+  const output = Array.isArray(response.output) ? response.output : [];
+  const webSearchCall = output.find((item) => item?.type === 'web_search_call');
+  const urls: string[] = [];
+  for (const collection of [webSearchCall?.action?.sources, webSearchCall?.results]) {
+    if (!Array.isArray(collection)) {
+      continue;
+    }
+    for (const entry of collection) {
+      const url = normalizeString(entry?.url);
+      if (url) {
+        urls.push(url);
+      }
+    }
+  }
+  return urls;
+}
+
+function isLocalCacheSmokeUrl(value: string): boolean {
+  try {
+    return new URL(value).host === 'docs.example.com';
+  } catch {
+    return false;
+  }
+}
+
 function assertStreamingWebSearchOutput(events: Record<string, any>[]): void {
   const completed = events.find((event) => event?.type === 'response.completed');
   assert.ok(completed, 'streaming response should emit response.completed');
@@ -251,7 +297,7 @@ async function appendSmokeEvidence({
     `- Model: \`${env.model}\``,
     `- Search provider: \`${env.searchProvider}\``,
     `- Upstream key env: \`${env.upstreamKeyName}=<redacted>\``,
-    `- Search key env: \`${env.searchKeyName}=<redacted>\``,
+    `- Search credential: \`${formatSearchCredential(env)}\``,
     '- Secrets: redacted; sourced from environment variables.',
     '',
     '| Smoke | Status | Notes |',
@@ -279,6 +325,16 @@ function summarizeResponse(response: Record<string, any>): { sourceCount: number
   };
 }
 
+function formatSearchCredential(env: SmokeEnv): string {
+  if (!env.searchCredentialName) {
+    return 'not set; built-in no-key metasearch';
+  }
+  if (env.searchCredentialKind === 'endpoint') {
+    return `${env.searchCredentialName}=${safeUrlHost(env.searchEndpoint ?? '')}`;
+  }
+  return `${env.searchCredentialName}=<redacted>`;
+}
+
 async function time<T>(fn: () => Promise<T>): Promise<TimedResult<T>> {
   const started = Date.now();
   const value = await fn();
@@ -288,14 +344,30 @@ async function time<T>(fn: () => Promise<T>): Promise<TimedResult<T>> {
   };
 }
 
-function createLiveSearchEngine(env: SmokeEnv): CodexProviderSearchEngine {
+function createLiveSearchEngines(env: SmokeEnv): CodexProviderSearchEngine[] {
   switch (env.searchProvider) {
     case 'brave':
-      return createCodexProviderBraveApiEngine({ apiKey: env.searchApiKey });
+      assert.ok(env.searchApiKey, 'BRAVE_SEARCH_API_KEY must be present for Brave API smoke');
+      return [createCodexProviderBraveApiEngine({ apiKey: env.searchApiKey })];
     case 'serper':
-      return createCodexProviderSerperApiEngine({ apiKey: env.searchApiKey });
+      assert.ok(env.searchApiKey, 'SERPER_API_KEY must be present for Serper API smoke');
+      return [createCodexProviderSerperApiEngine({ apiKey: env.searchApiKey })];
     case 'tavily':
-      return createCodexProviderTavilyApiEngine({ apiKey: env.searchApiKey });
+      assert.ok(env.searchApiKey, 'TAVILY_API_KEY must be present for Tavily API smoke');
+      return [createCodexProviderTavilyApiEngine({ apiKey: env.searchApiKey })];
+    case 'searxng':
+      assert.ok(env.searchEndpoint, 'SEARXNG_ENDPOINT must be present for SearXNG endpoint smoke');
+      return [createCodexProviderSearxngEndpointEngine({ endpoint: env.searchEndpoint })];
+    case 'openserp':
+      assert.ok(env.searchEndpoint, 'OPENSERP_ENDPOINT must be present for OpenSERP endpoint smoke');
+      return [createCodexProviderOpenSerpEndpointEngine({ endpoint: env.searchEndpoint })];
+    case 'builtin-metasearch':
+      return [
+        createCodexProviderDuckDuckGoHtmlEngine({ maxResults: 6 }),
+        createCodexProviderBraveHtmlEngine({ maxResults: 6 }),
+        createCodexProviderEcosiaHtmlEngine({ maxResults: 6 }),
+        createCodexProviderMojeekHtmlEngine({ maxResults: 6 }),
+      ];
   }
 }
 
@@ -310,12 +382,7 @@ function resolveSmokeEnv(): SmokeEnv | null {
     ['MINIMAX_API_KEY', process.env.MINIMAX_API_KEY],
     ['KIMI_API_KEY', process.env.KIMI_API_KEY],
   ]);
-  const search = firstPresent([
-    ['BRAVE_SEARCH_API_KEY', process.env.BRAVE_SEARCH_API_KEY],
-    ['SERPER_API_KEY', process.env.SERPER_API_KEY],
-    ['TAVILY_API_KEY', process.env.TAVILY_API_KEY],
-  ]);
-  if (!upstream || !search) {
+  if (!upstream) {
     return null;
   }
   const upstreamBaseUrl = normalizeString(process.env.CODEX_PROVIDER_BASE_URL)
@@ -331,14 +398,50 @@ function resolveSmokeEnv(): SmokeEnv | null {
   if (!upstreamBaseUrl || !model) {
     return null;
   }
+  const endpointSearch = firstPresent([
+    ['SEARXNG_ENDPOINT', process.env.SEARXNG_ENDPOINT],
+    ['CODEX_PROVIDER_SEARXNG_ENDPOINT', process.env.CODEX_PROVIDER_SEARXNG_ENDPOINT],
+    ['OPENSERP_ENDPOINT', process.env.OPENSERP_ENDPOINT],
+    ['CODEX_PROVIDER_OPENSERP_ENDPOINT', process.env.CODEX_PROVIDER_OPENSERP_ENDPOINT],
+  ]);
+  const apiSearch = firstPresent([
+    ['BRAVE_SEARCH_API_KEY', process.env.BRAVE_SEARCH_API_KEY],
+    ['SERPER_API_KEY', process.env.SERPER_API_KEY],
+    ['TAVILY_API_KEY', process.env.TAVILY_API_KEY],
+  ]);
+  const search = endpointSearch
+    ? {
+        credentialKind: 'endpoint' as const,
+        credentialName: endpointSearch.name,
+        provider: searchProviderForEndpoint(endpointSearch.name),
+        apiKey: null,
+        endpoint: endpointSearch.value,
+      }
+    : apiSearch
+      ? {
+          credentialKind: 'api-key' as const,
+          credentialName: apiSearch.name,
+          provider: searchProviderForApiKey(apiSearch.name),
+          apiKey: apiSearch.value,
+          endpoint: null,
+        }
+      : {
+          credentialKind: 'none' as const,
+          credentialName: null,
+          provider: 'builtin-metasearch' as const,
+          apiKey: null,
+          endpoint: null,
+        };
   return {
     upstreamKeyName: upstream.name,
     upstreamApiKey: upstream.value,
     upstreamBaseUrl,
     model,
-    searchKeyName: search.name,
-    searchProvider: searchProviderForKey(search.name),
-    searchApiKey: search.value,
+    searchCredentialName: search.credentialName,
+    searchCredentialKind: search.credentialKind,
+    searchProvider: search.provider,
+    searchApiKey: search.apiKey,
+    searchEndpoint: search.endpoint,
   };
 }
 
@@ -352,7 +455,7 @@ function firstPresent(entries: Array<[string, string | undefined]>): { name: str
   return null;
 }
 
-function searchProviderForKey(name: string): SmokeEnv['searchProvider'] {
+function searchProviderForApiKey(name: string): SmokeEnv['searchProvider'] {
   if (name === 'BRAVE_SEARCH_API_KEY') {
     return 'brave';
   }
@@ -360,6 +463,10 @@ function searchProviderForKey(name: string): SmokeEnv['searchProvider'] {
     return 'serper';
   }
   return 'tavily';
+}
+
+function searchProviderForEndpoint(name: string): SmokeEnv['searchProvider'] {
+  return name.includes('SEARXNG') ? 'searxng' : 'openserp';
 }
 
 function inferredBaseUrlForKey(name: string): string {

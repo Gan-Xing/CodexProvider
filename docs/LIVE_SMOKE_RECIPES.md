@@ -45,20 +45,21 @@ Goal: verify `web_search` is explicit, executor-backed, self-hosted through Code
 
 Use `examples/adapter-emulated-web-search-metasearch.ts` as the primary wiring reference. `examples/adapter-emulated-web-search.ts` remains a smaller Tavily-only baseline.
 
-For an end-to-end smoke against a real OpenAI-compatible upstream plus a real web search API, run:
+For an end-to-end smoke against a real OpenAI-compatible upstream plus live web search, run:
 
 ```bash
 pnpm smoke:web-search
 ```
 
-The script requires an upstream key (`CODEX_PROVIDER_API_KEY` or a supported provider preset key), an upstream base URL/model unless they can be inferred, and one of `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, or `TAVILY_API_KEY`. Without those variables it exits successfully after the offline local-index check and prints a skip reason.
+The script requires an upstream key (`CODEX_PROVIDER_API_KEY` or a supported provider preset key) and an upstream base URL/model unless they can be inferred. Search credentials are optional: it prefers `SEARXNG_ENDPOINT` / `OPENSERP_ENDPOINT`, then `BRAVE_SEARCH_API_KEY` / `SERPER_API_KEY` / `TAVILY_API_KEY`, and otherwise uses the built-in no-key HTML metasearch engines.
 
 Expected:
 
 - `{ name: "web_search", mode: "adapter-emulated" }` is declared.
 - `hostedToolExecutors.web_search` is registered.
-- API engines are used when `BRAVE_SEARCH_API_KEY` or `SERPER_API_KEY` is present.
-- HTML engines still provide best-effort live search when search API keys are absent.
+- Endpoint engines are used when `SEARXNG_ENDPOINT` or `OPENSERP_ENDPOINT` is present.
+- API engines are used when `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, or `TAVILY_API_KEY` is present and endpoint engines are not configured.
+- HTML engines provide best-effort live search when endpoint and API credentials are absent.
 - A live query returns `results`, `sources`, `documents` or `chunks`, and `retrieved_at`.
 - A Responses request can expose synthetic `web_search_call` output when requested through `include`.
 - A request with `external_web_access: false` only uses offline/cache engines such as the local index.
@@ -101,7 +102,9 @@ Required:
 
 Optional:
 
-- `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, or `TAVILY_API_KEY` for live external web search. Without a search key, this smoke still validates adapter-emulated `web_search` through a local web index.
+- `SEARXNG_ENDPOINT` or `OPENSERP_ENDPOINT` for a self-hosted search endpoint.
+- `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, or `TAVILY_API_KEY` for API-backed web search.
+- Without endpoint or API credentials, the smoke uses built-in no-key HTML metasearch engines and still requires live results outside the local cache.
 
 ## Smoke 5: Image Generation Contract
 

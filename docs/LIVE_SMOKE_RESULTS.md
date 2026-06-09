@@ -42,6 +42,41 @@ This file records redacted live smoke evidence for `@codex-provider/core`.
 
 ### Pending
 
-- `web_search` live smoke script is available through `pnpm smoke:web-search`; live evidence remains pending until upstream and search credentials are provided.
-- Real host integration smoke is available through `pnpm smoke:host`; live evidence remains pending until an upstream provider key is available. On 2026-06-09 this environment did not expose `CODEX_PROVIDER_API_KEY`, `OPENROUTER_API_KEY`, `DASHSCOPE_API_KEY`, `QWEN_API_KEY`, `DEEPSEEK_API_KEY`, `MINIMAX_API_KEY`, or `KIMI_API_KEY`.
+- `web_search` live smoke has evidence below through built-in no-key metasearch. Endpoint/API-backed search credentials remain optional for additional coverage.
+- Real host integration smoke has live evidence below. Current verified path uses OpenRouter with `deepseek/deepseek-chat`, adapter-emulated hosted tools, and local-index web_search.
 - A future CodexNext tarball/file dependency smoke should validate a real host app consuming the package when that host workspace is available.
+
+## 2026-06-09T17:48:09.853Z CodexProviderRuntime live host integration smoke
+
+- Provider base URL host: `openrouter.ai`
+- Model: `deepseek/deepseek-chat`
+- Runtime mode: `mixed`
+- Tool strategy: `adapter-emulated`
+- Upstream key env: `CODEX_PROVIDER_API_KEY=<redacted>`
+- Search provider: `local-index`
+- Search key env: `<not set; local-index>`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Mixed runtime local adapter | Passed | Adapter base URL host: 127.0.0.1:34747. |
+| Normal response | Passed | Latency: 1775 ms. |
+| Custom tool loop | Passed | First turn produced echo_probe; second turn returned final text. Latency: 4430 ms. |
+| Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 4883 ms. |
+| Adapter-emulated web_search | Passed | Sources: 1; results: 1; annotations: 1; latency: 4639 ms. |
+| Streaming adapter-emulated web_search | Passed | SSE events: 28; sources: 1; results: 1; annotations: 1; latency: 4531 ms. |
+
+## 2026-06-09T19:45:58.961Z Adapter-emulated web_search live smoke
+
+- Provider base URL host: `openrouter.ai`
+- Model: `deepseek/deepseek-chat`
+- Search provider: `builtin-metasearch`
+- Upstream key env: `CODEX_PROVIDER_API_KEY=<redacted>`
+- Search credential: `not set; built-in no-key metasearch`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Offline local-index path | Passed | Direct executor request used `external_web_access=false` and returned the seeded local-cache result. |
+| Non-streaming adapter web_search | Passed | web_search_call sources: 1; results: 1; annotations: 1; latency: 7358 ms. |
+| Streaming adapter web_search | Passed | SSE events: 24; web_search_call sources: 1; results: 1; annotations: 1; latency: 6838 ms. |
