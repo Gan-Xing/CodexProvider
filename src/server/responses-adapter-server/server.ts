@@ -3,7 +3,6 @@ import {
   chatCompletionsResponseToResponses,
   responsesRequestToCompactionResponse,
   responsesRequestToChatCompletions,
-  translateChatCompletionsSseStreamToResponsesSse,
 } from '../../converters/responses_adapter.js';
 import {
   resolveOpenAICompatibleProviderCapabilitiesForModel,
@@ -65,13 +64,10 @@ import {
   summarizeRequestAdjustments,
 } from './request-adjustments.js';
 import {
-  buildAppendedOutputItemSseEvents,
-  ensureSseResponseHeaders,
-  formatResponsesSseEvent,
-  parseResponsesSseEventFrame,
-  resequenceInsertedStreamEvents,
-  responsesObjectToSyntheticSseEvents,
-} from './synthetic-sse.js';
+  writeStreamingDataLinesResponse as writeStreamingDataLinesSseResponse,
+  writeStreamingDataLinesResponseWithHostedToolResults as writeStreamingDataLinesSseResponseWithHostedToolResults,
+  writeSyntheticStreamingResponse as writeSyntheticSseResponse,
+} from './streaming-response.js';
 import {
   readSseDataLines,
 } from './streaming.js';
@@ -751,35 +747,15 @@ export class OpenAICompatibleResponsesAdapterServer {
     dataLines: AsyncIterable<string>,
     response: ServerResponse,
   ): Promise<void> {
-    ensureSseResponseHeaders(response);
-    let eventCount = 0;
-    for await (const event of translateChatCompletionsSseStreamToResponsesSse(
+    await writeStreamingDataLinesSseResponse({
+      requestBody,
+      providerCapabilities,
       dataLines,
-      {
-        request: requestBody,
-        providerCapabilities,
-        modelMetadata: resolveModelMetadata(
-          this.models,
-          normalizeString(requestBody?.model) || this.defaultModel,
-        ),
-        traceEvent: (traceEvent) => {
-          eventCount += 1;
-          this.emitTrace({
-            type: 'stream.event',
-            route: 'responses',
-            event: traceEvent,
-          });
-        },
-      },
-    )) {
-      response.write(event);
-    }
-    this.emitTrace({
-      type: 'stream.completed',
-      route: 'responses',
-      eventCount,
+      response,
+      models: this.models,
+      defaultModel: this.defaultModel,
+      emitTrace: (event) => this.emitTrace(event),
     });
-    response.end();
   }
 
   private async writeStreamingDataLinesResponseWithHostedToolResults(
@@ -789,90 +765,28 @@ export class OpenAICompatibleResponsesAdapterServer {
     executions: AdapterHostedToolExecutionRecord[],
     response: ServerResponse,
   ): Promise<void> {
-    ensureSseResponseHeaders(response);
-    let eventCount = 0;
-    for await (const frame of translateChatCompletionsSseStreamToResponsesSse(
+    await writeStreamingDataLinesSseResponseWithHostedToolResults({
+      requestBody,
+      providerCapabilities,
       dataLines,
-      {
-        request: requestBody,
-        providerCapabilities,
-        modelMetadata: resolveModelMetadata(
-          this.models,
-          normalizeString(requestBody?.model) || this.defaultModel,
-        ),
-      },
-    )) {
-      const event = parseResponsesSseEventFrame(frame);
-      if (!event) {
-        response.write(frame);
-        continue;
-      }
-      let eventsToWrite = [event];
-      if (
-        (event.type === 'response.completed' || event.type === 'response.failed')
-        && event.response
-        && typeof event.response === 'object'
-      ) {
-        const previousOutputLength = Array.isArray(event.response.output)
-          ? event.response.output.length
-          : 0;
-        appendHostedToolResultsToResponsesOutput({
-          response: event.response,
-          request: requestBody,
-          executions,
-          exposeByDefault: this.exposeHostedToolResultsInResponsesOutput,
-        });
-        const appendedOutputEvents = buildAppendedOutputItemSseEvents(event.response, previousOutputLength);
-        resequenceInsertedStreamEvents(appendedOutputEvents, event);
-        eventsToWrite = [
-          ...appendedOutputEvents,
-          event,
-        ];
-      }
-      for (const eventToWrite of eventsToWrite) {
-        eventCount += 1;
-        this.emitTrace({
-          type: 'stream.event',
-          route: 'responses',
-          event: eventToWrite,
-        });
-        response.write(formatResponsesSseEvent(eventToWrite));
-      }
-    }
-    this.emitTrace({
-      type: 'stream.completed',
-      route: 'responses',
-      eventCount,
+      executions,
+      response,
+      models: this.models,
+      defaultModel: this.defaultModel,
+      exposeHostedToolResultsInResponsesOutput: this.exposeHostedToolResultsInResponsesOutput,
+      emitTrace: (event) => this.emitTrace(event),
     });
-    response.end();
   }
 
   private async writeSyntheticStreamingResponse(
     adaptedResponse: JsonRecord,
     response: ServerResponse,
   ): Promise<void> {
-    response.writeHead(200, {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
+    await writeSyntheticSseResponse({
+      adaptedResponse,
+      response,
+      emitTrace: (event) => this.emitTrace(event),
     });
-    let eventCount = 0;
-    for (const event of responsesObjectToSyntheticSseEvents(adaptedResponse)) {
-      eventCount += 1;
-      this.emitTrace({
-        type: 'stream.event',
-        route: 'responses',
-        event,
-      });
-      response.write(formatResponsesSseEvent(event));
-    }
-    response.write('data: [DONE]\n\n');
-    this.emitTrace({
-      type: 'stream.completed',
-      route: 'responses',
-      eventCount,
-    });
-    response.end();
   }
 
   private emitTrace(event: CodexProviderTraceEvent): void {

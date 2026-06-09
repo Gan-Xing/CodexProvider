@@ -69,6 +69,11 @@ export type {
   StreamingToolCallAccumulator,
 } from './streaming.js';
 export {
+  writeStreamingDataLinesResponse,
+  writeStreamingDataLinesResponseWithHostedToolResults,
+  writeSyntheticStreamingResponse,
+} from './streaming-response.js';
+export {
   fetchUpstreamWithRetry,
   pipeUpstreamStream,
 } from './upstream.js';
