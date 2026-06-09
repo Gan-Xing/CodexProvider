@@ -18,6 +18,9 @@ export {
   resolveModelMetadata,
 } from './models.js';
 export {
+  appendHostedToolResultsToResponsesOutput,
+} from './hosted-tool-output.js';
+export {
   buildNormalizedRetryMetadata,
   normalizeRetryCapabilities,
   resolveRetryDelayMs,
