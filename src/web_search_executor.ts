@@ -7,6 +7,16 @@ import type {
 import {
   createCodexProviderOpenAiWebSearchExecutor,
 } from './web-search/openai/executor.js';
+import {
+  createCodexProviderProviderWebSearchSource as createProviderWebSearchSource,
+} from './web-search/provider-source.js';
+import {
+  clampInteger,
+  normalizeArray,
+  normalizeFiniteNumber,
+  normalizePositiveInteger,
+  normalizeString,
+} from './web-search/executor-utils.js';
 import type {
   CodexProviderMetaSearchService,
   CodexProviderSearchEngine,
@@ -132,9 +142,9 @@ export interface CodexProviderWebSearchExecutorContent {
   return_token_budget?: number | null;
 }
 
-const DEFAULT_TAVILY_ENDPOINT = 'https://api.tavily.com/search';
-const DEFAULT_BRAVE_ENDPOINT = 'https://api.search.brave.com/res/v1/web/search';
-const DEFAULT_SERPER_ENDPOINT = 'https://google.serper.dev/search';
+export {
+  createCodexProviderProviderWebSearchSource,
+} from './web-search/provider-source.js';
 
 export function createCodexProviderWebSearchExecutor(
   options: CodexProviderWebSearchExecutorOptions,
@@ -236,227 +246,6 @@ function createLegacyCodexProviderWebSearchExecutor(
   };
 }
 
-export function createCodexProviderProviderWebSearchSource(
-  options: CodexProviderProviderWebSearchSourceOptions,
-): CodexProviderWebSearchSource {
-  const provider = normalizeWebSearchProvider(options.provider);
-  const apiKey = normalizeString(options.apiKey);
-  if (!apiKey) {
-    throw new Error(`${provider} web_search source requires an API key.`);
-  }
-  const fetchImpl = options.fetchImpl ?? fetch;
-  const maxResults = clampInteger(options.maxResults, 1, 10, 5);
-  const endpoint = normalizeString(options.endpoint) || defaultEndpointForWebSearchProvider(provider);
-  const country = normalizeString(options.country);
-  const language = normalizeString(options.language);
-  return {
-    name: provider,
-    type: provider,
-    live: true,
-    search(request) {
-      switch (provider) {
-        case 'tavily':
-          return executeTavilySearch({
-            apiKey,
-            endpoint,
-            fetchImpl,
-            maxResults: Math.min(maxResults, request.maxResults),
-            request,
-          });
-        case 'brave':
-          return executeBraveSearch({
-            apiKey,
-            endpoint,
-            fetchImpl,
-            maxResults: Math.min(maxResults, request.maxResults),
-            request,
-            country,
-            language,
-          });
-        case 'serper':
-          return executeSerperSearch({
-            apiKey,
-            endpoint,
-            fetchImpl,
-            maxResults: Math.min(maxResults, request.maxResults),
-            request,
-            country,
-            language,
-          });
-        default:
-          throw new Error(`Unsupported web_search source provider: ${provider}`);
-      }
-    },
-  };
-}
-
-async function executeTavilySearch({
-  apiKey,
-  endpoint,
-  fetchImpl,
-  maxResults,
-  request,
-}: {
-  apiKey: string;
-  endpoint: string;
-  fetchImpl: typeof fetch;
-  maxResults: number;
-  request: CodexProviderWebSearchSourceRequest;
-}): Promise<CodexProviderWebSearchSourceResult> {
-  const response = await fetchJson(fetchImpl, endpoint, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query: request.query,
-      max_results: maxResults,
-      search_depth: tavilySearchDepthFromContextSize(request.searchContextSize),
-      include_answer: true,
-      ...(request.filters?.allowedDomains.length ? { include_domains: request.filters.allowedDomains } : {}),
-      ...(request.filters?.blockedDomains.length ? { exclude_domains: request.filters.blockedDomains } : {}),
-    }),
-  });
-  const results = normalizeArray(response.results)
-    .slice(0, maxResults)
-    .map((result) => ({
-      title: normalizeString(result?.title) || normalizeString(result?.url) || 'Untitled result',
-      url: normalizeString(result?.url),
-      snippet: normalizeString(result?.content) || normalizeString(result?.snippet),
-      source: 'tavily',
-      publishedAt: normalizeString(result?.published_date) || null,
-      score: normalizeFiniteNumber(result?.score),
-    }))
-    .filter((result) => result.url);
-  return {
-    answer: normalizeString(response.answer) || null,
-    results,
-    sources: results.map(resultToSourceReference),
-    citations: results.map(resultToCitation),
-  };
-}
-
-async function executeBraveSearch({
-  apiKey,
-  endpoint,
-  fetchImpl,
-  maxResults,
-  request,
-  country,
-  language,
-}: {
-  apiKey: string;
-  endpoint: string;
-  fetchImpl: typeof fetch;
-  maxResults: number;
-  request: CodexProviderWebSearchSourceRequest;
-  country: string;
-  language: string;
-}): Promise<CodexProviderWebSearchSourceResult> {
-  const url = new URL(endpoint);
-  url.searchParams.set('q', request.query);
-  url.searchParams.set('count', String(maxResults));
-  if (country) {
-    url.searchParams.set('country', country.toUpperCase());
-  }
-  if (language) {
-    url.searchParams.set('search_lang', language.toLowerCase());
-  }
-  const response = await fetchJson(fetchImpl, url.toString(), {
-    method: 'GET',
-    headers: {
-      'X-Subscription-Token': apiKey,
-      Accept: 'application/json',
-    },
-  });
-  const results = normalizeArray(response.web?.results)
-    .slice(0, maxResults)
-    .map((result) => ({
-      title: normalizeString(result?.title) || normalizeString(result?.url) || 'Untitled result',
-      url: normalizeString(result?.url),
-      snippet: normalizeString(result?.description) || normalizeString(result?.snippet),
-      source: 'brave',
-      publishedAt: normalizeString(result?.page_age) || normalizeString(result?.age) || null,
-      score: normalizeFiniteNumber(result?.score),
-    }))
-    .filter((result) => result.url);
-  return {
-    results,
-    sources: results.map(resultToSourceReference),
-    citations: results.map(resultToCitation),
-  };
-}
-
-async function executeSerperSearch({
-  apiKey,
-  endpoint,
-  fetchImpl,
-  maxResults,
-  request,
-  country,
-  language,
-}: {
-  apiKey: string;
-  endpoint: string;
-  fetchImpl: typeof fetch;
-  maxResults: number;
-  request: CodexProviderWebSearchSourceRequest;
-  country: string;
-  language: string;
-}): Promise<CodexProviderWebSearchSourceResult> {
-  const response = await fetchJson(fetchImpl, endpoint, {
-    method: 'POST',
-    headers: {
-      'X-API-KEY': apiKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      q: request.query,
-      num: maxResults,
-      ...(country ? { gl: country.toLowerCase() } : {}),
-      ...(language ? { hl: language.toLowerCase() } : {}),
-    }),
-  });
-  const results = normalizeArray(response.organic)
-    .slice(0, maxResults)
-    .map((result) => ({
-      title: normalizeString(result?.title) || normalizeString(result?.link) || 'Untitled result',
-      url: normalizeString(result?.link),
-      snippet: normalizeString(result?.snippet),
-      source: 'serper',
-      publishedAt: normalizeString(result?.date) || null,
-      score: normalizeFiniteNumber(result?.position),
-    }))
-    .filter((result) => result.url);
-  return {
-    answer: normalizeString(response.answerBox?.answer)
-      || normalizeString(response.knowledgeGraph?.description)
-      || null,
-    results,
-    sources: results.map(resultToSourceReference),
-    citations: results.map(resultToCitation),
-  };
-}
-
-async function fetchJson(
-  fetchImpl: typeof fetch,
-  url: string,
-  init: RequestInit,
-): Promise<JsonRecord> {
-  const response = await fetchImpl(url, init);
-  const text = await response.text();
-  if (!response.ok) {
-    throw new Error(`web_search upstream returned HTTP ${response.status}: ${text.slice(0, 500)}`);
-  }
-  try {
-    const json = JSON.parse(text) as JsonRecord;
-    return json && typeof json === 'object' ? json : {};
-  } catch (error) {
-    throw new Error(`web_search upstream returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
 function normalizeWebSearchSources(
   options: CodexProviderWebSearchExecutorOptions,
 ): CodexProviderWebSearchSource[] {
@@ -467,7 +256,7 @@ function normalizeWebSearchSources(
     }
   }
   if (normalizeString(options.provider) || normalizeString(options.apiKey)) {
-    sources.push(createCodexProviderProviderWebSearchSource({
+    sources.push(createProviderWebSearchSource({
       provider: options.provider ?? 'tavily',
       apiKey: options.apiKey ?? '',
       endpoint: options.endpoint,
@@ -494,7 +283,7 @@ function normalizeWebSearchSource(source: CodexProviderWebSearchSourceInput): Co
       live: adapter.live !== false,
     };
   }
-  return createCodexProviderProviderWebSearchSource(source as CodexProviderProviderWebSearchSourceOptions);
+  return createProviderWebSearchSource(source as CodexProviderProviderWebSearchSourceOptions);
 }
 
 function normalizeWebSearchRequest(
@@ -533,18 +322,6 @@ function normalizeSearchContextSize(value: unknown): CodexProviderWebSearchConte
     return normalized;
   }
   return 'medium';
-}
-
-function tavilySearchDepthFromContextSize(
-  contextSize: CodexProviderWebSearchContextSize,
-): 'basic' | 'advanced' | 'fast' {
-  if (contextSize === 'high') {
-    return 'advanced';
-  }
-  if (contextSize === 'low') {
-    return 'fast';
-  }
-  return 'basic';
 }
 
 function normalizeUserLocation(value: unknown): JsonRecord | null {
@@ -684,23 +461,6 @@ function normalizeWebSearchCitation(
   };
 }
 
-function resultToSourceReference(result: CodexProviderWebSearchResult): CodexProviderWebSearchSourceReference {
-  return {
-    title: result.title,
-    url: result.url,
-    source: result.source ?? null,
-    snippet: result.snippet,
-  };
-}
-
-function resultToCitation(result: CodexProviderWebSearchResult): CodexProviderWebSearchCitation {
-  return {
-    type: 'url_citation',
-    title: result.title,
-    url: result.url,
-  };
-}
-
 function dedupeWebSearchSources(
   sources: CodexProviderWebSearchSourceReference[],
 ): CodexProviderWebSearchSourceReference[] {
@@ -733,27 +493,6 @@ function dedupeWebSearchCitations(
   return deduped;
 }
 
-function defaultEndpointForWebSearchProvider(provider: CodexProviderWebSearchProvider): string {
-  switch (provider) {
-    case 'tavily':
-      return DEFAULT_TAVILY_ENDPOINT;
-    case 'brave':
-      return DEFAULT_BRAVE_ENDPOINT;
-    case 'serper':
-      return DEFAULT_SERPER_ENDPOINT;
-    default:
-      return '';
-  }
-}
-
-function normalizeWebSearchProvider(value: unknown): CodexProviderWebSearchProvider {
-  const normalized = normalizeString(value).toLowerCase();
-  if (normalized === 'tavily' || normalized === 'brave' || normalized === 'serper') {
-    return normalized;
-  }
-  throw new Error(`Unsupported web_search executor provider: ${String(value)}`);
-}
-
 function firstNonEmptyString(values: unknown[]): string {
   for (const value of values) {
     const normalized = normalizeString(value);
@@ -762,30 +501,4 @@ function firstNonEmptyString(values: unknown[]): string {
     }
   }
   return '';
-}
-
-function normalizeString(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function normalizeArray(value: unknown): any[] {
-  return Array.isArray(value) ? value : [];
-}
-
-function normalizeFiniteNumber(value: unknown): number | null {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-}
-
-function normalizePositiveInteger(value: unknown): number | null {
-  const number = Number(value);
-  return Number.isInteger(number) && number > 0 ? number : null;
-}
-
-function clampInteger(value: unknown, min: number, max: number, fallback: number): number {
-  const number = Number(value);
-  if (!Number.isInteger(number)) {
-    return fallback;
-  }
-  return Math.min(max, Math.max(min, number));
 }
