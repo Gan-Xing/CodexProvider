@@ -21,7 +21,7 @@
 - [x] Draft release readiness policy exists.
 - [x] Standalone consumer harness validates root entrypoint usage without CodexBridge internals.
 - [x] Non-web OpenRouter live smoke results are recorded in `docs/LIVE_SMOKE_RESULTS.md`.
-- [ ] Live smoke recipes are executed and recorded against real upstream providers.
+- [x] Live smoke recipes are executed and recorded against real upstream providers.
 - [x] Live consumer validation is completed through CodexNext or a standalone app-server harness.
 - [x] Changelog policy and npm release workflow are decided.
 - [x] Package tarball contents are inspected and recorded in `docs/RELEASE_READINESS.md`.
@@ -53,6 +53,6 @@ Prefer adding new root exports over subpath exports until the package reaches a 
 
 Deprecated Relay/Gateway names are not part of the active package surface.
 
-## Current Blocker
+## Current Status
 
-The public package name is now `@codex-provider/core`, but the package remains internal-only. Keep `private: true`, keep `version: "0.1.0-alpha.0"`, and avoid adding new public subpath exports until provider live smoke evidence is complete.
+The public package name is now `@codex-provider/core`, and real upstream live smoke evidence is recorded in `docs/LIVE_SMOKE_RESULTS.md`. Keep `private: true` and `version: "0.1.0-alpha.0"` until the API is intentionally promoted beyond internal alpha.
