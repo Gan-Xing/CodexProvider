@@ -61,7 +61,7 @@ Expected:
 - API engines are used when `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, or `TAVILY_API_KEY` is present and endpoint engines are not configured.
 - HTML engines provide best-effort live search when endpoint and API credentials are absent.
 - A live query returns `results`, `sources`, `documents` or `chunks`, and `retrieved_at`.
-- A Responses request can expose synthetic `web_search_call` output when requested through `include`.
+- A Responses request can expose synthetic `web_search_call` output when requested through `include`; UI checks should prefer `web_search_call.action.sources` for consulted URLs and treat `web_search_call.results` as adapter/debug compatibility data.
 - A request with `external_web_access: false` only uses offline/cache engines such as the local index.
 - `custom:deep_web_search` is opt-in and separate from the default `web_search` declaration.
 
