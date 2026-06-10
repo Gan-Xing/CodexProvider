@@ -161,5 +161,6 @@ export interface OpenAICompatibleResponsesAdapterServerOptions {
   maxHostedToolIterations?: number | null;
   emitHostedToolSseEvents?: boolean | null;
   exposeHostedToolResultsInResponsesOutput?: boolean | null;
+  exposeWebSearchDetailedActions?: boolean | null;
   webSearchInvalidParameterStrategy?: CodexProviderWebSearchInvalidParameterStrategy | null;
 }

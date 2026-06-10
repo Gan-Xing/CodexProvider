@@ -94,6 +94,7 @@ export type ResponsesAdapterRequestHandlerContext = {
   maxHostedToolIterations: number;
   emitHostedToolSseEvents: boolean;
   exposeHostedToolResultsInResponsesOutput: boolean;
+  exposeWebSearchDetailedActions: boolean;
   webSearchInvalidParameterStrategy: 'error' | 'drop';
   fetchUpstreamWithRetry: (
     url: string,
@@ -145,6 +146,7 @@ export async function handleResponsesAdapterRequest({
   maxHostedToolIterations,
   emitHostedToolSseEvents,
   exposeHostedToolResultsInResponsesOutput,
+  exposeWebSearchDetailedActions,
   webSearchInvalidParameterStrategy,
   fetchUpstreamWithRetry,
   writeStreamingResponse,
@@ -400,6 +402,7 @@ export async function handleResponsesAdapterRequest({
       request: effectiveRequestBody,
       executions: hostedToolLoop.executions,
       exposeByDefault: exposeHostedToolResultsInResponsesOutput,
+      exposeWebSearchDetailedActions,
     });
     emitTrace({
       type: 'response.translated',

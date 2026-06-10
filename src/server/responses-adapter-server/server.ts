@@ -121,6 +121,8 @@ export class OpenAICompatibleResponsesAdapterServer {
 
   private readonly exposeHostedToolResultsInResponsesOutput: boolean;
 
+  private readonly exposeWebSearchDetailedActions: boolean;
+
   private readonly webSearchInvalidParameterStrategy: 'error' | 'drop';
 
   private server: http.Server | null;
@@ -147,6 +149,7 @@ export class OpenAICompatibleResponsesAdapterServer {
     maxHostedToolIterations = null,
     emitHostedToolSseEvents = false,
     exposeHostedToolResultsInResponsesOutput = false,
+    exposeWebSearchDetailedActions = false,
     webSearchInvalidParameterStrategy = 'error',
   }: OpenAICompatibleResponsesAdapterServerOptions) {
     const normalizedKey = normalizeString(apiKey);
@@ -176,6 +179,7 @@ export class OpenAICompatibleResponsesAdapterServer {
     this.maxHostedToolIterations = normalizePositiveInteger(maxHostedToolIterations) ?? 4;
     this.emitHostedToolSseEvents = Boolean(emitHostedToolSseEvents);
     this.exposeHostedToolResultsInResponsesOutput = Boolean(exposeHostedToolResultsInResponsesOutput);
+    this.exposeWebSearchDetailedActions = Boolean(exposeWebSearchDetailedActions);
     this.webSearchInvalidParameterStrategy = normalizeWebSearchInvalidParameterStrategy(
       webSearchInvalidParameterStrategy,
     );
@@ -300,6 +304,7 @@ export class OpenAICompatibleResponsesAdapterServer {
       maxHostedToolIterations: this.maxHostedToolIterations,
       emitHostedToolSseEvents: this.emitHostedToolSseEvents,
       exposeHostedToolResultsInResponsesOutput: this.exposeHostedToolResultsInResponsesOutput,
+      exposeWebSearchDetailedActions: this.exposeWebSearchDetailedActions,
       webSearchInvalidParameterStrategy: this.webSearchInvalidParameterStrategy,
       fetchUpstreamWithRetry: (...args) => this.fetchUpstreamWithRetry(...args),
       writeStreamingResponse: (...args) => this.writeStreamingResponse(...args),
@@ -387,6 +392,7 @@ export class OpenAICompatibleResponsesAdapterServer {
       models: this.models,
       defaultModel: this.defaultModel,
       exposeHostedToolResultsInResponsesOutput: this.exposeHostedToolResultsInResponsesOutput,
+      exposeWebSearchDetailedActions: this.exposeWebSearchDetailedActions,
       emitTrace: (event) => this.emitTrace(event),
     });
   }

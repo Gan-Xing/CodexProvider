@@ -13,6 +13,7 @@ export interface CodexProviderWebSearchCallBuildOptions {
   resultContentText: string;
   includeSources: boolean;
   includeResults: boolean;
+  includeDetailedActions: boolean;
 }
 
 export interface CodexProviderWebSearchCallBuildResult {
@@ -34,7 +35,7 @@ export function buildCodexProviderWebSearchCallOutputItem(
     || normalizeString(payload?.query);
   const sources = normalizeWebSearchSources(payload);
   const results = normalizeWebSearchResults(payload);
-  const detailedItems = options.includeSources || options.includeResults
+  const detailedItems = options.includeDetailedActions
     ? buildDetailedWebSearchCallItems({
       callId: options.callId,
       query,

@@ -25,11 +25,13 @@ export function appendHostedToolResultsToResponsesOutput({
   request,
   executions,
   exposeByDefault,
+  exposeWebSearchDetailedActions = false,
 }: {
   response: JsonRecord;
   request: JsonRecord;
   executions: AdapterHostedToolExecutionRecord[];
   exposeByDefault: boolean;
+  exposeWebSearchDetailedActions?: boolean;
 }): void {
   if (executions.length === 0) {
     return;
@@ -82,6 +84,7 @@ export function appendHostedToolResultsToResponsesOutput({
         resultContentText: execution.content,
         includeSources: shouldExposeWebSearchActionSources(request, exposeByDefault),
         includeResults: shouldExposeWebSearchResults(request, exposeByDefault),
+        includeDetailedActions: shouldExposeWebSearchDetailedActions(request, exposeWebSearchDetailedActions),
       });
       output.push(...webSearchCall.items);
       webSearchCitationSources.push(...webSearchCall.citationSources);
@@ -121,6 +124,13 @@ function shouldExposeWebSearchResults(request: JsonRecord, exposeByDefault: bool
     return true;
   }
   return normalizeArray(request?.include).some((entry) => normalizeString(entry) === 'web_search_call.results');
+}
+
+function shouldExposeWebSearchDetailedActions(request: JsonRecord, exposeByDefault: boolean): boolean {
+  if (exposeByDefault) {
+    return true;
+  }
+  return normalizeArray(request?.include).some((entry) => normalizeString(entry) === 'web_search_call.actions');
 }
 
 function extractFileSearchResultsFromHostedToolOutput(content: string): JsonRecord[] {

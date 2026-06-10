@@ -3,6 +3,9 @@ import test from 'node:test';
 import {
   OpenAICompatibleResponsesAdapterServer,
 } from '../src/index.js';
+import {
+  appendHostedToolResultsToResponsesOutput,
+} from '../src/server/responses-adapter-server/hosted-tool-output.js';
 
 function createEventStreamResponse(chunks: unknown[]): Response {
   const encoder = new TextEncoder();
@@ -51,6 +54,101 @@ function outputTextPart(response: any): any {
   const message = outputItem(response, 'message');
   return message?.content?.find((part: any) => part?.type === 'output_text');
 }
+
+function createWebSearchExecution(): any {
+  const content = {
+    query: 'detailed search',
+    sources: [{
+      id: 1,
+      title: 'Detailed Source',
+      url: 'https://example.com/detailed-source',
+    }],
+    results: [{
+      title: 'Detailed Result',
+      url: 'https://example.com/detailed-result',
+    }],
+    documents: [{
+      source_id: 1,
+      url: 'https://example.com/detailed-source',
+      final_url: 'https://example.com/detailed-source',
+      title: 'Detailed Source',
+      text: 'Detailed retrieved page text.',
+    }],
+    chunks: [{
+      source_id: 1,
+      chunk_id: 'chunk_detailed_1',
+      url: 'https://example.com/detailed-source',
+      title: 'Detailed Source',
+      text: 'Detailed chunk text for find in page.',
+      score: 0.9,
+    }],
+  };
+  return {
+    toolName: 'web_search',
+    emulatedToolName: 'adapter_web_search',
+    callId: 'call_detailed_actions_1',
+    iteration: 1,
+    arguments: {
+      query: 'detailed search',
+    },
+    content: JSON.stringify({ content }),
+    resultContent: content,
+    resultMetadata: null,
+  };
+}
+
+test('web_search detailed action items require explicit action include or option', () => {
+  const compactResponse = { output: [] };
+  appendHostedToolResultsToResponsesOutput({
+    response: compactResponse,
+    request: {
+      include: [
+        'web_search_call.action.sources',
+        'web_search_call.results',
+      ],
+    },
+    executions: [createWebSearchExecution()],
+    exposeByDefault: false,
+  });
+
+  assert.deepEqual(
+    outputItems(compactResponse, 'web_search_call').map((item: any) => item.action.type),
+    ['search'],
+  );
+  assert.equal(outputItem(compactResponse, 'web_search_call').action.sources[0].url, 'https://example.com/detailed-source');
+  assert.equal(outputItem(compactResponse, 'web_search_call').results[0].url, 'https://example.com/detailed-result');
+
+  const includedResponse = { output: [] };
+  appendHostedToolResultsToResponsesOutput({
+    response: includedResponse,
+    request: {
+      include: ['web_search_call.actions'],
+    },
+    executions: [createWebSearchExecution()],
+    exposeByDefault: false,
+  });
+
+  assert.deepEqual(
+    outputItems(includedResponse, 'web_search_call').map((item: any) => item.action.type),
+    ['search', 'open_page', 'find_in_page'],
+  );
+  assert.equal(outputItems(includedResponse, 'web_search_call')[1].action.url, 'https://example.com/detailed-source');
+  assert.match(outputItems(includedResponse, 'web_search_call')[2].action.pattern, /find in page/u);
+
+  const optionResponse = { output: [] };
+  appendHostedToolResultsToResponsesOutput({
+    response: optionResponse,
+    request: {},
+    executions: [createWebSearchExecution()],
+    exposeByDefault: false,
+    exposeWebSearchDetailedActions: true,
+  });
+
+  assert.deepEqual(
+    outputItems(optionResponse, 'web_search_call').map((item: any) => item.action.type),
+    ['search', 'open_page', 'find_in_page'],
+  );
+});
 
 test('responses output exposes adapter web_search call with sources, results, and citation annotations', async () => {
   const upstreamRequests: any[] = [];
@@ -179,10 +277,7 @@ test('responses output exposes adapter web_search call with sources, results, an
     assert.equal(webSearchCall.action.query, 'phase 7 search');
     assert.deepEqual(webSearchCall.action.queries, ['phase 7 search']);
     assert.equal(webSearchCall.action.sources[0].url, 'https://example.com/phase-7-source');
-    assert.deepEqual(webSearchCalls.map((item: any) => item.action.type), ['search', 'open_page', 'find_in_page']);
-    assert.equal(webSearchCalls[1].action.url, 'https://example.com/phase-7-source');
-    assert.equal(webSearchCalls[2].action.url, 'https://example.com/phase-7-source');
-    assert.match(webSearchCalls[2].action.pattern, /find in page/u);
+    assert.deepEqual(webSearchCalls.map((item: any) => item.action.type), ['search']);
     assert.equal(webSearchCall.results[0].url, 'https://example.com/phase-7-result');
   } finally {
     await server.stop();
@@ -421,10 +516,7 @@ test('streaming responses completed event includes adapter web_search call outpu
     assert.equal(webSearchCall.action.query, 'streaming phase 7');
     assert.deepEqual(webSearchCall.action.queries, ['streaming phase 7']);
     assert.equal(webSearchCall.action.sources[0].url, 'https://example.com/streaming-phase-7');
-    assert.deepEqual(webSearchCalls.map((item: any) => item.action.type), ['search', 'open_page', 'find_in_page']);
-    assert.equal(webSearchCalls[1].action.url, 'https://example.com/streaming-phase-7');
-    assert.equal(webSearchCalls[2].action.url, 'https://example.com/streaming-phase-7');
-    assert.match(webSearchCalls[2].action.pattern, /find in page/u);
+    assert.deepEqual(webSearchCalls.map((item: any) => item.action.type), ['search']);
     assert.equal(webSearchCall.results[0].url, 'https://example.com/streaming-phase-7-result');
   } finally {
     await server.stop();

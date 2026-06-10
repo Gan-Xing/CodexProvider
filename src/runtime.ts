@@ -58,6 +58,7 @@ export interface CodexProviderRuntimeOptions {
   hostedToolExecutors?: CodexProviderHostedToolExecutorRegistryInput;
   maxHostedToolIterations?: number | null;
   emitHostedToolSseEvents?: boolean | null;
+  exposeWebSearchDetailedActions?: boolean | null;
   extraProviderFields?: Record<string, CodexProviderTomlPrimitive | null | undefined> | null;
   adapterHost?: string | null;
   adapterPort?: number | null;
@@ -141,6 +142,7 @@ export class CodexProviderRuntime {
       ...(this.options.hostedToolExecutors !== undefined ? { hostedToolExecutors: this.options.hostedToolExecutors ?? null } : {}),
       ...(this.options.maxHostedToolIterations !== undefined ? { maxHostedToolIterations: this.options.maxHostedToolIterations ?? null } : {}),
       ...(this.options.emitHostedToolSseEvents !== undefined ? { emitHostedToolSseEvents: this.options.emitHostedToolSseEvents ?? null } : {}),
+      ...(this.options.exposeWebSearchDetailedActions !== undefined ? { exposeWebSearchDetailedActions: this.options.exposeWebSearchDetailedActions ?? null } : {}),
     });
     await server.start();
 

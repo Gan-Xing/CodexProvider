@@ -97,6 +97,7 @@ export async function writeStreamingDataLinesResponseWithHostedToolResults({
   models,
   defaultModel,
   exposeHostedToolResultsInResponsesOutput,
+  exposeWebSearchDetailedActions,
   emitTrace,
 }: {
   requestBody: JsonRecord;
@@ -107,6 +108,7 @@ export async function writeStreamingDataLinesResponseWithHostedToolResults({
   models: AdapterModel[];
   defaultModel: string;
   exposeHostedToolResultsInResponsesOutput: boolean;
+  exposeWebSearchDetailedActions: boolean;
   emitTrace: EmitTrace;
 }): Promise<void> {
   ensureSseResponseHeaders(response);
@@ -141,6 +143,7 @@ export async function writeStreamingDataLinesResponseWithHostedToolResults({
         request: requestBody,
         executions,
         exposeByDefault: exposeHostedToolResultsInResponsesOutput,
+        exposeWebSearchDetailedActions,
       });
       const appendedOutputEvents = buildAppendedOutputItemSseEvents(event.response, previousOutputLength);
       resequenceInsertedStreamEvents(appendedOutputEvents, event);
