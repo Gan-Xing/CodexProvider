@@ -18,12 +18,12 @@ This tracker is the living audit snapshot for the 100 percent parity loop. The c
 - Phase 5: stabilized synthetic `web_search_call` output policy and deterministic citation markers.
 - Phase 6: `file_search` source-level cursor pagination, filter/ranking matrix coverage, and pagination docs.
 - Phase 7: deterministic search-quality fixture suite, shared CJK-aware tokenization, title-complete ranking boosts, improved article extraction, local-index/file-search boundary coverage, and parser fixture workflow docs.
+- Phase 8: package-surface scanner hardening, real tarball-content inspection, CI package hygiene gate, public-surface CI regression test, and refreshed release-readiness dry-run snapshot.
 
 Out of scope for the latest completed phase:
 
-- File source rewrites or web-index/file-search mixing.
-- New live search-provider quality claims or wall-clock recency scoring.
-- Package publishing, dependency additions, or changing `private: true`.
+- Live smoke evidence or new provider live behavior claims.
+- Public release, npm publish automation, dependency additions, or changing `private: true`.
 
 ## Phase Status
 
@@ -37,7 +37,7 @@ Out of scope for the latest completed phase:
 | Phase 5 | Web search output parity and citation quality | Complete | Include-gated output policy verified, visible `[N]` citation markers added, repeated/invalid/CJK citation tests added, and final local gate passed on 2026-06-10. |
 | Phase 6 | File search 100 percent hardening | Complete | Source-level `pageCursor` / `nextPage` contract added, signed tokens preserve per-source cursors and global offsets, filter/ranking/vector-store matrix tests added, and final local gate passed on 2026-06-10. |
 | Phase 7 | Ranking and extraction quality evaluation | Complete | Shared tokenizer, deterministic ranking/extraction fixtures, CJK ranking tests, title-complete boosts, local-index/file_search boundary tests, scoring docs, and parser fixture workflow added. Final local gate passed on 2026-06-10. |
-| Phase 8 | Package hygiene and CI | Not started | Out of current scope. |
+| Phase 8 | Package hygiene and CI | Complete | `check-package-surface` now scans actual dry-run tarball files for secrets, private paths, generated artifacts, large files, binary artifacts, and host-app imports; CI runs the package-surface gate before pack dry-run; release readiness snapshot refreshed. Final local gate passed on 2026-06-10. |
 | Phase 9 | Live smoke evidence | Not started | Out of current scope. |
 | Phase 10 | Public alpha release decision | Not started | Out of current scope. |
 
@@ -59,12 +59,12 @@ Out of scope for the latest completed phase:
 | 12 | P1 | CJK tokenization is weak | Complete | Phase 7 adds shared Latin/CJK tokenization with CJK bigrams/trigrams and uses it across metasearch, retrieval chunk ranking, local web index, and file_search query terms. |
 | 13 | P1 | HTML extraction needs quality fixtures | Complete | Phase 7 adds article/docs/CJK/malformed HTML fixtures and tests extraction of title, description, canonical URL, language, main text, code/table/list text, and chrome/hidden-content removal. |
 | 14 | P1 | Metasearch engine parser snapshots need maintenance workflow | Complete | Phase 7 documents parser fixture policy in `docs/SEARCH_QUALITY_SCORING.md`; existing HTML engine fixtures continue to cover no-results, blocked/captcha, and tracking cleanup. |
-| 15 | P1 | Package hygiene checker should scan shipped docs/examples | Partially done before this phase | `pnpm check-package-surface` exists; this pass keeps requested final `check-boundary`/`pack:dry-run` gates. |
+| 15 | P1 | Package hygiene checker should scan shipped docs/examples | Complete | Phase 8 hardens `pnpm check-package-surface` to scan README, CHANGELOG, LICENSE, docs, examples, package.json, and the actual `npm pack --dry-run --json` tarball file list for secrets, private paths, generated artifacts, large files, binary artifacts, and host-app imports. |
 | 16 | P1 | Hosted tool execution errors need clear policy | Not started | Future policy/error-class phase. |
 | 17 | P1 | Provider capability presets need live behavior records | Not started | Future provider matrix/live smoke work. |
 | 18 | P2 | Deep search is currently heuristic | Not started | Future optional deep-search phase. |
 | 19 | P2 | Observability should be structured | Partially done | Phase 1 adds sanitized `hosted_tool.config_bound` trace metadata; broader observability remains future work. |
-| 20 | P2 | CI and release automation | Not started | Future Phase 8. |
+| 20 | P2 | CI and release automation | Complete | Phase 8 CI runs test, typecheck, build, consumer harness, boundary, package-surface, and pack dry-run checks. Publishing remains manual and `private: true` is unchanged. |
 
 ## Phase 1 Binding Contract
 
@@ -164,6 +164,18 @@ Search ranking and extraction now have deterministic local evaluation coverage.
 - HTML extraction now prefers `main` / `article`, strips common page chrome and hidden content, extracts canonical URLs, and has article/docs/CJK/malformed fixture coverage.
 - The local web index remains a `web_search` facility only; Phase 7 adds a regression test proving file_search cannot read web-index content unless a host separately configures that content as a file_search source.
 - The scoring and parser fixture maintenance policy is documented in `docs/SEARCH_QUALITY_SCORING.md`.
+
+## Phase 8 Package Hygiene And CI Contract
+
+Package hygiene checks now cover the source-side public surface and the real dry-run tarball contents.
+
+- `pnpm check-package-surface` scans README, CHANGELOG, LICENSE, docs, examples, package.json, and the `npm pack --dry-run --json` file list.
+- The checker rejects secret-looking literals, private workspace paths, `.env` files, generated cache/index/database/package artifacts, oversized shipped files, binary artifacts, and host-app hard imports.
+- The tarball allowlist remains limited to `dist`, `README.md`, `CHANGELOG.md`, `LICENSE`, `docs`, `examples`, and `package.json`.
+- CI now runs `pnpm check-package-surface` after `pnpm check-boundary` and before `pnpm pack:dry-run`.
+- A public-surface test asserts the CI package hygiene gate stays present and ordered before dry-run packing.
+- `docs/RELEASE_READINESS.md` records the current manual release posture and the latest dry-run tarball snapshot.
+- Publishing remains manual; no npm auto-publish workflow is added and `private: true` remains unchanged.
 
 ## Validation Log
 
@@ -327,6 +339,37 @@ Additional focused validation:
 ```bash
 pnpm exec tsx --test test/search_quality_phase7.test.ts test/web_search_retrieval.test.ts test/web_search_local_index.test.ts test/web_search_metasearch_core.test.ts test/file_search_executor.test.ts test/web_search_html_engines.test.ts  # passed: 64 tests
 git diff --check                                                                                                                                                                                       # passed
+```
+
+Live smoke status:
+
+```bash
+OPENROUTER_API_KEY=missing
+OPENROUTER_MODEL=missing
+BRAVE_SEARCH_API_KEY=missing
+SERPER_API_KEY=missing
+TAVILY_API_KEY=missing
+```
+
+Live smoke was skipped because no required credentials were present in the local environment.
+
+Phase 8 validation run on 2026-06-10:
+
+```bash
+pnpm test                  # passed: 278 passing, 1 credential-gated integration skipped
+pnpm typecheck             # passed
+pnpm build                 # passed
+pnpm consumer:harness      # passed
+pnpm check-boundary        # passed
+pnpm check-package-surface # passed
+pnpm pack:dry-run          # passed
+```
+
+Additional focused validation:
+
+```bash
+pnpm exec tsx --test test/public_surface.test.ts  # passed: 11 tests
+git diff --check                                  # passed
 ```
 
 Live smoke status:

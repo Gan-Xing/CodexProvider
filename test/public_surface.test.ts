@@ -308,6 +308,17 @@ test('codex provider root scripts expose the package commands', () => {
   assert.equal(packageJson.scripts?.check, 'pnpm test && pnpm typecheck && pnpm build && pnpm consumer:harness && pnpm check-boundary && pnpm check-package-surface');
 });
 
+test('codex provider CI runs package hygiene before dry-run pack', () => {
+  const workflowPath = path.resolve(import.meta.dirname, '../.github/workflows/ci.yml');
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+  const packageSurfaceIndex = workflow.indexOf('pnpm check-package-surface');
+  const packIndex = workflow.indexOf('pnpm pack:dry-run');
+
+  assert.notEqual(packageSurfaceIndex, -1);
+  assert.notEqual(packIndex, -1);
+  assert.equal(packageSurfaceIndex < packIndex, true);
+});
+
 test('codex provider root entrypoint exports primary provider surfaces', () => {
   const indexPath = path.resolve(import.meta.dirname, '../src/index.ts');
   const source = fs.readFileSync(indexPath, 'utf8');

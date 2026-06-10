@@ -22,4 +22,5 @@ jobs:
       - run: pnpm build
       - run: pnpm consumer:harness
       - run: pnpm check-boundary
+      - run: pnpm check-package-surface
       - run: pnpm pack:dry-run

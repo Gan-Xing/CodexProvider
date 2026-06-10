@@ -26,7 +26,7 @@ This package is still internal-only.
 - Versioning: stay on `0.1.0-alpha.x` while the package is private and the root API is still changing.
 - Changelog: keep `CHANGELOG.md` grouped by version with `Added`, `Changed`, `Fixed`, and `Validation` bullets.
 - Release mode: manual release only for now. Do not add automatic npm publishing until live provider smoke evidence is recorded and reviewed.
-- GitHub Actions: acceptable for future `pnpm check` / `pnpm pack:dry-run` verification, but not for publishing yet.
+- GitHub Actions: CI runs local verification and package hygiene checks, but publishing remains manual.
 
 ## Recommended Version Strategy
 
@@ -87,15 +87,16 @@ The tarball must include only:
 - `examples`
 - `package.json`
 
-It must not include secrets, `.env` files, local indexes, generated caches, Telegram/WeChat artifacts, host app source, host app hard dependencies, or private workspace paths. `pnpm check-package-surface` scans the public package surface for these release blockers.
+It must not include secrets, `.env` files, local indexes, generated caches, Telegram/WeChat artifacts, host app source, host app hard dependencies, private workspace paths, large artifacts, or binary artifacts. `pnpm check-package-surface` scans the public package surface and the actual `npm pack --dry-run --json` file list for these release blockers.
 
 ## Last Dry-Run Snapshot
 
-Recorded on 2026-06-09 with `pnpm pack:dry-run`:
+Recorded on 2026-06-10 with `npm pack --dry-run --json`:
 
 - Package: `@codex-provider/core@0.1.0-alpha.0`
-- Total files: 574
-- Package size: 295.5 kB
-- Unpacked size: 1.3 MB
+- Tarball: `codex-provider-core-0.1.0-alpha.0.tgz`
+- Total files: 583
+- Package size: 327.3 kB
+- Unpacked size: 1.5 MB
 - Top-level shipped entries: `dist`, `README.md`, `CHANGELOG.md`, `LICENSE`, `docs`, `examples`, `package.json`
 - Examples are intentionally shipped for alpha host integration reference.

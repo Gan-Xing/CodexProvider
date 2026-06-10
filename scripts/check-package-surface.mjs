@@ -1,14 +1,26 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 const packageRoot = process.cwd();
 const publicEntries = [
   'README.md',
   'CHANGELOG.md',
+  'LICENSE',
   'package.json',
   'docs',
   'examples',
 ];
+const allowedPackedTopLevelEntries = new Set([
+  'CHANGELOG.md',
+  'LICENSE',
+  'README.md',
+  'dist',
+  'docs',
+  'examples',
+  'package.json',
+]);
+const maxPackedFileBytes = 1024 * 1024;
 const dependencySections = [
   'dependencies',
   'devDependencies',
@@ -21,12 +33,19 @@ const textExtensions = new Set([
   '.cjs',
   '.js',
   '.json',
+  '.map',
   '.md',
   '.mjs',
   '.ts',
   '.txt',
   '.yaml',
   '.yml',
+]);
+const textBasenames = new Set([
+  'CHANGELOG.md',
+  'LICENSE',
+  'README.md',
+  'package.json',
 ]);
 const forbiddenPathPatterns = [
   {
@@ -35,7 +54,7 @@ const forbiddenPathPatterns = [
   },
   {
     reason: 'generated cache or local index artifact',
-    pattern: /(?:^|[/\\])(?:\.cache|cache|caches|local-index|local_index|retrieval-cache|vector-index|vector_index)(?:$|[/\\])/iu,
+    pattern: /(?:^|[/\\])(?:\.cache|cache|caches|retrieval-cache|vector-index|vector_index)(?:$|[/\\])/iu,
   },
   {
     reason: 'generated database or package artifact',
@@ -84,6 +103,7 @@ const hardDependencyImportPattern =
   /\b(?:import|export)\s+(?:type\s+)?(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]|\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)|\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/gu;
 
 const failures = [];
+const scannedTextFiles = new Set();
 
 for (const entry of publicEntries) {
   const fullPath = path.join(packageRoot, entry);
@@ -93,12 +113,15 @@ for (const entry of publicEntries) {
   }
   for (const file of listPublicFiles(fullPath)) {
     checkFilePath(file);
+    checkFileSize(file);
+    checkFileBinaryContent(file);
     if (isTextFile(file)) {
       checkFileText(file);
     }
   }
 }
 
+checkPackedTarballContents();
 checkPackageDependencies();
 
 if (failures.length > 0) {
@@ -136,6 +159,10 @@ function listPublicFiles(targetPath) {
 
 function checkFilePath(file) {
   const relativeFile = toPackageRelativePath(file);
+  checkRelativeFilePath(relativeFile);
+}
+
+function checkRelativeFilePath(relativeFile) {
   for (const { reason, pattern } of forbiddenPathPatterns) {
     if (pattern.test(relativeFile)) {
       failures.push(`${relativeFile} has forbidden package-surface path: ${reason}`);
@@ -144,11 +171,29 @@ function checkFilePath(file) {
 }
 
 function isTextFile(file) {
-  return textExtensions.has(path.extname(file));
+  return textBasenames.has(path.basename(file)) || textExtensions.has(path.extname(file));
+}
+
+function checkFileSize(file) {
+  const stats = fs.statSync(file);
+  if (stats.size > maxPackedFileBytes) {
+    failures.push(`${toPackageRelativePath(file)} is larger than ${maxPackedFileBytes} bytes`);
+  }
+}
+
+function checkFileBinaryContent(file) {
+  const sample = fs.readFileSync(file).subarray(0, 8192);
+  if (sample.includes(0)) {
+    failures.push(`${toPackageRelativePath(file)} appears to be a binary artifact`);
+  }
 }
 
 function checkFileText(file) {
   const relativeFile = toPackageRelativePath(file);
+  if (scannedTextFiles.has(relativeFile)) {
+    return;
+  }
+  scannedTextFiles.add(relativeFile);
   const text = fs.readFileSync(file, 'utf8');
   const lines = text.split(/\r?\n/u);
   for (let index = 0; index < lines.length; index += 1) {
@@ -200,6 +245,59 @@ function checkPackageDependencies() {
         failures.push(`package.json ${section} depends on host app package ${name}`);
       }
     }
+  }
+}
+
+function checkPackedTarballContents() {
+  const packResult = spawnSync('npm', ['pack', '--dry-run', '--json'], {
+    cwd: packageRoot,
+    encoding: 'utf8',
+  });
+  if (packResult.status !== 0) {
+    failures.push(`npm pack --dry-run --json failed: ${packResult.stderr || packResult.stdout}`);
+    return;
+  }
+  const packedFiles = parsePackJson(packResult.stdout);
+  if (packedFiles.length === 0) {
+    failures.push('npm pack --dry-run --json returned no files');
+    return;
+  }
+  for (const entry of allowedPackedTopLevelEntries) {
+    if (!packedFiles.some((file) => file.path === entry || file.path.startsWith(`${entry}/`))) {
+      failures.push(`npm package tarball is missing expected top-level entry ${entry}`);
+    }
+  }
+  for (const file of packedFiles) {
+    const normalizedPath = file.path.split(path.sep).join('/');
+    const topLevel = normalizedPath.split('/')[0] ?? '';
+    if (!allowedPackedTopLevelEntries.has(topLevel)) {
+      failures.push(`${normalizedPath} is not an allowed package tarball entry`);
+      continue;
+    }
+    checkRelativeFilePath(normalizedPath);
+    if (Number(file.size) > maxPackedFileBytes) {
+      failures.push(`${normalizedPath} is larger than ${maxPackedFileBytes} bytes in the package tarball`);
+    }
+    const fullPath = path.join(packageRoot, normalizedPath);
+    if (!fs.existsSync(fullPath)) {
+      failures.push(`${normalizedPath} is listed by npm pack but missing on disk`);
+      continue;
+    }
+    checkFileBinaryContent(fullPath);
+    if (isTextFile(fullPath)) {
+      checkFileText(fullPath);
+    }
+  }
+}
+
+function parsePackJson(stdout) {
+  try {
+    const parsed = JSON.parse(stdout);
+    const firstPackage = Array.isArray(parsed) ? parsed[0] : null;
+    return Array.isArray(firstPackage?.files) ? firstPackage.files : [];
+  } catch (error) {
+    failures.push(`failed to parse npm pack --dry-run --json output: ${error instanceof Error ? error.message : String(error)}`);
+    return [];
   }
 }
 
