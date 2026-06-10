@@ -170,4 +170,5 @@ The next phase should keep moving heavy or unsafe tools behind explicit executor
 - Done: standalone deployments can use `CODEX_PROVIDER_*` environment variables while the env namespace remains stable.
 - Done: host-neutral examples and recipes exist under `examples/` and `docs/RECIPES.md`.
 - Done: live smoke recipes, unsafe tool security notes, and release-readiness policy docs exist.
-- Remaining: execute live smoke runs, record redacted evidence, and finalize package naming/versioning/release workflow.
+- Done: redacted OpenRouter-compatible live smoke evidence is recorded in `docs/LIVE_SMOKE_RESULTS.md` for adapter-emulated `web_search`, streaming `web_search`, `file_search`, custom tool loop, and mixed-runtime host integration.
+- Remaining: finalize the public alpha release decision. Broader provider-preset live records and API-key-backed search-provider smoke remain future validation work.

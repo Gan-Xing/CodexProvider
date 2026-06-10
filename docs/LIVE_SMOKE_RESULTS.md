@@ -170,3 +170,38 @@ This file records redacted live smoke evidence for `@codex-provider/core`.
 | Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 4229 ms. |
 | Adapter-emulated web_search | Passed | Sources: 1; results: 1; annotations: 1; latency: 6553 ms. |
 | Streaming adapter-emulated web_search | Passed | SSE events: 23; sources: 1; results: 1; annotations: 1; latency: 5497 ms. |
+
+## 2026-06-10T21:54:34.347Z Adapter-emulated web_search live smoke
+
+- Provider base URL host: `openrouter.ai`
+- Model: `deepseek/deepseek-chat`
+- Search provider: `builtin-metasearch`
+- Upstream key env: `CODEX_PROVIDER_API_KEY=<redacted>`
+- Search credential: `not set; built-in no-key metasearch`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Offline local-index path | Passed | Direct executor request used `external_web_access=false` and returned the seeded local-cache result. |
+| Non-streaming adapter web_search | Passed | web_search_call sources: 1; results: 1; annotations: 1; latency: 7036 ms. |
+| Streaming adapter web_search | Passed | SSE events: 25; web_search_call sources: 1; results: 1; annotations: 1; latency: 6573 ms. |
+
+## 2026-06-10T21:55:15.241Z CodexProviderRuntime live host integration smoke
+
+- Provider base URL host: `openrouter.ai`
+- Model: `deepseek/deepseek-chat`
+- Runtime mode: `mixed`
+- Tool strategy: `adapter-emulated`
+- Upstream key env: `CODEX_PROVIDER_API_KEY=<redacted>`
+- Search provider: `builtin-metasearch`
+- Search key env: `<not set; built-in no-key metasearch>`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Mixed runtime local adapter | Passed | Adapter base URL host: 127.0.0.1:38763. |
+| Normal response | Passed | Latency: 1712 ms. |
+| Custom tool loop | Passed | First turn produced echo_probe; second turn returned final text. Latency: 3384 ms. |
+| Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 5169 ms. |
+| Adapter-emulated web_search | Passed | Sources: 1; results: 1; annotations: 1; latency: 6296 ms. |
+| Streaming adapter-emulated web_search | Passed | SSE events: 23; sources: 1; results: 1; annotations: 1; latency: 5957 ms. |

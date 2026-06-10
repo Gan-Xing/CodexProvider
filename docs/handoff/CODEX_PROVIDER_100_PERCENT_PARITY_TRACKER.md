@@ -19,10 +19,12 @@ This tracker is the living audit snapshot for the 100 percent parity loop. The c
 - Phase 6: `file_search` source-level cursor pagination, filter/ranking matrix coverage, and pagination docs.
 - Phase 7: deterministic search-quality fixture suite, shared CJK-aware tokenization, title-complete ranking boosts, improved article extraction, local-index/file-search boundary coverage, and parser fixture workflow docs.
 - Phase 8: package-surface scanner hardening, real tarball-content inspection, CI package hygiene gate, public-surface CI regression test, and refreshed release-readiness dry-run snapshot.
+- Phase 9: redacted live smoke evidence for adapter-emulated `web_search`, streaming `web_search`, `file_search`, custom tool loop, normal Responses path, and mixed-runtime host integration.
 
 Out of scope for the latest completed phase:
 
-- Live smoke evidence or new provider live behavior claims.
+- API-key-backed Brave/Serper/Tavily live search evidence; no search-provider API key was present, so the live run used built-in no-key metasearch.
+- Full provider-preset matrix live records beyond the OpenRouter-compatible mixed-runtime smoke.
 - Public release, npm publish automation, dependency additions, or changing `private: true`.
 
 ## Phase Status
@@ -38,7 +40,7 @@ Out of scope for the latest completed phase:
 | Phase 6 | File search 100 percent hardening | Complete | Source-level `pageCursor` / `nextPage` contract added, signed tokens preserve per-source cursors and global offsets, filter/ranking/vector-store matrix tests added, and final local gate passed on 2026-06-10. |
 | Phase 7 | Ranking and extraction quality evaluation | Complete | Shared tokenizer, deterministic ranking/extraction fixtures, CJK ranking tests, title-complete boosts, local-index/file_search boundary tests, scoring docs, and parser fixture workflow added. Final local gate passed on 2026-06-10. |
 | Phase 8 | Package hygiene and CI | Complete | `check-package-surface` now scans actual dry-run tarball files for secrets, private paths, generated artifacts, large files, binary artifacts, and host-app imports; CI runs the package-surface gate before pack dry-run; release readiness snapshot refreshed. Final local gate passed on 2026-06-10. |
-| Phase 9 | Live smoke evidence | Not started | Out of current scope. |
+| Phase 9 | Live smoke evidence | Complete | Redacted OpenRouter-compatible live evidence recorded in `docs/LIVE_SMOKE_RESULTS.md` for `pnpm smoke:web-search` and `pnpm smoke:host` on 2026-06-10. |
 | Phase 10 | Public alpha release decision | Not started | Out of current scope. |
 
 ## Audit Item Status
@@ -49,7 +51,7 @@ Out of scope for the latest completed phase:
 | 2 | P0 | SSRF protection is not DNS-complete | Complete | Phase 2 adds DNS resolver-backed safety for retrieval and metasearch HTTP requests, redirect target revalidation, fake resolver tests, and explicit `allowPrivateHosts` opt-in behavior. |
 | 3 | P0 | `fast` metasearch mode is not actually fast | Complete | Phase 3 makes `fast` return on the first sufficient completed engine result, aborts in-flight work, and adds bounded/concurrent execution tests. |
 | 4 | P0 | Search processor has no response byte limit | Complete | Phase 2 adds processor/request `maxResponseBytes` and streaming response reads that fail with `max_bytes_exceeded`. |
-| 5 | P0 | Live smoke evidence remains the real release gate | Not started | Future Phase 9. |
+| 5 | P0 | Live smoke evidence remains the real release gate | Complete | Phase 9 records redacted live evidence for `smoke:web-search` and `smoke:host` using OpenRouter-compatible upstream credentials and built-in no-key metasearch. |
 | 6 | P1 | Detailed web_search actions need a stable compatibility policy | Complete | Phase 5 verifies separate include behavior: sources expose only `action.sources`, results expose only `results`, and detailed `open_page` / `find_in_page` actions require `web_search_call.actions` or host override. |
 | 7 | P1 | Request validation should cover more hosted tool fields | Complete | Phase 4 validates hosted `web_search` and `file_search` declaration fields in `tools[]` and `tool_choice.allowed_tools`, with strict 400s by default and drop-mode adjustment traces. |
 | 8 | P1 | Source-level pagination for file_search is incomplete | Complete | Phase 6 adds `pageCursor` / `pageSize` on source requests, optional `nextPage` / `hasMore` on source results, and signed token preservation of per-source cursors. |
@@ -61,7 +63,7 @@ Out of scope for the latest completed phase:
 | 14 | P1 | Metasearch engine parser snapshots need maintenance workflow | Complete | Phase 7 documents parser fixture policy in `docs/SEARCH_QUALITY_SCORING.md`; existing HTML engine fixtures continue to cover no-results, blocked/captcha, and tracking cleanup. |
 | 15 | P1 | Package hygiene checker should scan shipped docs/examples | Complete | Phase 8 hardens `pnpm check-package-surface` to scan README, CHANGELOG, LICENSE, docs, examples, package.json, and the actual `npm pack --dry-run --json` tarball file list for secrets, private paths, generated artifacts, large files, binary artifacts, and host-app imports. |
 | 16 | P1 | Hosted tool execution errors need clear policy | Not started | Future policy/error-class phase. |
-| 17 | P1 | Provider capability presets need live behavior records | Not started | Future provider matrix/live smoke work. |
+| 17 | P1 | Provider capability presets need live behavior records | Partially done | Phase 9 records OpenRouter-compatible mixed-runtime behavior; broader preset/provider matrix records remain future work. |
 | 18 | P2 | Deep search is currently heuristic | Not started | Future optional deep-search phase. |
 | 19 | P2 | Observability should be structured | Partially done | Phase 1 adds sanitized `hosted_tool.config_bound` trace metadata; broader observability remains future work. |
 | 20 | P2 | CI and release automation | Complete | Phase 8 CI runs test, typecheck, build, consumer harness, boundary, package-surface, and pack dry-run checks. Publishing remains manual and `private: true` is unchanged. |
@@ -176,6 +178,18 @@ Package hygiene checks now cover the source-side public surface and the real dry
 - A public-surface test asserts the CI package hygiene gate stays present and ordered before dry-run packing.
 - `docs/RELEASE_READINESS.md` records the current manual release posture and the latest dry-run tarball snapshot.
 - Publishing remains manual; no npm auto-publish workflow is added and `private: true` remains unchanged.
+
+## Phase 9 Live Smoke Evidence Contract
+
+Live smoke evidence is recorded with secrets redacted and without changing release posture.
+
+- `docs/LIVE_SMOKE_RESULTS.md` records the latest `pnpm smoke:web-search` evidence for adapter-emulated `web_search`.
+- The web-search smoke covers the offline local-index path, non-streaming adapter-emulated `web_search`, streaming adapter-emulated `web_search`, exposed `web_search_call.action.sources`, exposed `web_search_call.results`, and citation annotations.
+- `docs/LIVE_SMOKE_RESULTS.md` records the latest `pnpm smoke:host` evidence for mixed-runtime host integration.
+- The host smoke covers normal Responses output, custom tool loop continuation, adapter-emulated `file_search`, non-streaming adapter-emulated `web_search`, and streaming adapter-emulated `web_search`.
+- The 2026-06-10 run used OpenRouter-compatible upstream credentials from the local environment and built-in no-key metasearch because no Brave, Serper, or Tavily API key was present.
+- Secrets remain redacted in the evidence file. `.env` values are not copied into repository docs.
+- `private: true` remains unchanged; Phase 10 owns the public alpha release decision.
 
 ## Validation Log
 
@@ -383,3 +397,24 @@ TAVILY_API_KEY=missing
 ```
 
 Live smoke was skipped because no required credentials were present in the local environment.
+
+Phase 9 validation run on 2026-06-10:
+
+```bash
+pnpm smoke:web-search  # first live attempt built successfully, then failed because the streaming model answer omitted a citation annotation; rerun passed and appended redacted evidence
+pnpm smoke:host        # passed and appended redacted evidence
+```
+
+Live smoke status:
+
+```bash
+CODEX_PROVIDER_API_KEY=present
+CODEX_PROVIDER_MODEL=present
+OPENROUTER_API_KEY=present
+OPENROUTER_MODEL=present
+BRAVE_SEARCH_API_KEY=missing
+SERPER_API_KEY=missing
+TAVILY_API_KEY=missing
+```
+
+The successful Phase 9 smoke runs used OpenRouter-compatible upstream credentials and built-in no-key metasearch. Redacted evidence is recorded in `docs/LIVE_SMOKE_RESULTS.md`.
