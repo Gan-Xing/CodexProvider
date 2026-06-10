@@ -16,6 +16,7 @@ This tracker is the living audit snapshot for the 100 percent parity loop. The c
 - Phase 3: true metasearch modes, bounded execution, concurrency, and timeout support.
 - Phase 4: expanded adapter request validation for hosted `web_search` and `file_search` declarations.
 - Phase 5: stabilized synthetic `web_search_call` output policy and deterministic citation markers.
+- Phase 6: `file_search` source-level cursor pagination, filter/ranking matrix coverage, and pagination docs.
 
 Out of scope for the latest completed phase:
 
@@ -33,7 +34,7 @@ Out of scope for the latest completed phase:
 | Phase 3 | True metasearch modes, timeouts, and limits | Complete | Real fast mode, concurrency limits, overall timeout, AbortSignal propagation, and custom engine timeout wrapping added. Search response byte limit was already completed in Phase 2. Final local gate passed on 2026-06-10. |
 | Phase 4 | Request validation expansion | Complete | Hosted `web_search` and `file_search` declaration validation added for `tools[]` and `tool_choice.allowed_tools`; final local gate passed on 2026-06-10. |
 | Phase 5 | Web search output parity and citation quality | Complete | Include-gated output policy verified, visible `[N]` citation markers added, repeated/invalid/CJK citation tests added, and final local gate passed on 2026-06-10. |
-| Phase 6 | File search 100 percent hardening | Not started | Out of current scope. |
+| Phase 6 | File search 100 percent hardening | Complete | Source-level `pageCursor` / `nextPage` contract added, signed tokens preserve per-source cursors and global offsets, filter/ranking/vector-store matrix tests added, and final local gate passed on 2026-06-10. |
 | Phase 7 | Ranking and extraction quality evaluation | Not started | Out of current scope. |
 | Phase 8 | Package hygiene and CI | Not started | Out of current scope. |
 | Phase 9 | Live smoke evidence | Not started | Out of current scope. |
@@ -50,8 +51,8 @@ Out of scope for the latest completed phase:
 | 5 | P0 | Live smoke evidence remains the real release gate | Not started | Future Phase 9. |
 | 6 | P1 | Detailed web_search actions need a stable compatibility policy | Complete | Phase 5 verifies separate include behavior: sources expose only `action.sources`, results expose only `results`, and detailed `open_page` / `find_in_page` actions require `web_search_call.actions` or host override. |
 | 7 | P1 | Request validation should cover more hosted tool fields | Complete | Phase 4 validates hosted `web_search` and `file_search` declaration fields in `tools[]` and `tool_choice.allowed_tools`, with strict 400s by default and drop-mode adjustment traces. |
-| 8 | P1 | Source-level pagination for file_search is incomplete | Not started | Future Phase 6. |
-| 9 | P1 | Web local index must remain isolated from file_search | Not started | Future Phase 6/7 boundary tests. |
+| 8 | P1 | Source-level pagination for file_search is incomplete | Complete | Phase 6 adds `pageCursor` / `pageSize` on source requests, optional `nextPage` / `hasMore` on source results, and signed token preservation of per-source cursors. |
+| 9 | P1 | Web local index must remain isolated from file_search | Not started | Future Phase 7 boundary tests; Phase 6 did not change the web local index or file_search source boundary. |
 | 10 | P1 | Citation annotation span behavior is approximate | Complete | Phase 5 replaces valid `[[source:N]]` placeholders with visible `[N]` markers and annotates those exact marker spans; invalid placeholders are removed safely. |
 | 11 | P1 | Search ranking needs an evaluation fixture set | Not started | Future Phase 7. |
 | 12 | P1 | CJK tokenization is weak | Not started | Future Phase 7. |
@@ -136,6 +137,19 @@ Synthetic adapter-emulated `web_search` output is now explicit about what each i
 - Valid answer placeholders such as `[[source:1]]` are replaced with visible `[1]` markers and `url_citation` annotations span those exact markers.
 - Repeated sources can produce repeated annotations, invalid source ids are removed without fabricated annotations, CJK punctuation spacing is preserved, and multiple `output_text` parts are annotated independently.
 - Streaming completed responses use the same hosted-tool output append path as non-streaming responses.
+
+## Phase 6 File Search Pagination Contract
+
+`file_search` now supports source-level cursors without replacing the existing signed global page token.
+
+- `CodexProviderFileSearchSourceRequest` includes `pageSize` and `pageCursor`.
+- `CodexProviderFileSearchSourceResult` can return `nextPage` and `hasMore`.
+- Vector-store and remote-documents adapter contracts receive the same cursor fields.
+- The signed `next_page` token keeps the existing global offset and request fingerprint, and also stores a per-source cursor map when sources return cursors.
+- Existing offset-only tokens remain compatible because source cursors are optional in the token payload.
+- Cursor-aware sources should use `pageSize` as the requested page size and treat `pageCursor` as an opaque source-owned cursor.
+- The executor still validates token signatures, request fingerprints, and token shape before using pagination state.
+- Filter/ranking coverage now includes additional `lte`, `ne`, and `nin` metadata filter cases together with `vector_store_ids` source scoping and `score_threshold`.
 
 ## Validation Log
 
@@ -239,6 +253,36 @@ Additional focused validation:
 ```bash
 pnpm exec tsx --test test/web_search_responses_output.test.ts test/public_surface.test.ts test/server.test.ts  # passed: 57 tests
 git diff --check                                                                                              # passed
+```
+
+Live smoke status:
+
+```bash
+OPENROUTER_API_KEY=missing
+OPENROUTER_MODEL=missing
+BRAVE_SEARCH_API_KEY=missing
+SERPER_API_KEY=missing
+TAVILY_API_KEY=missing
+```
+
+Live smoke was skipped because no required credentials were present in the local environment.
+
+Phase 6 validation run on 2026-06-10:
+
+```bash
+pnpm test                # passed: 270 passing, 1 credential-gated integration skipped
+pnpm typecheck           # passed
+pnpm build               # passed
+pnpm consumer:harness    # passed
+pnpm check-boundary      # passed
+pnpm pack:dry-run        # passed
+```
+
+Additional focused validation:
+
+```bash
+pnpm exec tsx --test test/file_search_executor.test.ts test/server.test.ts test/adapter_hosted_tool_config_binding.test.ts  # passed: 80 tests
+git diff --check                                                                                                           # passed
 ```
 
 Live smoke status:

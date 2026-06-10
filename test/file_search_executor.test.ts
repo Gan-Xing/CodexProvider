@@ -451,6 +451,103 @@ test('file_search executor paginates results with stable page tokens', async () 
   );
 });
 
+test('file_search executor preserves source pagination cursors in signed page tokens', async () => {
+  const sourceCalls: Array<{
+    maxResults: number;
+    pageCursor: string | null;
+    pageSize: number;
+  }> = [];
+  const documents = Array.from({ length: 5 }, (_, index) => ({
+    title: `Cursor alpha beta ${index + 1}`,
+    uri: `remote://cursor-${index + 1}`,
+    path: `remote/cursor-${index + 1}.md`,
+    score: 100 - index,
+  }));
+  const cursorSource: CodexProviderFileSearchSource = {
+    name: 'cursor-remote',
+    type: 'remote-documents',
+    search(request) {
+      sourceCalls.push({
+        maxResults: request.maxResults,
+        pageCursor: request.pageCursor,
+        pageSize: request.pageSize,
+      });
+      const start = Number(request.pageCursor ?? 0);
+      const nextStart = start + request.pageSize;
+      return {
+        results: documents.slice(start, nextStart).map((document) => ({
+          ...document,
+          sourceType: 'remote-documents',
+          content: [{
+            type: 'text' as const,
+            text: `${document.title} cursor content`,
+          }],
+        })),
+        nextPage: nextStart < documents.length ? String(nextStart) : null,
+        hasMore: nextStart < documents.length,
+        scannedFiles: request.pageSize,
+      };
+    },
+  };
+  const executor = createCodexProviderFileSearchExecutor({
+    sources: [cursorSource],
+    pageTokenSecret: 'stable-cursor-page-token-secret',
+  });
+
+  const first = await executor(baseRequest({
+    query: 'cursor alpha beta',
+    max_num_results: 2,
+  }));
+  const firstContent = first.content as CodexProviderFileSearchExecutorContent;
+  assert.deepEqual(
+    firstContent.data.map((entry) => entry.filename),
+    ['cursor-1.md', 'cursor-2.md'],
+  );
+  assert.equal(firstContent.has_more, true);
+  assert.equal(typeof firstContent.next_page, 'string');
+  assert.deepEqual(sourceCalls[0], {
+    maxResults: 3,
+    pageCursor: null,
+    pageSize: 2,
+  });
+
+  const second = await executor(baseRequest({
+    query: 'cursor alpha beta',
+    max_num_results: 2,
+    page_token: firstContent.next_page,
+  }));
+  const secondContent = second.content as CodexProviderFileSearchExecutorContent;
+  assert.deepEqual(
+    secondContent.data.map((entry) => entry.filename),
+    ['cursor-3.md', 'cursor-4.md'],
+  );
+  assert.equal(secondContent.has_more, true);
+  assert.equal(typeof secondContent.next_page, 'string');
+  assert.deepEqual(sourceCalls[1], {
+    maxResults: 2,
+    pageCursor: '2',
+    pageSize: 2,
+  });
+
+  const third = await executor(baseRequest({
+    query: 'cursor alpha beta',
+    max_num_results: 2,
+    page_token: secondContent.next_page,
+  }));
+  const thirdContent = third.content as CodexProviderFileSearchExecutorContent;
+  assert.deepEqual(
+    thirdContent.data.map((entry) => entry.filename),
+    ['cursor-5.md'],
+  );
+  assert.equal(thirdContent.has_more, false);
+  assert.equal(thirdContent.next_page, null);
+  assert.deepEqual(sourceCalls[2], {
+    maxResults: 2,
+    pageCursor: '4',
+    pageSize: 2,
+  });
+});
+
 test('file_search executor applies vector store ids, filters, and ranking threshold', async () => {
   const executor = createCodexProviderFileSearchExecutor({
     sources: [
@@ -612,6 +709,98 @@ test('file_search executor applies nested metadata filter parity', async () => {
   const missingArrayContent = missingArray.content as CodexProviderFileSearchExecutorContent;
 
   assert.equal(missingArrayContent.data.length, 0);
+});
+
+test('file_search executor applies filter and ranking matrix across selected vector stores', async () => {
+  const executor = createCodexProviderFileSearchExecutor({
+    sources: [
+      createCodexProviderMemoryFileSearchSource({
+        name: 'matrix-a',
+        documents: [{
+          id: 'match',
+          title: 'Matrix alpha beta release notes',
+          path: 'matrix/match.md',
+          content: 'alpha beta target target target',
+          metadata: {
+            category: 'docs',
+            tags: ['adapter', 'prod'],
+            priority: 4,
+          },
+        }, {
+          id: 'archive',
+          title: 'Matrix alpha beta archive',
+          path: 'matrix/archive.md',
+          content: 'alpha beta target target target',
+          metadata: {
+            category: 'docs',
+            tags: ['archive'],
+            priority: 3,
+          },
+        }, {
+          id: 'draft',
+          title: 'Matrix alpha beta draft',
+          path: 'matrix/draft.md',
+          content: 'alpha beta target target target',
+          metadata: {
+            category: 'draft',
+            tags: ['adapter'],
+            priority: 3,
+          },
+        }, {
+          id: 'late',
+          title: 'Matrix alpha beta late',
+          path: 'matrix/late.md',
+          content: 'alpha beta target target target',
+          metadata: {
+            category: 'docs',
+            tags: ['adapter'],
+            priority: 8,
+          },
+        }],
+      }),
+      createCodexProviderMemoryFileSearchSource({
+        name: 'matrix-b',
+        documents: [{
+          id: 'external',
+          title: 'Matrix alpha beta external',
+          path: 'matrix/external.md',
+          content: 'alpha beta target target target target target',
+          metadata: {
+            category: 'docs',
+            tags: ['adapter', 'prod'],
+            priority: 1,
+          },
+        }],
+      }),
+    ],
+    maxResults: 5,
+  });
+
+  const result = await executor(baseRequest({
+    query: 'alpha beta target',
+    vector_store_ids: ['matrix-a'],
+    filters: {
+      type: 'and',
+      filters: [
+        { type: 'lte', key: 'priority', value: 5 },
+        { type: 'nin', key: 'tags', value: ['archive'] },
+        { type: 'ne', key: 'category', value: 'draft' },
+      ],
+    },
+    ranking_options: {
+      score_threshold: 0.5,
+    },
+  }));
+  const content = result.content as CodexProviderFileSearchExecutorContent;
+
+  assert.equal(content.sourceCount, 1);
+  assert.deepEqual(content.vector_store_ids, ['matrix-a']);
+  assert.equal(content.ranking_options.scoreThreshold, 0.5);
+  assert.deepEqual(
+    content.data.map((entry) => entry.filename),
+    ['match.md'],
+  );
+  assert.equal(content.data.some((entry) => entry.filename === 'external.md'), false);
 });
 
 test('vector-store file_search source delegates to host adapter contract', async () => {

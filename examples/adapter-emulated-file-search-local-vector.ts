@@ -23,6 +23,7 @@ const fileSearch = createCodexProviderFileSearchExecutor({
   includeContent: false,
   maxResults: 8,
   maxPayloadBytes: 48_000,
+  pageTokenSecret: process.env.CODEX_PROVIDER_FILE_SEARCH_PAGE_TOKEN_SECRET,
 });
 
 const runtime = new CodexProviderRuntime({

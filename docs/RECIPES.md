@@ -133,7 +133,11 @@ const fileSearch = createCodexProviderFileSearchExecutor({
   }, {
     type: "remote-documents",
     name: "docs",
-    query: async ({ query, maxResults }) => docsClient.search({ query, limit: maxResults }),
+    query: async ({ query, pageCursor, pageSize }) => docsClient.search({
+      query,
+      cursor: pageCursor,
+      limit: pageSize,
+    }),
     fetchDocument: async ({ document }) => docsClient.fetchText(document.id),
   }],
   maxResults: 8,
@@ -143,6 +147,8 @@ const fileSearch = createCodexProviderFileSearchExecutor({
 ```
 
 Callers can select both sources by passing `vector_store_ids: ["repo", "docs"]` on the `file_search` request. When the executor returns `has_more: true`, pass the opaque signed `next_page` token back as `page_token`, `page`, or `after` with the same query, filters, `vector_store_ids`, and `max_num_results`. Set `pageTokenSecret` to a stable secret when page tokens must survive process restarts or multiple server instances.
+
+Source adapters can participate in remote pagination by reading `pageCursor` and returning `nextPage` / `hasMore` from `search()`. The executor stores those per-source cursors inside the signed `next_page` token alongside the global offset; callers should treat the token as opaque.
 
 ## Unsafe Tool Policy
 

@@ -34,6 +34,8 @@ export function createCodexProviderVectorStoreFileSearchSource(
         filters: request.filters,
         rankingOptions: request.rankingOptions,
         maxResults: request.maxResults,
+        pageSize: request.pageSize,
+        pageCursor: request.pageCursor,
         maxBytesPerFile: request.maxBytesPerFile,
         maxPayloadBytes: request.maxPayloadBytes,
         snippetLines: request.snippetLines,

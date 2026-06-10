@@ -55,6 +55,8 @@ export interface CodexProviderFileSearchSourceRequest {
   filters: CodexProviderFileSearchFilter | null;
   rankingOptions: CodexProviderFileSearchRankingOptions;
   maxResults: number;
+  pageSize: number;
+  pageCursor: string | null;
   maxBytesPerFile: number;
   maxPayloadBytes: number;
   snippetLines: number;
@@ -65,6 +67,8 @@ export interface CodexProviderFileSearchSourceRequest {
 
 export interface CodexProviderFileSearchSourceResult {
   results: CodexProviderFileSearchSourceMatch[];
+  nextPage?: string | null;
+  hasMore?: boolean | null;
   scannedFiles?: number | null;
   skippedFiles?: number | null;
   metadata?: JsonRecord | null;
@@ -91,6 +95,8 @@ export interface CodexProviderVectorStoreSearchRequest {
   filters: CodexProviderFileSearchFilter | null;
   rankingOptions: CodexProviderFileSearchRankingOptions;
   maxResults: number;
+  pageSize: number;
+  pageCursor: string | null;
   maxBytesPerFile: number;
   maxPayloadBytes: number;
   snippetLines: number;
@@ -126,6 +132,8 @@ export interface CodexProviderRemoteDocumentsQueryRequest {
   filters: CodexProviderFileSearchFilter | null;
   rankingOptions: CodexProviderFileSearchRankingOptions;
   maxResults: number;
+  pageSize: number;
+  pageCursor: string | null;
   includeContent: boolean | null;
   toolRequest: CodexProviderHostedToolExecutionRequest;
 }

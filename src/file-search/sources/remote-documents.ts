@@ -48,6 +48,8 @@ export function createCodexProviderRemoteDocumentsFileSearchSource(
         filters: request.filters,
         rankingOptions: request.rankingOptions,
         maxResults,
+        pageSize: request.pageSize,
+        pageCursor: request.pageCursor,
         includeContent,
         toolRequest: request.toolRequest,
       });
@@ -195,6 +197,8 @@ async function hydrateRemoteDocument({
     filters: request.filters,
     rankingOptions: request.rankingOptions,
     maxResults,
+    pageSize: request.pageSize,
+    pageCursor: request.pageCursor,
     includeContent,
     toolRequest: request.toolRequest,
     document: rawDocument,

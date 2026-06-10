@@ -80,12 +80,18 @@ export function createCodexProviderFileSearchExecutor(
       includeContent,
     });
     const pageToken = fileSearchPageTokenFromRequest(request);
-    const pageOffset = decodeFileSearchPageOffset(
+    const pageState = decodeFileSearchPageState(
       pageToken,
       pageFingerprint,
       normalizedOptions.pageTokenSecret,
     );
-    const sourceMaxResults = sourceMaxResultsForPage(pageOffset, maxResults);
+    const pageOffset = pageState.offset;
+    const sourceCursors = pageState.sourceCursors;
+    const hasActiveSourceCursor = Object.keys(sourceCursors).length > 0;
+    const effectivePageOffset = hasActiveSourceCursor ? 0 : pageOffset;
+    const sourceMaxResults = hasActiveSourceCursor
+      ? maxResults
+      : sourceMaxResultsForPage(pageOffset, maxResults);
 
     await request.emitDelta?.('searching sources', {
       sourceCount: searchSources.length,
@@ -95,13 +101,17 @@ export function createCodexProviderFileSearchExecutor(
     });
 
     const aggregatedResults: CodexProviderFileSearchSourceMatch[] = [];
+    const nextSourceCursors: Record<string, string> = {};
+    let sourceCursorHasMore = false;
     let scannedFiles = 0;
     let skippedFiles = 0;
     for (const source of searchSources) {
       const sourceType = normalizeSourceType(source);
+      const sourcePageCursor = sourceCursors[source.name] ?? null;
       await request.emitDelta?.('searching source', {
         source: source.name,
         sourceType,
+        pageCursor: sourcePageCursor,
       });
       const sourceResult = await source.search({
         query,
@@ -111,6 +121,8 @@ export function createCodexProviderFileSearchExecutor(
         filters,
         rankingOptions,
         maxResults: sourceMaxResults,
+        pageSize: maxResults,
+        pageCursor: sourcePageCursor,
         maxBytesPerFile: normalizedOptions.maxBytesPerFile,
         maxPayloadBytes: normalizedOptions.maxPayloadBytes,
         snippetLines: normalizedOptions.snippetLines,
@@ -118,6 +130,14 @@ export function createCodexProviderFileSearchExecutor(
         emitDelta: request.emitDelta,
         toolRequest: request,
       });
+      const sourceNextPage = normalizeString(sourceResult.nextPage);
+      const sourceHasMore = sourceResult.hasMore === true || Boolean(sourceNextPage);
+      if (sourceNextPage) {
+        nextSourceCursors[source.name] = sourceNextPage;
+      }
+      if (sourceHasMore) {
+        sourceCursorHasMore = true;
+      }
       scannedFiles += normalizeNonNegativeInteger(sourceResult.scannedFiles);
       skippedFiles += normalizeNonNegativeInteger(sourceResult.skippedFiles);
       for (const result of sourceResult.results ?? []) {
@@ -132,7 +152,7 @@ export function createCodexProviderFileSearchExecutor(
       || left.path.localeCompare(right.path)
     ));
     const rankedResults = applyFileSearchRankingOptions(filteredResults, rankingOptions);
-    const pagedResults = rankedResults.slice(pageOffset);
+    const pagedResults = rankedResults.slice(effectivePageOffset);
     const limitedResults = limitResultsByPayload(
       pagedResults,
       maxResults,
@@ -140,7 +160,7 @@ export function createCodexProviderFileSearchExecutor(
     );
     const openAIResults = limitedResults.map((result) => toOpenAIFileSearchResult(result, rankedResults));
     const nextOffset = pageOffset + limitedResults.length;
-    const hasMore = rankedResults.length > nextOffset;
+    const hasMore = rankedResults.length > effectivePageOffset + limitedResults.length || sourceCursorHasMore;
     const provider = searchSources.length === 1
       ? normalizeSourceType(searchSources[0])
       : 'multi-source';
@@ -154,7 +174,7 @@ export function createCodexProviderFileSearchExecutor(
         search_results: openAIResults,
         has_more: hasMore,
         next_page: hasMore
-          ? encodeFileSearchPageToken(nextOffset, pageFingerprint, normalizedOptions.pageTokenSecret)
+          ? encodeFileSearchPageToken(nextOffset, pageFingerprint, normalizedOptions.pageTokenSecret, nextSourceCursors)
           : null,
         vector_store_ids: vectorStoreIds,
         ranking_options: rankingOptions,
@@ -167,6 +187,7 @@ export function createCodexProviderFileSearchExecutor(
         sourceCount: searchSources.length,
         resultCount: limitedResults.length,
         pageOffset,
+        sourceCursorCount: Object.keys(sourceCursors).length,
         scannedFiles,
         skippedFiles,
       },
@@ -317,13 +338,21 @@ function sourceMaxResultsForPage(pageOffset: number, maxResults: number): number
 
 const FILE_SEARCH_PAGE_TOKEN_PREFIX = 'fsp_v2.';
 
-function decodeFileSearchPageOffset(
+interface FileSearchPageState {
+  offset: number;
+  sourceCursors: Record<string, string>;
+}
+
+function decodeFileSearchPageState(
   token: string | null,
   fingerprint: string,
   pageTokenSecret: string,
-): number {
+): FileSearchPageState {
   if (!token) {
-    return 0;
+    return {
+      offset: 0,
+      sourceCursors: {},
+    };
   }
   if (!token.startsWith(FILE_SEARCH_PAGE_TOKEN_PREFIX)) {
     throw new Error('file_search page token is invalid.');
@@ -353,21 +382,43 @@ function decodeFileSearchPageOffset(
   if (!Number.isSafeInteger(offset) || offset < 0 || offset > 10_000) {
     throw new Error('file_search page token is invalid.');
   }
-  return offset;
+  return {
+    offset,
+    sourceCursors: normalizeFileSearchSourceCursors(parsed.sourceCursors),
+  };
 }
 
 function encodeFileSearchPageToken(
   offset: number,
   fingerprint: string,
   pageTokenSecret: string,
+  sourceCursors: Record<string, string> = {},
 ): string {
+  const normalizedSourceCursors = normalizeFileSearchSourceCursors(sourceCursors);
   const encodedPayload = Buffer.from(JSON.stringify({
     v: 2,
     offset,
     fingerprint,
+    ...(Object.keys(normalizedSourceCursors).length > 0 ? { sourceCursors: normalizedSourceCursors } : {}),
   }), 'utf8').toString('base64url');
   const signature = signFileSearchPageTokenPayload(encodedPayload, pageTokenSecret);
   return `${FILE_SEARCH_PAGE_TOKEN_PREFIX}${encodedPayload}.${signature}`;
+}
+
+function normalizeFileSearchSourceCursors(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  const cursors: Record<string, string> = {};
+  for (const [sourceName, cursor] of Object.entries(value as JsonRecord)) {
+    const normalizedSourceName = normalizeString(sourceName);
+    const normalizedCursor = normalizeString(cursor);
+    if (!normalizedSourceName || !normalizedCursor || normalizedCursor.length > 1_024) {
+      continue;
+    }
+    cursors[normalizedSourceName] = normalizedCursor;
+  }
+  return cursors;
 }
 
 function signFileSearchPageTokenPayload(encodedPayload: string, pageTokenSecret: string): string {
