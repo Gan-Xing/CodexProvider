@@ -15,6 +15,7 @@ This tracker is the living audit snapshot for the 100 percent parity loop. The c
 - Phase 2: DNS-complete network safety and SSRF hardening for retrieval and metasearch HTTP requests.
 - Phase 3: true metasearch modes, bounded execution, concurrency, and timeout support.
 - Phase 4: expanded adapter request validation for hosted `web_search` and `file_search` declarations.
+- Phase 5: stabilized synthetic `web_search_call` output policy and deterministic citation markers.
 
 Out of scope for the latest completed phase:
 
@@ -31,7 +32,7 @@ Out of scope for the latest completed phase:
 | Phase 2 | Network safety and SSRF hardening | Complete | DNS resolver abstraction, retrieval/metasearch enforcement, redirect revalidation, fake resolver tests, and search response byte limit added. Final local gate passed on 2026-06-10. |
 | Phase 3 | True metasearch modes, timeouts, and limits | Complete | Real fast mode, concurrency limits, overall timeout, AbortSignal propagation, and custom engine timeout wrapping added. Search response byte limit was already completed in Phase 2. Final local gate passed on 2026-06-10. |
 | Phase 4 | Request validation expansion | Complete | Hosted `web_search` and `file_search` declaration validation added for `tools[]` and `tool_choice.allowed_tools`; final local gate passed on 2026-06-10. |
-| Phase 5 | Web search output parity and citation quality | Not started | Existing detailed action gate noted; broader phase out of scope. |
+| Phase 5 | Web search output parity and citation quality | Complete | Include-gated output policy verified, visible `[N]` citation markers added, repeated/invalid/CJK citation tests added, and final local gate passed on 2026-06-10. |
 | Phase 6 | File search 100 percent hardening | Not started | Out of current scope. |
 | Phase 7 | Ranking and extraction quality evaluation | Not started | Out of current scope. |
 | Phase 8 | Package hygiene and CI | Not started | Out of current scope. |
@@ -47,11 +48,11 @@ Out of scope for the latest completed phase:
 | 3 | P0 | `fast` metasearch mode is not actually fast | Complete | Phase 3 makes `fast` return on the first sufficient completed engine result, aborts in-flight work, and adds bounded/concurrent execution tests. |
 | 4 | P0 | Search processor has no response byte limit | Complete | Phase 2 adds processor/request `maxResponseBytes` and streaming response reads that fail with `max_bytes_exceeded`. |
 | 5 | P0 | Live smoke evidence remains the real release gate | Not started | Future Phase 9. |
-| 6 | P1 | Detailed web_search actions need a stable compatibility policy | Partially done before this phase | Existing docs/tests gate detailed actions behind includes/options; not changed here. |
+| 6 | P1 | Detailed web_search actions need a stable compatibility policy | Complete | Phase 5 verifies separate include behavior: sources expose only `action.sources`, results expose only `results`, and detailed `open_page` / `find_in_page` actions require `web_search_call.actions` or host override. |
 | 7 | P1 | Request validation should cover more hosted tool fields | Complete | Phase 4 validates hosted `web_search` and `file_search` declaration fields in `tools[]` and `tool_choice.allowed_tools`, with strict 400s by default and drop-mode adjustment traces. |
 | 8 | P1 | Source-level pagination for file_search is incomplete | Not started | Future Phase 6. |
 | 9 | P1 | Web local index must remain isolated from file_search | Not started | Future Phase 6/7 boundary tests. |
-| 10 | P1 | Citation annotation span behavior is approximate | Not started | Future Phase 5. |
+| 10 | P1 | Citation annotation span behavior is approximate | Complete | Phase 5 replaces valid `[[source:N]]` placeholders with visible `[N]` markers and annotates those exact marker spans; invalid placeholders are removed safely. |
 | 11 | P1 | Search ranking needs an evaluation fixture set | Not started | Future Phase 7. |
 | 12 | P1 | CJK tokenization is weak | Not started | Future Phase 7. |
 | 13 | P1 | HTML extraction needs quality fixtures | Not started | Future Phase 7. |
@@ -122,6 +123,19 @@ The Responses adapter now validates hosted tool declaration fields before reques
 - File search ranking options validate object shape and require `score_threshold` to be a number from 0 through 1 when present.
 - The default invalid-parameter strategy returns HTTP 400 before forwarding to the upstream adapter.
 - The `drop` strategy removes only the invalid field from the cloned request, records a `field_filtered` adjustment, emits `request.adjusted`, and continues validating remaining fields.
+
+## Phase 5 Web Search Output And Citation Contract
+
+Synthetic adapter-emulated `web_search` output is now explicit about what each include exposes.
+
+- Default Responses output appends one aggregate `web_search_call` with `action.type: "search"`.
+- `include: ["web_search_call.action.sources"]` adds only `action.sources` to the aggregate search item.
+- `include: ["web_search_call.results"]` adds only the normalized `results` list to the aggregate search item.
+- `include: ["web_search_call.actions"]` exposes detailed `open_page` and `find_in_page` `web_search_call` items.
+- The host option `exposeWebSearchDetailedActions: true` can expose detailed actions without the request include.
+- Valid answer placeholders such as `[[source:1]]` are replaced with visible `[1]` markers and `url_citation` annotations span those exact markers.
+- Repeated sources can produce repeated annotations, invalid source ids are removed without fabricated annotations, CJK punctuation spacing is preserved, and multiple `output_text` parts are annotated independently.
+- Streaming completed responses use the same hosted-tool output append path as non-streaming responses.
 
 ## Validation Log
 
@@ -195,6 +209,36 @@ Additional focused validation:
 ```bash
 pnpm exec tsx --test test/hosted_tool_request_validation.test.ts test/server.test.ts test/adapter_hosted_tool_config_binding.test.ts  # passed: 50 tests
 git diff --check                                                                                                                       # passed
+```
+
+Live smoke status:
+
+```bash
+OPENROUTER_API_KEY=missing
+OPENROUTER_MODEL=missing
+BRAVE_SEARCH_API_KEY=missing
+SERPER_API_KEY=missing
+TAVILY_API_KEY=missing
+```
+
+Live smoke was skipped because no required credentials were present in the local environment.
+
+Phase 5 validation run on 2026-06-10:
+
+```bash
+pnpm test                # passed: 268 passing, 1 credential-gated integration skipped
+pnpm typecheck           # passed
+pnpm build               # passed
+pnpm consumer:harness    # passed
+pnpm check-boundary      # passed
+pnpm pack:dry-run        # passed
+```
+
+Additional focused validation:
+
+```bash
+pnpm exec tsx --test test/web_search_responses_output.test.ts test/public_surface.test.ts test/server.test.ts  # passed: 57 tests
+git diff --check                                                                                              # passed
 ```
 
 Live smoke status:

@@ -6,6 +6,10 @@ import {
 import {
   appendHostedToolResultsToResponsesOutput,
 } from '../src/server/responses-adapter-server/hosted-tool-output.js';
+import {
+  applyWebSearchCitationAnnotationsToResponsesOutput,
+  replaceWebSearchSourcePlaceholders,
+} from '../src/web-search/openai/index.js';
 
 function createEventStreamResponse(chunks: unknown[]): Response {
   const encoder = new TextEncoder();
@@ -150,6 +154,136 @@ test('web_search detailed action items require explicit action include or option
   );
 });
 
+test('web_search include policy exposes sources, results, and actions independently', () => {
+  const sourcesOnlyResponse = { output: [] };
+  appendHostedToolResultsToResponsesOutput({
+    response: sourcesOnlyResponse,
+    request: {
+      include: ['web_search_call.action.sources'],
+    },
+    executions: [createWebSearchExecution()],
+    exposeByDefault: false,
+  });
+
+  const sourcesOnlyCall = outputItem(sourcesOnlyResponse, 'web_search_call');
+  assert.deepEqual(outputItems(sourcesOnlyResponse, 'web_search_call').map((item: any) => item.action.type), ['search']);
+  assert.equal(sourcesOnlyCall.action.sources[0].url, 'https://example.com/detailed-source');
+  assert.equal(Object.hasOwn(sourcesOnlyCall, 'results'), false);
+
+  const resultsOnlyResponse = { output: [] };
+  appendHostedToolResultsToResponsesOutput({
+    response: resultsOnlyResponse,
+    request: {
+      include: ['web_search_call.results'],
+    },
+    executions: [createWebSearchExecution()],
+    exposeByDefault: false,
+  });
+
+  const resultsOnlyCall = outputItem(resultsOnlyResponse, 'web_search_call');
+  assert.deepEqual(outputItems(resultsOnlyResponse, 'web_search_call').map((item: any) => item.action.type), ['search']);
+  assert.equal(Object.hasOwn(resultsOnlyCall.action, 'sources'), false);
+  assert.equal(resultsOnlyCall.results[0].url, 'https://example.com/detailed-result');
+
+  const actionsOnlyResponse = { output: [] };
+  appendHostedToolResultsToResponsesOutput({
+    response: actionsOnlyResponse,
+    request: {
+      include: ['web_search_call.actions'],
+    },
+    executions: [createWebSearchExecution()],
+    exposeByDefault: false,
+  });
+
+  const actionsOnlyCall = outputItem(actionsOnlyResponse, 'web_search_call');
+  assert.deepEqual(
+    outputItems(actionsOnlyResponse, 'web_search_call').map((item: any) => item.action.type),
+    ['search', 'open_page', 'find_in_page'],
+  );
+  assert.equal(Object.hasOwn(actionsOnlyCall.action, 'sources'), false);
+  assert.equal(Object.hasOwn(actionsOnlyCall, 'results'), false);
+});
+
+test('web_search citation placeholders become deterministic visible markers', () => {
+  const replaced = replaceWebSearchSourcePlaceholders(
+    'Alpha claim[[source:1]] Beta claim[[source:2]] Alpha repeated[[source:1]]',
+    [
+      { id: 1, title: 'Alpha Source', url: 'https://example.com/alpha' },
+      { id: 2, title: 'Beta Source', url: 'https://example.com/beta' },
+    ],
+  );
+
+  assert.equal(replaced.text, 'Alpha claim [1] Beta claim [2] Alpha repeated [1]');
+  assert.deepEqual(
+    replaced.annotations.map((annotation) => replaced.text.slice(annotation.start_index, annotation.end_index)),
+    ['[1]', '[2]', '[1]'],
+  );
+  assert.deepEqual(
+    replaced.annotations.map((annotation) => annotation.url),
+    [
+      'https://example.com/alpha',
+      'https://example.com/beta',
+      'https://example.com/alpha',
+    ],
+  );
+});
+
+test('web_search citation placeholders remove invalid sources safely', () => {
+  const replaced = replaceWebSearchSourcePlaceholders(
+    'Known claim[[source:1]] Missing claim[[source:99]] done',
+    [{ id: 1, title: 'Known Source', url: 'https://example.com/known' }],
+  );
+
+  assert.equal(replaced.text, 'Known claim [1] Missing claim done');
+  assert.equal(replaced.annotations.length, 1);
+  assert.equal(replaced.text.slice(replaced.annotations[0].start_index, replaced.annotations[0].end_index), '[1]');
+});
+
+test('web_search citation placeholders handle CJK punctuation and leading markers', () => {
+  const cjk = replaceWebSearchSourcePlaceholders(
+    '第一句。第二个结论[[source:1]]。[[source:2]]开头引用继续',
+    [
+      { id: 1, title: '中文来源', url: 'https://example.com/cjk-1' },
+      { id: 2, title: '开头来源', url: 'https://example.com/cjk-2' },
+    ],
+  );
+
+  assert.equal(cjk.text, '第一句。第二个结论 [1]。[2] 开头引用继续');
+  assert.deepEqual(
+    cjk.annotations.map((annotation) => cjk.text.slice(annotation.start_index, annotation.end_index)),
+    ['[1]', '[2]'],
+  );
+  assert.deepEqual(
+    cjk.annotations.map((annotation) => annotation.url),
+    ['https://example.com/cjk-1', 'https://example.com/cjk-2'],
+  );
+});
+
+test('web_search citation annotations apply independently to multiple output text parts', () => {
+  const response = {
+    output: [{
+      type: 'message',
+      content: [
+        { type: 'output_text', text: 'First part[[source:1]]' },
+        { type: 'output_text', text: 'Second part[[source:2]]' },
+      ],
+    }],
+  };
+
+  applyWebSearchCitationAnnotationsToResponsesOutput(response, [
+    { id: 1, title: 'First Source', url: 'https://example.com/first' },
+    { id: 2, title: 'Second Source', url: 'https://example.com/second' },
+  ]);
+
+  const [firstPart, secondPart] = response.output[0].content;
+  assert.equal(firstPart.text, 'First part [1]');
+  assert.equal(secondPart.text, 'Second part [2]');
+  assert.equal(firstPart.annotations[0].url, 'https://example.com/first');
+  assert.equal(secondPart.annotations[0].url, 'https://example.com/second');
+  assert.equal(firstPart.text.slice(firstPart.annotations[0].start_index, firstPart.annotations[0].end_index), '[1]');
+  assert.equal(secondPart.text.slice(secondPart.annotations[0].start_index, secondPart.annotations[0].end_index), '[2]');
+});
+
 test('responses output exposes adapter web_search call with sources, results, and citation annotations', async () => {
   const upstreamRequests: any[] = [];
   const server = new OpenAICompatibleResponsesAdapterServer({
@@ -266,11 +400,12 @@ test('responses output exposes adapter web_search call with sources, results, an
 
     assert.equal(response.status, 200);
     assert.equal(upstreamRequests.length, 2);
-    assert.equal(textPart.text, 'Answer with evidence');
+    assert.equal(textPart.text, 'Answer with evidence [1]');
     assert.equal(textPart.annotations.length, 1);
     assert.equal(textPart.annotations[0].type, 'url_citation');
     assert.equal(textPart.annotations[0].title, 'Phase 7 Source');
     assert.equal(textPart.annotations[0].url, 'https://example.com/phase-7-source');
+    assert.equal(textPart.text.slice(textPart.annotations[0].start_index, textPart.annotations[0].end_index), '[1]');
     assert.equal(webSearchCall.status, 'completed');
     assert.equal(webSearchCall.call_id, 'call_web_search_output_1');
     assert.equal(webSearchCall.action.type, 'search');
@@ -510,8 +645,9 @@ test('streaming responses completed event includes adapter web_search call outpu
       event.event === 'response.output_item.done'
       && event.data.item?.type === 'web_search_call'
     )), true);
-    assert.equal(textPart.text, 'Streaming answer');
+    assert.equal(textPart.text, 'Streaming answer [1]');
     assert.equal(textPart.annotations[0].url, 'https://example.com/streaming-phase-7');
+    assert.equal(textPart.text.slice(textPart.annotations[0].start_index, textPart.annotations[0].end_index), '[1]');
     assert.equal(webSearchCall.action.type, 'search');
     assert.equal(webSearchCall.action.query, 'streaming phase 7');
     assert.deepEqual(webSearchCall.action.queries, ['streaming phase 7']);

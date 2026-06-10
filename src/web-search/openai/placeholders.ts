@@ -25,34 +25,32 @@ export function replaceWebSearchSourcePlaceholders(
   annotations: CodexProviderWebSearchCitationAnnotation[];
 } {
   const sourceById = new Map(sources.map((source) => [source.id, source]));
-  const annotations: CodexProviderWebSearchCitationAnnotation[] = [];
+  const replacements: Array<{
+    marker: string;
+    source: CodexProviderWebSearchCitationSource;
+    token: string;
+  }> = [];
   let normalizedText = '';
   let cursor = 0;
   for (const match of text.matchAll(/\[\[source:(\d+)\]\]/giu)) {
     const index = match.index ?? cursor;
-    normalizedText += text.slice(cursor, index);
+    normalizedText = appendTextSegment(normalizedText, text.slice(cursor, index));
     cursor = index + match[0].length;
     const sourceId = Number(match[1]);
     const source = sourceById.get(sourceId);
     if (!source) {
       continue;
     }
-    const endIndex = normalizedText.replace(/\s+$/u, '').length;
-    const startIndex = findCitationSpanStart(normalizedText, endIndex);
-    annotations.push({
-      type: 'url_citation',
-      start_index: startIndex,
-      end_index: endIndex,
-      title: source.title,
-      url: source.url,
-      source_id: source.id,
+    const token = `\uE000${replacements.length}\uE001`;
+    normalizedText = appendCitationToken(normalizedText, token);
+    replacements.push({
+      marker: `[${source.id}]`,
+      source,
+      token,
     });
   }
-  normalizedText += text.slice(cursor);
-  return {
-    text: normalizedText.replace(/\s{2,}/gu, ' ').trim(),
-    annotations: annotations.filter((annotation) => annotation.end_index >= annotation.start_index),
-  };
+  normalizedText = appendTextSegment(normalizedText, text.slice(cursor)).replace(/\s{2,}/gu, ' ').trim();
+  return replaceCitationTokens(normalizedText, replacements);
 }
 
 export function normalizeWebSearchCitationSources(value: unknown): CodexProviderWebSearchCitationSource[] {
@@ -76,30 +74,56 @@ export function normalizeWebSearchCitationSources(value: unknown): CodexProvider
     .filter(Boolean);
 }
 
-function findCitationSpanStart(text: string, endIndex: number): number {
-  if (endIndex <= 0) {
-    return 0;
+function appendTextSegment(text: string, segment: string): string {
+  if (!segment) {
+    return text;
   }
-  const before = text.slice(0, endIndex);
-  const sentenceBoundary = Math.max(
-    before.lastIndexOf('. '),
-    before.lastIndexOf('! '),
-    before.lastIndexOf('? '),
-    before.lastIndexOf('\n'),
-  );
-  if (sentenceBoundary >= 0 && sentenceBoundary + 2 < endIndex) {
-    return skipLeadingWhitespace(text, sentenceBoundary + 2, endIndex);
+  if (text.endsWith('\uE001') && !/^\s|^[,.;:!?。！？、，；：）)\]}]/u.test(segment)) {
+    return `${text} ${segment}`;
   }
-  const wordBoundary = before.search(/\S[^\s]*$/u);
-  return wordBoundary >= 0 ? wordBoundary : 0;
+  return `${text}${segment}`;
 }
 
-function skipLeadingWhitespace(text: string, startIndex: number, endIndex: number): number {
-  let index = startIndex;
-  while (index < endIndex && /\s/u.test(text[index])) {
-    index += 1;
+function appendCitationToken(text: string, token: string): string {
+  const previous = text.at(-1) ?? '';
+  if (text.length === 0 || /\s/u.test(previous) || /[。！？、，；：]/u.test(previous)) {
+    return `${text}${token}`;
   }
-  return index;
+  return `${text} ${token}`;
+}
+
+function replaceCitationTokens(
+  text: string,
+  replacements: Array<{
+    marker: string;
+    source: CodexProviderWebSearchCitationSource;
+    token: string;
+  }>,
+): {
+  text: string;
+  annotations: CodexProviderWebSearchCitationAnnotation[];
+} {
+  const annotations: CodexProviderWebSearchCitationAnnotation[] = [];
+  let replacedText = text;
+  for (const replacement of replacements) {
+    const startIndex = replacedText.indexOf(replacement.token);
+    if (startIndex < 0) {
+      continue;
+    }
+    replacedText = `${replacedText.slice(0, startIndex)}${replacement.marker}${replacedText.slice(startIndex + replacement.token.length)}`;
+    annotations.push({
+      type: 'url_citation',
+      start_index: startIndex,
+      end_index: startIndex + replacement.marker.length,
+      title: replacement.source.title,
+      url: replacement.source.url,
+      source_id: replacement.source.id,
+    });
+  }
+  return {
+    text: replacedText,
+    annotations,
+  };
 }
 
 function normalizeString(value: unknown): string {
