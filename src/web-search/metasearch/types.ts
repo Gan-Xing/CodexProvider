@@ -38,6 +38,9 @@ export interface CodexProviderSearchRequest {
   allowedDomains?: string[] | null;
   blockedDomains?: string[] | null;
   externalWebAccess?: boolean | null;
+  maxEngineConcurrency?: number | null;
+  minFastModeResults?: number | null;
+  overallTimeoutMs?: number | null;
 }
 
 export interface CodexProviderSearchEngineRequest extends Required<Pick<CodexProviderSearchRequest, 'query'>> {
@@ -51,6 +54,7 @@ export interface CodexProviderSearchEngineRequest extends Required<Pick<CodexPro
   allowedDomains: string[];
   blockedDomains: string[];
   externalWebAccess: boolean;
+  signal?: AbortSignal | null;
   rawRequest: CodexProviderSearchRequest;
 }
 
@@ -171,6 +175,9 @@ export interface CodexProviderMetaSearchServiceOptions {
   engineState?: CodexProviderSearchEngineState | null;
   mode?: CodexProviderSearchMode | null;
   maxResults?: number | null;
+  maxEngineConcurrency?: number | null;
+  minFastModeResults?: number | null;
+  overallTimeoutMs?: number | null;
   failureThreshold?: number | null;
   suspensionMs?: number | null;
   now?: (() => Date) | null;

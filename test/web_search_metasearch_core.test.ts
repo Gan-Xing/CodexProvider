@@ -169,22 +169,54 @@ test('any mode stops after the first priority engine returns enough results', as
   assert.equal(response.results.length, 2);
 });
 
-test('fast mode keeps the fastest successful engine result set', async () => {
+test('fast mode returns the first successful engine result set to complete', async () => {
   const service = createCodexProviderMetaSearchService({
     engines: [
       createFakeEngine('slow', { priority: 10 }),
       createFakeEngine('quick', { priority: 1 }),
     ],
-    processor: createFakeProcessor({
-      slow: {
-        durationMs: 40,
-        results: [{ title: 'Slow', url: 'https://example.com/slow' }],
+    processor: {
+      async search(engine): Promise<CodexProviderEngineSearchOutcome> {
+        if (engine.name === 'slow') {
+          await new Promise((resolve) => {
+            setTimeout(resolve, 40);
+          });
+          return {
+            engine: engine.name,
+            ok: true,
+            durationMs: 40,
+            results: [{
+              type: 'web',
+              engine: engine.name,
+              title: 'Slow',
+              url: 'https://example.com/slow',
+              snippet: '',
+              rank: 1,
+              score: null,
+            }],
+            error: null,
+          };
+        }
+        await new Promise((resolve) => {
+          setTimeout(resolve, 5);
+        });
+        return {
+          engine: engine.name,
+          ok: true,
+          durationMs: 5,
+          results: [{
+            type: 'web',
+            engine: engine.name,
+            title: 'Quick',
+            url: 'https://example.com/quick',
+            snippet: '',
+            rank: 1,
+            score: null,
+          }],
+          error: null,
+        };
       },
-      quick: {
-        durationMs: 5,
-        results: [{ title: 'Quick', url: 'https://example.com/quick' }],
-      },
-    }),
+    },
   });
 
   const response = await service.search({

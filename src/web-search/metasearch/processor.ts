@@ -61,7 +61,7 @@ class DefaultCodexProviderSearchProcessor implements CodexProviderSearchProcesso
     const startedAt = this.now();
     try {
       const parsedResults = typeof engine.search === 'function'
-        ? await engine.search(request)
+        ? await this.searchCustomEngine(engine, request)
         : await this.searchHttpEngine(engine, request);
       const results = (Array.isArray(parsedResults) ? parsedResults : [])
         .map((result, index) => normalizeSearchEngineResult(result, engine.name, index + 1))
@@ -84,6 +84,76 @@ class DefaultCodexProviderSearchProcessor implements CodexProviderSearchProcesso
     }
   }
 
+  private async searchCustomEngine(
+    engine: CodexProviderSearchEngine,
+    request: CodexProviderSearchEngineRequest,
+  ): Promise<unknown> {
+    if (typeof engine.search !== 'function') {
+      throw new CodexProviderMetaSearchError(
+        `Search engine ${engine.name} does not expose a custom search() implementation.`,
+        'invalid_engine',
+        null,
+        false,
+      );
+    }
+    const timeoutMs = normalizeTimeoutMs(engine.timeoutMs);
+    const controller = new AbortController();
+    const parentSignal = request.signal ?? null;
+    const abortFromParent = () => controller.abort();
+    let timeout: NodeJS.Timeout | null = null;
+    let abortListener: (() => void) | null = null;
+    try {
+      if (parentSignal?.aborted) {
+        controller.abort();
+      } else {
+        parentSignal?.addEventListener('abort', abortFromParent, { once: true });
+      }
+      const abortPromise = new Promise<never>((_resolve, reject) => {
+        abortListener = () => {
+          reject(new CodexProviderMetaSearchError(
+            `Search engine ${engine.name} timed out after ${timeoutMs}ms.`,
+            'timeout',
+            null,
+            true,
+          ));
+        };
+        controller.signal.addEventListener('abort', abortListener, { once: true });
+      });
+      if (controller.signal.aborted) {
+        abortListener();
+      }
+      timeout = setTimeout(() => controller.abort(), timeoutMs);
+      return await Promise.race([
+        engine.search({
+          ...request,
+          signal: controller.signal,
+        }),
+        abortPromise,
+      ]);
+    } catch (error) {
+      if (error instanceof CodexProviderMetaSearchError) {
+        throw error;
+      }
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new CodexProviderMetaSearchError(
+          `Search engine ${engine.name} timed out after ${timeoutMs}ms.`,
+          'timeout',
+          null,
+          true,
+        );
+      }
+      throw error;
+    } finally {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      if (abortListener) {
+        controller.signal.removeEventListener('abort', abortListener);
+      }
+      parentSignal?.removeEventListener('abort', abortFromParent);
+    }
+  }
+
   private async searchHttpEngine(
     engine: CodexProviderSearchEngine,
     request: CodexProviderSearchEngineRequest,
@@ -97,20 +167,21 @@ class DefaultCodexProviderSearchProcessor implements CodexProviderSearchProcesso
       );
     }
     const httpRequest = await engine.buildRequest(request);
-    const response = await this.executeHttpRequest(httpRequest, engine.timeoutMs);
+    const response = await this.executeHttpRequest(httpRequest, engine.timeoutMs, request.signal);
     return engine.parseResponse(response, request);
   }
 
   private async executeHttpRequest(
     request: CodexProviderEngineHttpRequest,
     fallbackTimeoutMs: number | null | undefined,
+    signal: AbortSignal | null | undefined,
   ): Promise<CodexProviderEngineHttpResponse> {
     const timeoutMs = normalizeTimeoutMs(request.timeoutMs ?? fallbackTimeoutMs);
     const maxResponseBytes = clampInteger(request.maxResponseBytes, 1, 20_000_000, this.maxResponseBytes);
     const maxRedirects = clampInteger(request.maxRedirects, 0, 20, DEFAULT_SEARCH_MAX_REDIRECTS);
     let currentUrl = await assertSafeRetrievalUrlWithDns(request.url, this.safety);
     for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
-      const response = await this.fetchHttpResponse(currentUrl.toString(), request, timeoutMs);
+      const response = await this.fetchHttpResponse(currentUrl.toString(), request, timeoutMs, signal);
       if (isHttpRedirectStatus(response.status)) {
         const location = response.headers.get('location');
         if (!location) {
@@ -154,8 +225,15 @@ class DefaultCodexProviderSearchProcessor implements CodexProviderSearchProcesso
     url: string,
     request: CodexProviderEngineHttpRequest,
     timeoutMs: number,
+    parentSignal: AbortSignal | null | undefined,
   ): Promise<Response> {
     const controller = new AbortController();
+    const abortFromParent = () => controller.abort();
+    if (parentSignal?.aborted) {
+      controller.abort();
+    } else {
+      parentSignal?.addEventListener('abort', abortFromParent, { once: true });
+    }
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await this.fetchImpl(url, {
@@ -180,6 +258,7 @@ class DefaultCodexProviderSearchProcessor implements CodexProviderSearchProcesso
       throw error;
     } finally {
       clearTimeout(timeout);
+      parentSignal?.removeEventListener('abort', abortFromParent);
     }
   }
 }

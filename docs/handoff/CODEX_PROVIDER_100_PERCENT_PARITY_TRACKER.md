@@ -13,10 +13,11 @@ This tracker is the living audit snapshot for the 100 percent parity loop. The c
 - Phase 0: baseline/audit tracker.
 - Phase 1: hosted tool request-config binding for adapter-emulated `web_search` and `file_search`.
 - Phase 2: DNS-complete network safety and SSRF hardening for retrieval and metasearch HTTP requests.
+- Phase 3: true metasearch modes, bounded execution, concurrency, and timeout support.
 
 Out of scope for the latest completed phase:
 
-- Metasearch mode rewrites, engine ranking, extraction quality work, concurrency changes, or true fast-mode behavior.
+- Metasearch ranking, extraction quality work, parser maintenance, or retrieval quality evaluation.
 - File source rewrites or web-index/file-search mixing.
 - Package publishing, dependency additions, or changing `private: true`.
 
@@ -27,7 +28,7 @@ Out of scope for the latest completed phase:
 | Phase 0 | Baseline and audit snapshot | Complete | Tracker created and final local gate passed on 2026-06-10. |
 | Phase 1 | Hosted tool request-config binding | Complete | Binding implementation, docs, and focused tests added. Final local gate passed on 2026-06-10. |
 | Phase 2 | Network safety and SSRF hardening | Complete | DNS resolver abstraction, retrieval/metasearch enforcement, redirect revalidation, fake resolver tests, and search response byte limit added. Final local gate passed on 2026-06-10. |
-| Phase 3 | True metasearch modes, timeouts, and limits | Not started | Search response byte limit completed in Phase 2; true fast mode, bounded mode execution, concurrency, and overall timeout work remain. |
+| Phase 3 | True metasearch modes, timeouts, and limits | Complete | Real fast mode, concurrency limits, overall timeout, AbortSignal propagation, and custom engine timeout wrapping added. Search response byte limit was already completed in Phase 2. Final local gate passed on 2026-06-10. |
 | Phase 4 | Request validation expansion | Not started | Out of current scope. |
 | Phase 5 | Web search output parity and citation quality | Not started | Existing detailed action gate noted; broader phase out of scope. |
 | Phase 6 | File search 100 percent hardening | Not started | Out of current scope. |
@@ -42,7 +43,7 @@ Out of scope for the latest completed phase:
 | --- | --- | --- | --- | --- |
 | 1 | P0 | Request-level hosted tool configuration is not fully bound to executor calls | Complete | Phase 1 implementation binds adapter-emulated request config to executor args for `web_search` and `file_search`; final gate passed. |
 | 2 | P0 | SSRF protection is not DNS-complete | Complete | Phase 2 adds DNS resolver-backed safety for retrieval and metasearch HTTP requests, redirect target revalidation, fake resolver tests, and explicit `allowPrivateHosts` opt-in behavior. |
-| 3 | P0 | `fast` metasearch mode is not actually fast | Not started | Future Phase 3. |
+| 3 | P0 | `fast` metasearch mode is not actually fast | Complete | Phase 3 makes `fast` return on the first sufficient completed engine result, aborts in-flight work, and adds bounded/concurrent execution tests. |
 | 4 | P0 | Search processor has no response byte limit | Complete | Phase 2 adds processor/request `maxResponseBytes` and streaming response reads that fail with `max_bytes_exceeded`. |
 | 5 | P0 | Live smoke evidence remains the real release gate | Not started | Future Phase 9. |
 | 6 | P1 | Detailed web_search actions need a stable compatibility policy | Partially done before this phase | Existing docs/tests gate detailed actions behind includes/options; not changed here. |
@@ -96,6 +97,19 @@ Network-capable web retrieval and metasearch HTTP engine requests now use a shar
 - Metasearch HTTP response bodies are read with a bounded byte limit and fail with `max_bytes_exceeded` when exceeded.
 - Cached/offline retrieval reads do not require DNS because no live network fetch occurs.
 
+## Phase 3 Metasearch Execution Contract
+
+Metasearch mode execution is now bounded and mode-specific.
+
+- `fast` starts concurrent engine work and returns the first successful outcome with at least `minFastModeResults`; remaining in-flight work receives an abort signal.
+- `balanced` and `exhaustive` use the shared concurrent runner and honor `maxEngineConcurrency`.
+- `any` remains sequential fallback and stops after the first sufficient successful engine.
+- `overallTimeoutMs` bounds mode execution and records timeout outcomes instead of hanging indefinitely.
+- `CodexProviderSearchEngineRequest.signal` is passed to engines so custom and HTTP engines can observe cancellation.
+- Custom `engine.search()` implementations are wrapped by processor-level timeouts using `engine.timeoutMs`.
+- HTTP engine fetches honor the request abort signal in addition to their per-request timeout.
+- Search response byte limits remain the Phase 2 `maxResponseBytes` processor/request behavior.
+
 ## Validation Log
 
 Phase 1 validation run on 2026-06-10:
@@ -132,4 +146,22 @@ Additional focused validation:
 ```bash
 pnpm exec tsx --test test/web_search_network_safety.test.ts test/web_search_fetch_security.test.ts test/web_search_retrieval.test.ts test/web_search_api_engines.test.ts test/web_search_endpoint_engines.test.ts test/web_search_html_engines.test.ts test/web_search_local_index.test.ts test/public_surface.test.ts  # passed: 46 tests
 git diff --check                                                                                                                                                                                                                       # passed
+```
+
+Phase 3 validation run on 2026-06-10:
+
+```bash
+pnpm test                # passed: 258 passing, 1 credential-gated integration skipped
+pnpm typecheck           # passed
+pnpm build               # passed
+pnpm consumer:harness    # passed
+pnpm check-boundary      # passed
+pnpm pack:dry-run        # passed
+```
+
+Additional focused validation:
+
+```bash
+pnpm exec tsx --test test/web_search_metasearch_modes.test.ts test/web_search_metasearch_core.test.ts test/web_search_network_safety.test.ts  # passed: 20 tests
+git diff --check                                                                                                                              # passed
 ```
