@@ -1,0 +1,107 @@
+{
+  "duplicateQuery": "deterministic ranking fixture",
+  "duplicateResults": [
+    {
+      "type": "web",
+      "engine": "alpha",
+      "title": "Deterministic ranking fixture guide",
+      "url": "https://docs.example.com/ranking-fixture?utm_source=newsletter",
+      "snippet": "Measured retrieval scoring for CodexProvider search quality.",
+      "rank": 2
+    },
+    {
+      "type": "web",
+      "engine": "beta",
+      "title": "Ranking fixture quality guide",
+      "url": "https://docs.example.com/ranking-fixture",
+      "snippet": "Deterministic ranking fixture guide with duplicate engine evidence.",
+      "rank": 1
+    },
+    {
+      "type": "web",
+      "engine": "single",
+      "title": "General provider adapter note",
+      "url": "https://blog.example.net/provider-note",
+      "snippet": "A broader adapter note that mentions deterministic ranking fixture once.",
+      "rank": 1
+    }
+  ],
+  "titleQuery": "canonical extraction quality",
+  "titleResults": [
+    {
+      "type": "web",
+      "engine": "alpha",
+      "title": "Unrelated changelog",
+      "url": "https://docs.example.com/changelog",
+      "snippet": "This snippet mentions canonical extraction quality only in passing.",
+      "rank": 1
+    },
+    {
+      "type": "web",
+      "engine": "alpha",
+      "title": "Canonical extraction quality",
+      "url": "https://docs.example.com/canonical-extraction-quality",
+      "snippet": "Article extraction and title matching fixture.",
+      "rank": 4
+    }
+  ],
+  "trackingQuery": "tracking cleanup",
+  "trackingResults": [
+    {
+      "type": "web",
+      "engine": "alpha",
+      "title": "Tracking cleanup",
+      "url": "https://docs.example.com/tracking-cleanup?utm_medium=email&b=2&a=1#section",
+      "snippet": "First copy with tracking parameters.",
+      "rank": 1
+    },
+    {
+      "type": "web",
+      "engine": "beta",
+      "title": "Tracking cleanup",
+      "url": "https://docs.example.com/tracking-cleanup?a=1&b=2&fbclid=ignored",
+      "snippet": "Second copy with a click identifier.",
+      "rank": 1
+    }
+  ],
+  "chineseQuery": "量子计算 平台",
+  "chineseResults": [
+    {
+      "type": "web",
+      "engine": "alpha",
+      "title": "传统计算平台",
+      "url": "https://example.cn/classic",
+      "snippet": "传统服务器资料。",
+      "rank": 1
+    },
+    {
+      "type": "web",
+      "engine": "beta",
+      "title": "量子计算平台白皮书",
+      "url": "https://example.cn/quantum",
+      "snippet": "面向开发者的量子计算平台检索资料。",
+      "rank": 3
+    }
+  ],
+  "dateQuery": "2026 retrieval news",
+  "dateResults": [
+    {
+      "type": "web",
+      "engine": "alpha",
+      "title": "2026 retrieval news digest",
+      "url": "https://news.example.com/retrieval-2026",
+      "snippet": "A dated news result for retrieval quality evaluation.",
+      "rank": 2,
+      "publishedAt": "2026-06-10T00:00:00.000Z"
+    },
+    {
+      "type": "web",
+      "engine": "alpha",
+      "title": "Retrieval archive",
+      "url": "https://news.example.com/retrieval-archive",
+      "snippet": "Older retrieval background.",
+      "rank": 1,
+      "publishedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}

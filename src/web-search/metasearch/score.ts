@@ -2,6 +2,9 @@ import type {
   CodexProviderMergedSearchResult,
   CodexProviderSearchResult,
 } from './types.js';
+import {
+  tokenizeSearchText,
+} from '../../search-tokenizer.js';
 
 export function scoreSearchResult(
   result: CodexProviderSearchResult,
@@ -10,8 +13,15 @@ export function scoreSearchResult(
   const rank = normalizePositiveNumber(result.rank) ?? 100;
   const upstreamScore = normalizePositiveNumber(result.score) ?? 0;
   const queryTerms = tokenizeSearchText(query);
+  const normalizedTitle = normalizedComparableText(result.title);
   const titleOverlap = overlapScore(tokenizeSearchText(result.title), queryTerms);
   const snippetOverlap = overlapScore(tokenizeSearchText(result.snippet), queryTerms);
+  const allTitleTermsBoost = queryTerms.length > 0 && queryTerms.every((term) => normalizedTitle.includes(term))
+    ? 18
+    : 0;
+  const exactTitleBoost = normalizedTitle === normalizedComparableText(query)
+    ? 32
+    : 0;
   const exactBoost = query && `${result.title} ${result.snippet}`.toLowerCase().includes(query.toLowerCase())
     ? 8
     : 0;
@@ -20,6 +30,8 @@ export function scoreSearchResult(
     + Math.min(40, upstreamScore * 10)
     + (titleOverlap * 24)
     + (snippetOverlap * 12)
+    + allTitleTermsBoost
+    + exactTitleBoost
     + exactBoost,
   );
 }
@@ -43,13 +55,7 @@ export function scoreMergedSearchResult(
   );
 }
 
-export function tokenizeSearchText(value: string): string[] {
-  return [...new Set(value
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 1))];
-}
+export { tokenizeSearchText };
 
 function overlapScore(values: string[], queryTerms: string[]): number {
   if (values.length === 0 || queryTerms.length === 0) {
@@ -63,6 +69,10 @@ function overlapScore(values: string[], queryTerms: string[]): number {
 function normalizePositiveNumber(value: unknown): number | null {
   const number = Number(value);
   return Number.isFinite(number) && number >= 0 ? number : null;
+}
+
+function normalizedComparableText(value: string): string {
+  return value.toLowerCase().replace(/\s+/gu, ' ').trim();
 }
 
 function roundScore(value: number): number {

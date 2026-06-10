@@ -1,6 +1,9 @@
 import type {
   CodexProviderWebRetrievalChunk,
 } from './chunker.js';
+import {
+  tokenizeSearchText,
+} from '../../search-tokenizer.js';
 
 export interface CodexProviderWebRetrievalRankOptions {
   maxResults?: number | null;
@@ -11,7 +14,7 @@ export function rankCodexProviderWebRetrievalChunks(
   query: string,
   options: CodexProviderWebRetrievalRankOptions = {},
 ): CodexProviderWebRetrievalChunk[] {
-  const terms = tokenize(query);
+  const terms = tokenizeSearchText(query);
   const maxResults = normalizeMaxResults(options.maxResults, chunks.length);
   return chunks
     .map((chunk) => ({
@@ -26,9 +29,9 @@ function scoreChunk(chunk: CodexProviderWebRetrievalChunk, terms: string[]): num
   if (terms.length === 0) {
     return 1 / Math.max(1, chunk.index);
   }
-  const text = tokenize(chunk.text);
-  const title = tokenize(chunk.title);
-  const url = tokenize(chunk.url);
+  const text = tokenizeSearchText(chunk.text, { unique: false });
+  const title = tokenizeSearchText(chunk.title, { unique: false });
+  const url = tokenizeSearchText(chunk.url, { unique: false });
   let score = 0;
   for (const term of terms) {
     score += countTerm(text, term);
@@ -36,13 +39,6 @@ function scoreChunk(chunk: CodexProviderWebRetrievalChunk, terms: string[]): num
     score += countTerm(url, term) * 0.5;
   }
   return score + 1 / Math.max(1, chunk.index * 10);
-}
-
-function tokenize(value: string): string[] {
-  return String(value ?? '')
-    .toLowerCase()
-    .split(/[^a-z0-9]+/u)
-    .filter((term) => term.length >= 2);
 }
 
 function countTerm(values: string[], term: string): number {

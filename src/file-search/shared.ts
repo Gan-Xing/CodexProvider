@@ -8,6 +8,9 @@ import type {
   LocalFileSearchRoot,
   NormalizedMemoryFileSearchDocument,
 } from './types.js';
+import {
+  tokenizeSearchText,
+} from '../search-tokenizer.js';
 
 export const DEFAULT_IGNORE_DIRECTORIES = [
   '.git',
@@ -148,6 +151,9 @@ export function lexicalScoreForText({
   const lowerPath = resultPath.toLowerCase();
   const lowerTitle = title.toLowerCase();
   const lowerContent = content.toLowerCase();
+  if (terms.length > 0 && terms.every((term) => lowerTitle.includes(term))) {
+    score += 24;
+  }
   for (const term of terms) {
     if (lowerPath.includes(term)) {
       score += 2;
@@ -339,11 +345,7 @@ export function normalizePathGlob(value: unknown): string {
 }
 
 export function tokenizeQuery(query: string): string[] {
-  return [...new Set(query
-    .toLowerCase()
-    .split(/[^a-z0-9_\-\u4e00-\u9fff]+/u)
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length >= 2))];
+  return tokenizeSearchText(query);
 }
 
 export function normalizeRelativePath(value: string): string {

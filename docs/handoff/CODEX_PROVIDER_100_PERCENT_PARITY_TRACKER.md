@@ -17,11 +17,12 @@ This tracker is the living audit snapshot for the 100 percent parity loop. The c
 - Phase 4: expanded adapter request validation for hosted `web_search` and `file_search` declarations.
 - Phase 5: stabilized synthetic `web_search_call` output policy and deterministic citation markers.
 - Phase 6: `file_search` source-level cursor pagination, filter/ranking matrix coverage, and pagination docs.
+- Phase 7: deterministic search-quality fixture suite, shared CJK-aware tokenization, title-complete ranking boosts, improved article extraction, local-index/file-search boundary coverage, and parser fixture workflow docs.
 
 Out of scope for the latest completed phase:
 
-- Metasearch ranking, extraction quality work, parser maintenance, or retrieval quality evaluation.
 - File source rewrites or web-index/file-search mixing.
+- New live search-provider quality claims or wall-clock recency scoring.
 - Package publishing, dependency additions, or changing `private: true`.
 
 ## Phase Status
@@ -35,7 +36,7 @@ Out of scope for the latest completed phase:
 | Phase 4 | Request validation expansion | Complete | Hosted `web_search` and `file_search` declaration validation added for `tools[]` and `tool_choice.allowed_tools`; final local gate passed on 2026-06-10. |
 | Phase 5 | Web search output parity and citation quality | Complete | Include-gated output policy verified, visible `[N]` citation markers added, repeated/invalid/CJK citation tests added, and final local gate passed on 2026-06-10. |
 | Phase 6 | File search 100 percent hardening | Complete | Source-level `pageCursor` / `nextPage` contract added, signed tokens preserve per-source cursors and global offsets, filter/ranking/vector-store matrix tests added, and final local gate passed on 2026-06-10. |
-| Phase 7 | Ranking and extraction quality evaluation | Not started | Out of current scope. |
+| Phase 7 | Ranking and extraction quality evaluation | Complete | Shared tokenizer, deterministic ranking/extraction fixtures, CJK ranking tests, title-complete boosts, local-index/file_search boundary tests, scoring docs, and parser fixture workflow added. Final local gate passed on 2026-06-10. |
 | Phase 8 | Package hygiene and CI | Not started | Out of current scope. |
 | Phase 9 | Live smoke evidence | Not started | Out of current scope. |
 | Phase 10 | Public alpha release decision | Not started | Out of current scope. |
@@ -52,12 +53,12 @@ Out of scope for the latest completed phase:
 | 6 | P1 | Detailed web_search actions need a stable compatibility policy | Complete | Phase 5 verifies separate include behavior: sources expose only `action.sources`, results expose only `results`, and detailed `open_page` / `find_in_page` actions require `web_search_call.actions` or host override. |
 | 7 | P1 | Request validation should cover more hosted tool fields | Complete | Phase 4 validates hosted `web_search` and `file_search` declaration fields in `tools[]` and `tool_choice.allowed_tools`, with strict 400s by default and drop-mode adjustment traces. |
 | 8 | P1 | Source-level pagination for file_search is incomplete | Complete | Phase 6 adds `pageCursor` / `pageSize` on source requests, optional `nextPage` / `hasMore` on source results, and signed token preservation of per-source cursors. |
-| 9 | P1 | Web local index must remain isolated from file_search | Not started | Future Phase 7 boundary tests; Phase 6 did not change the web local index or file_search source boundary. |
+| 9 | P1 | Web local index must remain isolated from file_search | Complete | Phase 7 adds an explicit boundary test proving local web-index results stay in `web_search` and are not visible to `file_search` unless configured as a separate file-search source. |
 | 10 | P1 | Citation annotation span behavior is approximate | Complete | Phase 5 replaces valid `[[source:N]]` placeholders with visible `[N]` markers and annotates those exact marker spans; invalid placeholders are removed safely. |
-| 11 | P1 | Search ranking needs an evaluation fixture set | Not started | Future Phase 7. |
-| 12 | P1 | CJK tokenization is weak | Not started | Future Phase 7. |
-| 13 | P1 | HTML extraction needs quality fixtures | Not started | Future Phase 7. |
-| 14 | P1 | Metasearch engine parser snapshots need maintenance workflow | Not started | Future Phase 7. |
+| 11 | P1 | Search ranking needs an evaluation fixture set | Complete | Phase 7 adds `test/fixtures/web-search-ranking/` plus tests for duplicate-engine boosts, exact-title ranking, date-bearing results, tracking cleanup, domain filters, local-index ranking, and file_search lexical ranking. |
+| 12 | P1 | CJK tokenization is weak | Complete | Phase 7 adds shared Latin/CJK tokenization with CJK bigrams/trigrams and uses it across metasearch, retrieval chunk ranking, local web index, and file_search query terms. |
+| 13 | P1 | HTML extraction needs quality fixtures | Complete | Phase 7 adds article/docs/CJK/malformed HTML fixtures and tests extraction of title, description, canonical URL, language, main text, code/table/list text, and chrome/hidden-content removal. |
+| 14 | P1 | Metasearch engine parser snapshots need maintenance workflow | Complete | Phase 7 documents parser fixture policy in `docs/SEARCH_QUALITY_SCORING.md`; existing HTML engine fixtures continue to cover no-results, blocked/captcha, and tracking cleanup. |
 | 15 | P1 | Package hygiene checker should scan shipped docs/examples | Partially done before this phase | `pnpm check-package-surface` exists; this pass keeps requested final `check-boundary`/`pack:dry-run` gates. |
 | 16 | P1 | Hosted tool execution errors need clear policy | Not started | Future policy/error-class phase. |
 | 17 | P1 | Provider capability presets need live behavior records | Not started | Future provider matrix/live smoke work. |
@@ -150,6 +151,19 @@ Synthetic adapter-emulated `web_search` output is now explicit about what each i
 - Cursor-aware sources should use `pageSize` as the requested page size and treat `pageCursor` as an opaque source-owned cursor.
 - The executor still validates token signatures, request fingerprints, and token shape before using pagination state.
 - Filter/ranking coverage now includes additional `lte`, `ne`, and `nin` metadata filter cases together with `vector_store_ids` source scoping and `score_threshold`.
+
+## Phase 7 Search Quality Contract
+
+Search ranking and extraction now have deterministic local evaluation coverage.
+
+- Web metasearch, local web index, retrieval chunk ranking, and file_search lexical ranking share CJK-aware tokenization.
+- CJK runs emit the full phrase plus bigrams and trigrams; Latin tokens remain lowercased and hyphen/underscore split parts are also searchable.
+- Metasearch scoring now boosts title-complete matches and exact-title matches in addition to rank, upstream score, title/snippet overlap, phrase matches, and duplicate-engine votes.
+- File search lexical scoring now boosts documents whose title contains every query term.
+- URL canonicalization and ranking fixtures cover duplicate engine evidence, tracking-parameter cleanup, exact-title matching, date-bearing results, domain filters, Chinese queries, local web-index ranking, and file_search ranking.
+- HTML extraction now prefers `main` / `article`, strips common page chrome and hidden content, extracts canonical URLs, and has article/docs/CJK/malformed fixture coverage.
+- The local web index remains a `web_search` facility only; Phase 7 adds a regression test proving file_search cannot read web-index content unless a host separately configures that content as a file_search source.
+- The scoring and parser fixture maintenance policy is documented in `docs/SEARCH_QUALITY_SCORING.md`.
 
 ## Validation Log
 
@@ -283,6 +297,36 @@ Additional focused validation:
 ```bash
 pnpm exec tsx --test test/file_search_executor.test.ts test/server.test.ts test/adapter_hosted_tool_config_binding.test.ts  # passed: 80 tests
 git diff --check                                                                                                           # passed
+```
+
+Live smoke status:
+
+```bash
+OPENROUTER_API_KEY=missing
+OPENROUTER_MODEL=missing
+BRAVE_SEARCH_API_KEY=missing
+SERPER_API_KEY=missing
+TAVILY_API_KEY=missing
+```
+
+Live smoke was skipped because no required credentials were present in the local environment.
+
+Phase 7 validation run on 2026-06-10:
+
+```bash
+pnpm test                # passed: 277 passing, 1 credential-gated integration skipped
+pnpm typecheck           # passed
+pnpm build               # passed
+pnpm consumer:harness    # passed
+pnpm check-boundary      # passed
+pnpm pack:dry-run        # passed
+```
+
+Additional focused validation:
+
+```bash
+pnpm exec tsx --test test/search_quality_phase7.test.ts test/web_search_retrieval.test.ts test/web_search_local_index.test.ts test/web_search_metasearch_core.test.ts test/file_search_executor.test.ts test/web_search_html_engines.test.ts  # passed: 64 tests
+git diff --check                                                                                                                                                                                       # passed
 ```
 
 Live smoke status:
