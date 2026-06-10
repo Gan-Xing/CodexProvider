@@ -27,6 +27,12 @@ function baseEngineRequest(overrides: Partial<CodexProviderSearchEngineRequest> 
   };
 }
 
+const PUBLIC_RESOLVER = {
+  async lookup() {
+    return [{ address: '93.184.216.34', family: 4 as const }];
+  },
+};
+
 test('SearXNG endpoint engine builds JSON requests and normalizes results', async () => {
   const calls: Array<{ url: string; init: RequestInit }> = [];
   const engine = createCodexProviderSearxngEndpointEngine({
@@ -35,6 +41,7 @@ test('SearXNG endpoint engine builds JSON requests and normalizes results', asyn
     apiKey: 'searxng-token',
   });
   const processor = createCodexProviderSearchProcessor({
+    resolver: PUBLIC_RESOLVER,
     fetchImpl: (async (url, init) => {
       calls.push({ url: String(url), init: init ?? {} });
       return new Response(JSON.stringify({
@@ -98,6 +105,7 @@ test('OpenSERP endpoint engine builds engine paths and normalizes envelopes', as
     region: 'DE',
   });
   const processor = createCodexProviderSearchProcessor({
+    resolver: PUBLIC_RESOLVER,
     fetchImpl: (async (url, init) => {
       calls.push({ url: String(url), init: init ?? {} });
       return new Response(JSON.stringify({
@@ -181,6 +189,7 @@ test('endpoint engines surface JSON and HTTP endpoint errors', async () => {
     endpoint: 'https://openserp.example.test/',
   });
   const jsonErrorProcessor = createCodexProviderSearchProcessor({
+    resolver: PUBLIC_RESOLVER,
     fetchImpl: (async () => new Response(JSON.stringify({
       error: 'bad_request',
       code: 400,
@@ -203,6 +212,7 @@ test('endpoint engines surface JSON and HTTP endpoint errors', async () => {
     endpoint: 'https://searxng.example.test/',
   });
   const httpErrorProcessor = createCodexProviderSearchProcessor({
+    resolver: PUBLIC_RESOLVER,
     fetchImpl: (async () => new Response('upstream unavailable', { status: 503 })) as typeof fetch,
   });
 

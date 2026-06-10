@@ -26,6 +26,19 @@ export function searchEngineErrorFromUnknown(
       retryable: error.retryable,
     };
   }
+  if (error instanceof Error && typeof (error as { code?: unknown }).code === 'string') {
+    const codedError = error as Error & {
+      code: string;
+      status?: unknown;
+      retryable?: unknown;
+    };
+    return {
+      code: codedError.code,
+      message: codedError.message,
+      status: typeof codedError.status === 'number' ? codedError.status : null,
+      retryable: typeof codedError.retryable === 'boolean' ? codedError.retryable : null,
+    };
+  }
   if (error instanceof Error) {
     return {
       code: fallbackCode,

@@ -9,6 +9,12 @@ import {
   type CodexProviderWebRetrievalCacheEntry,
 } from '../src/index.js';
 
+const PUBLIC_RESOLVER = {
+  async lookup() {
+    return [{ address: '93.184.216.34', family: 4 as const }];
+  },
+};
+
 test('HTML extraction removes hidden content and returns readable text', () => {
   const html = `<!doctype html>
     <html lang="en">
@@ -43,6 +49,7 @@ test('web retrieval fetcher extracts HTML and reuses cache when offline', async 
   const fetcher = createCodexProviderWebRetrievalFetcher({
     cache,
     now: () => new Date('2026-06-08T00:00:00.000Z'),
+    safety: { resolver: PUBLIC_RESOLVER },
     fetchImpl: (async () => {
       calls += 1;
       return new Response(`<!doctype html>

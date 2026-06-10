@@ -60,6 +60,8 @@ export interface CodexProviderEngineHttpRequest {
   headers?: Record<string, string> | null;
   body?: string | ArrayBuffer | Uint8Array | null;
   timeoutMs?: number | null;
+  maxResponseBytes?: number | null;
+  maxRedirects?: number | null;
 }
 
 export interface CodexProviderEngineHttpResponse {

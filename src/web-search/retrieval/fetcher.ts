@@ -14,6 +14,7 @@ import {
 } from './redirects.js';
 import {
   assertSafeRetrievalUrl,
+  assertSafeRetrievalUrlWithDns,
   CodexProviderWebRetrievalError,
   normalizeRetrievalUrlForCache,
   type CodexProviderWebRetrievalSafetyOptions,
@@ -116,6 +117,7 @@ async function fetchWithRedirects(
   const redirectChain = [initialUrl.toString()];
   let currentUrl = initialUrl;
   for (let redirectCount = 0; redirectCount <= request.maxRedirects; redirectCount += 1) {
+    currentUrl = await assertSafeRetrievalUrlWithDns(currentUrl, request.safety);
     const response = await fetchWithTimeout(fetchImpl, currentUrl.toString(), {
       method: 'GET',
       redirect: 'manual',

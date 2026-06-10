@@ -28,6 +28,12 @@ function baseEngineRequest(overrides: Partial<CodexProviderSearchEngineRequest> 
   };
 }
 
+const PUBLIC_RESOLVER = {
+  async lookup() {
+    return [{ address: '93.184.216.34', family: 4 as const }];
+  },
+};
+
 test('Tavily API engine posts bearer-authenticated search requests and normalizes results', async () => {
   const calls: Array<{ url: string; init: RequestInit }> = [];
   const engine = createCodexProviderTavilyApiEngine({
@@ -36,6 +42,7 @@ test('Tavily API engine posts bearer-authenticated search requests and normalize
     searchDepth: 'advanced',
   });
   const processor = createCodexProviderSearchProcessor({
+    resolver: PUBLIC_RESOLVER,
     fetchImpl: (async (url, init) => {
       calls.push({ url: String(url), init: init ?? {} });
       return new Response(JSON.stringify({
@@ -85,6 +92,7 @@ test('Brave API engine sends query params and maps web results', async () => {
     language: 'en',
   });
   const processor = createCodexProviderSearchProcessor({
+    resolver: PUBLIC_RESOLVER,
     fetchImpl: (async (url, init) => {
       calls.push({ url: String(url), init: init ?? {} });
       return new Response(JSON.stringify({
@@ -132,6 +140,7 @@ test('Serper API engine posts JSON body and maps answer plus organic results', a
     maxResults: 3,
   });
   const processor = createCodexProviderSearchProcessor({
+    resolver: PUBLIC_RESOLVER,
     fetchImpl: (async (url, init) => {
       calls.push({ url: String(url), init: init ?? {} });
       return new Response(JSON.stringify({
@@ -181,6 +190,7 @@ test('API engines require explicit keys and processor reports HTTP errors', asyn
     apiKey: 'tvly-test',
   });
   const processor = createCodexProviderSearchProcessor({
+    resolver: PUBLIC_RESOLVER,
     fetchImpl: (async () => new Response('rate limited', { status: 429 })) as typeof fetch,
   });
 

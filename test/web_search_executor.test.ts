@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   createCodexProviderWebSearchExecutor,
   createCodexProviderProviderWebSearchSource,
+  createCodexProviderWebRetrievalFetcher,
   type CodexProviderWebSearchExecutorContent,
   type CodexProviderEngineSearchOutcome,
   type CodexProviderMetaSearchService,
@@ -11,6 +12,12 @@ import {
   type CodexProviderSearchRequest,
   type CodexProviderWebRetrievalFetcher,
 } from '../src/index.js';
+
+const PUBLIC_RESOLVER = {
+  async lookup() {
+    return [{ address: '93.184.216.34', family: 4 as const }];
+  },
+};
 
 function baseRequest(argumentsValue: Record<string, any>) {
   return {
@@ -508,9 +515,8 @@ test('metasearch web_search executor fetches pages by default with engine result
       };
     },
   };
-  const executor = createCodexProviderWebSearchExecutor({
-    engines: [engine],
-    processor,
+  const retrieval = createCodexProviderWebRetrievalFetcher({
+    safety: { resolver: PUBLIC_RESOLVER },
     fetchImpl: (async (url) => {
       fetchUrls.push(String(url));
       return new Response([
@@ -522,6 +528,11 @@ test('metasearch web_search executor fetches pages by default with engine result
         headers: { 'Content-Type': 'text/html' },
       });
     }) as typeof fetch,
+  });
+  const executor = createCodexProviderWebSearchExecutor({
+    engines: [engine],
+    processor,
+    retrieval,
   });
 
   const result = await executor(baseRequest({

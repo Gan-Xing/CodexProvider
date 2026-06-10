@@ -12,6 +12,12 @@ import {
   type CodexProviderSearchEngineRequest,
 } from '../src/index.js';
 
+const PUBLIC_RESOLVER = {
+  async lookup() {
+    return [{ address: '93.184.216.34', family: 4 as const }];
+  },
+};
+
 const FIXTURE_BASE_URL = new URL('./fixtures/web-search/', import.meta.url);
 
 function baseEngineRequest(overrides: Partial<CodexProviderSearchEngineRequest> = {}): CodexProviderSearchEngineRequest {
@@ -157,6 +163,7 @@ test('HTML engines classify captcha and blocked pages as retryable engine errors
   const html = await fixture('blocked.html');
   const engine = createCodexProviderDuckDuckGoHtmlEngine();
   const processor = createCodexProviderSearchProcessor({
+    resolver: PUBLIC_RESOLVER,
     fetchImpl: (async () => new Response(html, {
       status: 200,
       headers: { 'Content-Type': 'text/html' },

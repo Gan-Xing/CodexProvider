@@ -1,3 +1,4 @@
+import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 
 export type CodexProviderWebRetrievalErrorCode =
@@ -25,6 +26,16 @@ export class CodexProviderWebRetrievalError extends Error {
 export interface CodexProviderWebRetrievalSafetyOptions {
   allowPrivateHosts?: boolean | null;
   allowedProtocols?: string[] | null;
+  resolver?: CodexProviderNetworkResolver | null;
+}
+
+export interface CodexProviderNetworkAddress {
+  address: string;
+  family: 4 | 6;
+}
+
+export interface CodexProviderNetworkResolver {
+  lookup(hostname: string): Promise<CodexProviderNetworkAddress[]>;
 }
 
 const DEFAULT_ALLOWED_PROTOCOLS = ['http:', 'https:'];
@@ -68,6 +79,28 @@ export function assertSafeRetrievalUrl(
   return url;
 }
 
+export async function assertSafeRetrievalUrlWithDns(
+  value: string | URL,
+  options: CodexProviderWebRetrievalSafetyOptions = {},
+): Promise<URL> {
+  const url = assertSafeRetrievalUrl(value, options);
+  if (options.allowPrivateHosts) {
+    return url;
+  }
+  const addresses = await resolveHostname(url.hostname, options.resolver);
+  for (const address of addresses) {
+    if (isPrivateRetrievalHostname(address.address)) {
+      throw new CodexProviderWebRetrievalError(
+        `Blocked retrieval URL whose hostname resolves to a private or reserved address: ${url.hostname} -> ${address.address}`,
+        'ssrf_blocked',
+        null,
+        false,
+      );
+    }
+  }
+  return url;
+}
+
 export function isPrivateRetrievalHostname(value: string): boolean {
   const hostname = normalizeHostname(value);
   if (!hostname) {
@@ -85,6 +118,58 @@ export function isPrivateRetrievalHostname(value: string): boolean {
   }
   return false;
 }
+
+async function resolveHostname(
+  hostname: string,
+  resolver: CodexProviderNetworkResolver | null | undefined,
+): Promise<CodexProviderNetworkAddress[]> {
+  const normalized = normalizeHostname(hostname);
+  if (!normalized) {
+    throw new CodexProviderWebRetrievalError(
+      'Blocked retrieval URL with an empty hostname.',
+      'invalid_url',
+      null,
+      false,
+    );
+  }
+  let addresses: CodexProviderNetworkAddress[];
+  try {
+    addresses = await (resolver ?? DEFAULT_NETWORK_RESOLVER).lookup(normalized);
+  } catch (error) {
+    throw new CodexProviderWebRetrievalError(
+      `Blocked retrieval URL whose hostname could not be resolved: ${hostname}`,
+      'ssrf_blocked',
+      null,
+      error instanceof Error && ['EAI_AGAIN', 'ETIMEOUT'].includes((error as NodeJS.ErrnoException).code ?? '')
+        ? true
+        : false,
+    );
+  }
+  if (!Array.isArray(addresses) || addresses.length === 0) {
+    throw new CodexProviderWebRetrievalError(
+      `Blocked retrieval URL whose hostname did not resolve: ${hostname}`,
+      'ssrf_blocked',
+      null,
+      false,
+    );
+  }
+  return addresses;
+}
+
+const DEFAULT_NETWORK_RESOLVER: CodexProviderNetworkResolver = {
+  async lookup(hostname: string) {
+    const addresses = await lookup(hostname, {
+      all: true,
+      verbatim: true,
+    });
+    return addresses
+      .filter((entry): entry is { address: string; family: 4 | 6 } => entry.family === 4 || entry.family === 6)
+      .map((entry) => ({
+        address: entry.address,
+        family: entry.family,
+      }));
+  },
+};
 
 export function normalizeRetrievalUrlForCache(value: string | URL): string {
   const url = parseRetrievalUrl(value);
@@ -119,7 +204,7 @@ function isPrivateIpv4(value: string): boolean {
   if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
     return true;
   }
-  const [a, b] = parts;
+  const [a, b, c] = parts;
   return a === 0
     || a === 10
     || a === 127
@@ -127,7 +212,13 @@ function isPrivateIpv4(value: string): boolean {
     || (a === 100 && b >= 64 && b <= 127)
     || (a === 169 && b === 254)
     || (a === 172 && b >= 16 && b <= 31)
-    || (a === 192 && b === 168);
+    || (a === 192 && b === 0 && c === 0)
+    || (a === 192 && b === 0 && c === 2)
+    || (a === 192 && b === 88 && c === 99)
+    || (a === 192 && b === 168)
+    || (a === 198 && (b === 18 || b === 19))
+    || (a === 198 && b === 51 && c === 100)
+    || (a === 203 && b === 0 && c === 113);
 }
 
 function isPrivateIpv6(value: string): boolean {
@@ -135,9 +226,15 @@ function isPrivateIpv6(value: string): boolean {
   if (
     normalized === '::'
     || normalized === '::1'
-    || normalized.startsWith('fe80:')
+    || normalized.startsWith('100:')
+    || normalized.startsWith('2001:db8')
+    || normalized.startsWith('fe8')
+    || normalized.startsWith('fe9')
+    || normalized.startsWith('fea')
+    || normalized.startsWith('feb')
     || normalized.startsWith('fc')
     || normalized.startsWith('fd')
+    || normalized.startsWith('ff')
   ) {
     return true;
   }

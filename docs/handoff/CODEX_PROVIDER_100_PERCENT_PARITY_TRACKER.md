@@ -8,15 +8,15 @@ Branch policy: all future changes must be made on `main`. Do not create or switc
 
 ## Current Scope
 
-This tracker is the living audit snapshot for the 100 percent parity loop. The current implementation scope is intentionally limited to:
+This tracker is the living audit snapshot for the 100 percent parity loop. The completed implementation scope now includes:
 
 - Phase 0: baseline/audit tracker.
 - Phase 1: hosted tool request-config binding for adapter-emulated `web_search` and `file_search`.
+- Phase 2: DNS-complete network safety and SSRF hardening for retrieval and metasearch HTTP requests.
 
-Out of scope for this pass:
+Out of scope for the latest completed phase:
 
-- DNS-complete SSRF hardening.
-- Metasearch mode rewrites, engine ranking, extraction quality work, or byte-limit changes.
+- Metasearch mode rewrites, engine ranking, extraction quality work, concurrency changes, or true fast-mode behavior.
 - File source rewrites or web-index/file-search mixing.
 - Package publishing, dependency additions, or changing `private: true`.
 
@@ -26,8 +26,8 @@ Out of scope for this pass:
 | --- | --- | --- | --- |
 | Phase 0 | Baseline and audit snapshot | Complete | Tracker created and final local gate passed on 2026-06-10. |
 | Phase 1 | Hosted tool request-config binding | Complete | Binding implementation, docs, and focused tests added. Final local gate passed on 2026-06-10. |
-| Phase 2 | Network safety and SSRF hardening | Not started | Out of current scope. |
-| Phase 3 | True metasearch modes, timeouts, and limits | Not started | Out of current scope. |
+| Phase 2 | Network safety and SSRF hardening | Complete | DNS resolver abstraction, retrieval/metasearch enforcement, redirect revalidation, fake resolver tests, and search response byte limit added. Final local gate passed on 2026-06-10. |
+| Phase 3 | True metasearch modes, timeouts, and limits | Not started | Search response byte limit completed in Phase 2; true fast mode, bounded mode execution, concurrency, and overall timeout work remain. |
 | Phase 4 | Request validation expansion | Not started | Out of current scope. |
 | Phase 5 | Web search output parity and citation quality | Not started | Existing detailed action gate noted; broader phase out of scope. |
 | Phase 6 | File search 100 percent hardening | Not started | Out of current scope. |
@@ -41,9 +41,9 @@ Out of scope for this pass:
 | ID | Priority | Finding | Status | Notes |
 | --- | --- | --- | --- | --- |
 | 1 | P0 | Request-level hosted tool configuration is not fully bound to executor calls | Complete | Phase 1 implementation binds adapter-emulated request config to executor args for `web_search` and `file_search`; final gate passed. |
-| 2 | P0 | SSRF protection is not DNS-complete | Not started | Future Phase 2. |
+| 2 | P0 | SSRF protection is not DNS-complete | Complete | Phase 2 adds DNS resolver-backed safety for retrieval and metasearch HTTP requests, redirect target revalidation, fake resolver tests, and explicit `allowPrivateHosts` opt-in behavior. |
 | 3 | P0 | `fast` metasearch mode is not actually fast | Not started | Future Phase 3. |
-| 4 | P0 | Search processor has no response byte limit | Not started | Future Phase 3. |
+| 4 | P0 | Search processor has no response byte limit | Complete | Phase 2 adds processor/request `maxResponseBytes` and streaming response reads that fail with `max_bytes_exceeded`. |
 | 5 | P0 | Live smoke evidence remains the real release gate | Not started | Future Phase 9. |
 | 6 | P1 | Detailed web_search actions need a stable compatibility policy | Partially done before this phase | Existing docs/tests gate detailed actions behind includes/options; not changed here. |
 | 7 | P1 | Request validation should cover more hosted tool fields | Not started | Future Phase 4. |
@@ -83,9 +83,22 @@ Adapter-emulated hosted tool execution now treats Responses `tools[]` hosted too
 - `include_content: false` dominates model arguments.
 - Request `ranking_options` act as defaults; `score_threshold` uses the more restrictive larger value.
 
+## Phase 2 Network Safety Contract
+
+Network-capable web retrieval and metasearch HTTP engine requests now use a shared resolver-backed safety check before live network access.
+
+- Default DNS resolution uses `node:dns/promises.lookup(hostname, { all: true, verbatim: true })`.
+- Tests can inject a fake `CodexProviderNetworkResolver`.
+- URL validation still rejects unsupported protocols and credentials.
+- Unless `allowPrivateHosts: true` is explicitly configured, hostname literals and resolved DNS addresses are rejected when they are private, local, link-local, metadata, multicast, carrier-grade NAT, documentation, benchmarking, or otherwise reserved ranges.
+- Web retrieval validates the current URL before every live fetch and validates redirect targets before following them.
+- Metasearch HTTP engines validate their request URL before fetch, use manual redirects, validate each redirect target, and expose SSRF failures through engine outcomes with `ssrf_blocked`.
+- Metasearch HTTP response bodies are read with a bounded byte limit and fail with `max_bytes_exceeded` when exceeded.
+- Cached/offline retrieval reads do not require DNS because no live network fetch occurs.
+
 ## Validation Log
 
-Validation run on 2026-06-10:
+Phase 1 validation run on 2026-06-10:
 
 ```bash
 pnpm test                # passed: 245 passing, 1 credential-gated integration skipped
@@ -101,4 +114,22 @@ Additional focused validation:
 ```bash
 pnpm exec tsx --test test/adapter_hosted_tool_config_binding.test.ts  # passed: 7 tests
 git diff --check                                                     # passed
+```
+
+Phase 2 validation run on 2026-06-10:
+
+```bash
+pnpm test                # passed: 253 passing, 1 credential-gated integration skipped
+pnpm typecheck           # passed
+pnpm build               # passed
+pnpm consumer:harness    # passed
+pnpm check-boundary      # passed
+pnpm pack:dry-run        # passed
+```
+
+Additional focused validation:
+
+```bash
+pnpm exec tsx --test test/web_search_network_safety.test.ts test/web_search_fetch_security.test.ts test/web_search_retrieval.test.ts test/web_search_api_engines.test.ts test/web_search_endpoint_engines.test.ts test/web_search_html_engines.test.ts test/web_search_local_index.test.ts test/public_surface.test.ts  # passed: 46 tests
+git diff --check                                                                                                                                                                                                                       # passed
 ```

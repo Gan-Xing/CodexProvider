@@ -13,6 +13,12 @@ import {
   type CodexProviderOpenAiWebSearchExecutorContent,
 } from '../src/index.js';
 
+const PUBLIC_RESOLVER = {
+  async lookup() {
+    return [{ address: '93.184.216.34', family: 4 as const }];
+  },
+};
+
 function baseRequest(argumentsObject: Record<string, any>): CodexProviderHostedToolExecutionRequest {
   return {
     toolName: 'web_search',
@@ -77,6 +83,7 @@ test('retrieval cache can index fetched pages for offline metasearch', async () 
   const fetcher = createCodexProviderWebRetrievalFetcher({
     cache,
     now: () => new Date('2026-06-08T00:00:00.000Z'),
+    safety: { resolver: PUBLIC_RESOLVER },
     fetchImpl: (async () => {
       fetchCalls += 1;
       return new Response(`<!doctype html>
@@ -123,6 +130,7 @@ test('web_search executor uses local index and cached retrieval when external we
   const fetcher = createCodexProviderWebRetrievalFetcher({
     cache,
     now: () => new Date('2026-06-08T00:00:00.000Z'),
+    safety: { resolver: PUBLIC_RESOLVER },
     fetchImpl: (async () => new Response(`<!doctype html>
       <html>
         <head><title>Executor Local Index</title></head>

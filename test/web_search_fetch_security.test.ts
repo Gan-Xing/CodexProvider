@@ -12,6 +12,12 @@ function assertRetrievalError(error: unknown, code: string): boolean {
   return true;
 }
 
+const PUBLIC_RESOLVER = {
+  async lookup() {
+    return [{ address: '93.184.216.34', family: 4 as const }];
+  },
+};
+
 test('web retrieval blocks private and local URLs before fetch', async () => {
   let called = false;
   const fetcher = createCodexProviderWebRetrievalFetcher({
@@ -32,6 +38,7 @@ test('web retrieval blocks private and local URLs before fetch', async () => {
 test('web retrieval blocks redirects to private hosts', async () => {
   const calls: string[] = [];
   const fetcher = createCodexProviderWebRetrievalFetcher({
+    safety: { resolver: PUBLIC_RESOLVER },
     fetchImpl: (async (url) => {
       calls.push(String(url));
       return new Response('', {
@@ -55,6 +62,7 @@ test('web retrieval enforces max redirects', async () => {
   const calls: string[] = [];
   const fetcher = createCodexProviderWebRetrievalFetcher({
     maxRedirects: 1,
+    safety: { resolver: PUBLIC_RESOLVER },
     fetchImpl: (async (url) => {
       calls.push(String(url));
       return new Response('', {
@@ -81,6 +89,7 @@ test('web retrieval times out and aborts slow fetches', async () => {
   let aborted = false;
   const fetcher = createCodexProviderWebRetrievalFetcher({
     timeoutMs: 20,
+    safety: { resolver: PUBLIC_RESOLVER },
     fetchImpl: (async (_url, init) => new Promise<Response>((_resolve) => {
       init?.signal?.addEventListener('abort', () => {
         aborted = true;
@@ -99,6 +108,7 @@ test('web retrieval times out and aborts slow fetches', async () => {
 test('web retrieval enforces max bytes and content-type allowlist', async () => {
   const tooLargeFetcher = createCodexProviderWebRetrievalFetcher({
     maxBytes: 8,
+    safety: { resolver: PUBLIC_RESOLVER },
     fetchImpl: (async () => new Response('0123456789', {
       status: 200,
       headers: { 'Content-Type': 'text/plain' },
@@ -111,6 +121,7 @@ test('web retrieval enforces max bytes and content-type allowlist', async () => 
   );
 
   const binaryFetcher = createCodexProviderWebRetrievalFetcher({
+    safety: { resolver: PUBLIC_RESOLVER },
     fetchImpl: (async () => new Response('{}', {
       status: 200,
       headers: { 'Content-Type': 'application/octet-stream' },
