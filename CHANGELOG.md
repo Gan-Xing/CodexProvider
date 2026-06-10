@@ -11,6 +11,7 @@
 
 - Added explicit `CODEX_PROVIDER_WEB_SEARCH_PROVIDER` selection for live web-search smoke runs.
 - Sanitized trace events before invoking `traceSink` by redacting secret-looking values and truncating large payloads.
+- Returned structured category and retry metadata for non-streaming and streaming adapter-emulated hosted-tool loop exhaustion.
 
 ## 0.1.0-alpha.0
 

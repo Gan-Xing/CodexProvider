@@ -36,7 +36,7 @@ Hosted-tool SSE observability is separate and opt-in through `emitHostedToolSseE
 | Security violation | A request attempts unsafe network/file behavior, such as blocked private-host retrieval or unsafe local file traversal. | Return a tool/provider error instead of bypassing the guard. | Not retryable without policy/config changes. | Trace only sanitized metadata; never include secret values or full local file contents. |
 | Recoverable hosted tool provider error | A provider/search/retrieval dependency fails transiently while the adapter can continue with a structured tool error or unresponsive-engine record. | Keep the Responses loop alive when the tool result can represent the failure safely. | Retryable only when the underlying provider category is transient or rate-limited. | Hosted-tool lifecycle can emit `hosted_tool.failed`; trace emits execution ids, not raw full output. |
 | Fatal hosted tool error | A hosted tool failure prevents safe continuation or creates an invalid adapter state. | Return a Responses-compatible error or upstream error response. | Depends on root cause; default is not retryable unless classified transient. | Trace emits sanitized error metadata. |
-| Tool loop exceeded | The adapter-emulated hosted-tool loop exceeds `maxHostedToolIterations`. | Return HTTP 502 with `hosted_tool_loop_exceeded` or `hosted_tool_streaming_loop_exceeded`. | Retry only after changing prompt/tool behavior or increasing the configured limit. | Trace emits the final sanitized upstream error path. |
+| Tool loop exceeded | The adapter-emulated hosted-tool loop exceeds `maxHostedToolIterations`. | Return HTTP 502 with `hosted_tool_loop_exceeded` or `hosted_tool_streaming_loop_exceeded`, `category: "unsupported_feature"`, and retry metadata. | Not retryable until the prompt/tool behavior changes or the host intentionally increases the configured limit. | Trace emits the final sanitized upstream error path. |
 
 ## Provider Error Categories
 
@@ -69,11 +69,11 @@ Trace sinks are for local debugging and operational telemetry, not durable trans
 
 Cycle 1 audit found that trace events were opt-in but could previously include full request, upstream request, and response objects. The server now sanitizes events at the unified `emitTrace` exit before invoking `traceSink`.
 
+Cycle 2 audit closed the plain-object hosted-tool loop-exceeded gap. Non-streaming and streaming adapter-emulated hosted-tool loop exhaustion now use a typed internal error helper and return structured `category` and `retry` metadata through the public Responses route.
+
 Remaining hardening for future cycles:
 
-- Add typed fatal hosted-tool error classes instead of plain object errors.
 - Add structured trace events for search engine latency/failure stats.
 - Add retrieval cache hit/miss and local index hit/miss trace summaries.
 - Add citation placeholder count summaries.
 - Add tests for trace redaction on hosted-tool SSE output previews and deltas.
-

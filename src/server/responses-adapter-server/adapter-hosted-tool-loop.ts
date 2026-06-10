@@ -22,6 +22,7 @@ import {
   executeAdapterHostedToolCall,
 } from './adapter-hosted-tool-execution.js';
 import {
+  buildHostedToolLoopExceededError,
   buildMalformedUpstreamPayloadError,
   normalizeUpstreamError,
 } from './errors.js';
@@ -171,11 +172,9 @@ export async function completeAdapterHostedToolLoop({
   return {
     json: currentJson,
     status: 502,
-    error: {
-      message: `Adapter-emulated hosted tool loop exceeded ${maxHostedToolIterations} iterations.`,
-      type: 'unsupported_feature',
-      code: 'hosted_tool_loop_exceeded',
-    },
+    error: buildHostedToolLoopExceededError({
+      maxHostedToolIterations,
+    }),
     executions,
   };
 }

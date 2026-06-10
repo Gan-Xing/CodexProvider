@@ -22,22 +22,22 @@ async function main(): Promise<void> {
   const { config, server } = createCodexProviderStandaloneServerFromEnv(env);
   await server.start();
 
-  console.log('Codex Provider standalone server started.');
-  console.log(`Provider preset: ${config.presetId}`);
-  console.log(`Provider: ${config.providerName} (${config.providerKind})`);
-  console.log(`Upstream base URL: ${config.upstreamBaseUrl}`);
-  console.log(`Default model: ${config.defaultModel}`);
-  console.log(`Local base URL: ${server.baseUrl}`);
-  console.log(`Model catalog source: ${config.modelCatalogSource}`);
-  console.log(`Trace mode: ${config.traceMode}`);
+  writeStdoutLine('Codex Provider standalone server started.');
+  writeStdoutLine(`Provider preset: ${config.presetId}`);
+  writeStdoutLine(`Provider: ${config.providerName} (${config.providerKind})`);
+  writeStdoutLine(`Upstream base URL: ${config.upstreamBaseUrl}`);
+  writeStdoutLine(`Default model: ${config.defaultModel}`);
+  writeStdoutLine(`Local base URL: ${server.baseUrl}`);
+  writeStdoutLine(`Model catalog source: ${config.modelCatalogSource}`);
+  writeStdoutLine(`Trace mode: ${config.traceMode}`);
   if (args.envFilePath || env.CODEX_PROVIDER_ENV_FILE) {
-    console.log(`Env file: ${args.envFilePath ?? env.CODEX_PROVIDER_ENV_FILE}`);
+    writeStdoutLine(`Env file: ${args.envFilePath ?? env.CODEX_PROVIDER_ENV_FILE}`);
   }
-  console.log('Routes: GET /models (alias /v1/models), POST /responses (alias /v1/responses), POST /responses/compact (alias /v1/responses/compact)');
-  console.log('Press Ctrl+C to stop.');
+  writeStdoutLine('Routes: GET /models (alias /v1/models), POST /responses (alias /v1/responses), POST /responses/compact (alias /v1/responses/compact)');
+  writeStdoutLine('Press Ctrl+C to stop.');
 
   const shutdown = async (signal: string) => {
-    console.log(`Received ${signal}, stopping Codex Provider standalone server...`);
+    writeStdoutLine(`Received ${signal}, stopping Codex Provider standalone server...`);
     await server.stop();
     process.exit(0);
   };
@@ -86,7 +86,7 @@ function parseCliArgs(argv: string[]): {
 }
 
 function printHelp(): void {
-  console.log([
+  writeStdoutLine([
     'Usage: codex-provider-server [--env-file <path>] [--trace]',
     '',
     'Internal-only launcher for the Codex Provider local Responses adapter server.',
@@ -96,4 +96,8 @@ function printHelp(): void {
     '  --trace            Emit structured trace events to stderr as NDJSON',
     '  -h, --help         Show this help message',
   ].join('\n'));
+}
+
+function writeStdoutLine(message: string): void {
+  process.stdout.write(`${message}\n`);
 }

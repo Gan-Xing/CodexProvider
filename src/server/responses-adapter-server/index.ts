@@ -8,9 +8,14 @@ export {
   reserveLocalPort,
 } from './server.js';
 export {
+  buildHostedToolLoopExceededError,
   buildMalformedUpstreamPayloadError,
+  CodexProviderHostedToolLoopExceededError,
   extractUpstreamError,
   normalizeUpstreamError,
+} from './errors.js';
+export type {
+  CodexProviderHostedToolLoopExceededErrorCode,
 } from './errors.js';
 export {
   buildAssistantToolCallMessage,

@@ -1136,6 +1136,82 @@ test('adapter server executes adapter-emulated web_search inside the Chat Comple
   }
 });
 
+test('adapter server returns structured error metadata when adapter-emulated hosted tool loop is exceeded', async () => {
+  const upstreamRequests: any[] = [];
+  const server = new OpenAICompatibleResponsesAdapterServer({
+    apiKey: 'test-key',
+    providerCapabilities: {
+      supportsBuiltinWebSearchTool: false,
+    },
+    hostedTools: [{
+      name: 'web_search',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_web_search',
+    }],
+    hostedToolExecutors: {
+      web_search: async () => ({
+        content: {
+          results: [{
+            title: 'Looped Adapter Result',
+            url: 'https://example.com/looped-adapter',
+          }],
+        },
+      }),
+    },
+    maxHostedToolIterations: 1,
+    fetchImpl: (async (_url, init) => {
+      upstreamRequests.push(JSON.parse(String(init?.body ?? '{}')));
+      return new Response(JSON.stringify({
+        id: `chatcmpl_adapter_search_loop_${upstreamRequests.length}`,
+        created: 1_700_000_454,
+        model: 'adapter-search-model',
+        choices: [{
+          message: {
+            tool_calls: [{
+              id: `call_search_loop_${upstreamRequests.length}`,
+              type: 'function',
+              function: {
+                name: 'adapter_web_search',
+                arguments: '{"query":"loop adapter search"}',
+              },
+            }],
+          },
+          finish_reason: 'tool_calls',
+        }],
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as typeof fetch,
+  });
+
+  await server.start();
+  try {
+    const response = await fetch(`${server.baseUrl}/v1/responses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'adapter-search-model',
+        input: 'Loop while searching.',
+        tools: [{
+          type: 'web_search',
+        }],
+      }),
+    });
+    const body = await response.json() as any;
+    assert.equal(response.status, 502);
+    assert.equal(upstreamRequests.length, 2);
+    assert.equal(body.error.code, 'hosted_tool_loop_exceeded');
+    assert.equal(body.error.category, 'unsupported_feature');
+    assert.deepEqual(body.error.retry, {
+      retryable: false,
+      hint: 'remove_or_downgrade_unsupported_feature',
+    });
+  } finally {
+    await server.stop();
+  }
+});
+
 test('adapter server appends deferred tools returned by adapter-emulated tool_search', async () => {
   const upstreamRequests: any[] = [];
   const executedRequests: any[] = [];
@@ -1871,6 +1947,92 @@ test('adapter server streams final answer after adapter-emulated web_search exec
     assert.equal(events.filter((event) => event.event === 'response.output_text.delta').length, 2);
     assert.equal(events.at(-1)?.event, 'response.completed');
     assert.equal(events.at(-1)?.data.response.output[0].content[0].text, 'stream-compatible final answer');
+  } finally {
+    await server.stop();
+  }
+});
+
+test('adapter server returns structured error metadata when streaming adapter-emulated hosted tool loop is exceeded', async () => {
+  const upstreamRequests: any[] = [];
+  const server = new OpenAICompatibleResponsesAdapterServer({
+    apiKey: 'test-key',
+    providerCapabilities: {
+      supportsBuiltinWebSearchTool: false,
+    },
+    hostedTools: [{
+      name: 'web_search',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_web_search',
+    }],
+    hostedToolExecutors: {
+      web_search: async () => ({
+        content: {
+          results: [{
+            title: 'Streaming Loop Result',
+            url: 'https://example.com/streaming-loop',
+          }],
+        },
+      }),
+    },
+    maxHostedToolIterations: 1,
+    fetchImpl: (async (_url, init) => {
+      upstreamRequests.push(JSON.parse(String(init?.body ?? '{}')));
+      return createEventStreamResponse([
+        {
+          id: 'chatcmpl_stream_adapter_search_loop_1',
+          created: 1_700_000_467,
+          model: 'adapter-search-model',
+          choices: [{
+            index: 0,
+            delta: {
+              tool_calls: [{
+                index: 0,
+                id: 'call_search_stream_loop_1',
+                type: 'function',
+                function: {
+                  name: 'adapter_web_search',
+                  arguments: '{"query":"stream loop adapter search"}',
+                },
+              }],
+            },
+          }],
+        },
+        {
+          id: 'chatcmpl_stream_adapter_search_loop_1',
+          created: 1_700_000_467,
+          model: 'adapter-search-model',
+          choices: [{
+            index: 0,
+            finish_reason: 'tool_calls',
+          }],
+        },
+      ]);
+    }) as typeof fetch,
+  });
+
+  await server.start();
+  try {
+    const response = await fetch(`${server.baseUrl}/v1/responses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'adapter-search-model',
+        input: 'Loop while streaming search.',
+        stream: true,
+        tools: [{
+          type: 'web_search',
+        }],
+      }),
+    });
+    const body = await response.json() as any;
+    assert.equal(response.status, 502);
+    assert.equal(upstreamRequests.length, 1);
+    assert.equal(body.error.code, 'hosted_tool_streaming_loop_exceeded');
+    assert.equal(body.error.category, 'unsupported_feature');
+    assert.deepEqual(body.error.retry, {
+      retryable: false,
+      hint: 'remove_or_downgrade_unsupported_feature',
+    });
   } finally {
     await server.stop();
   }

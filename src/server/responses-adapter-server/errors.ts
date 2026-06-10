@@ -12,6 +12,49 @@ import {
   parseRetryAfterMsFromBody,
 } from './retry.js';
 
+export type CodexProviderHostedToolLoopExceededErrorCode =
+  | 'hosted_tool_loop_exceeded'
+  | 'hosted_tool_streaming_loop_exceeded';
+
+export class CodexProviderHostedToolLoopExceededError extends Error {
+  readonly type = 'unsupported_feature';
+  readonly category = 'unsupported_feature';
+  readonly code: CodexProviderHostedToolLoopExceededErrorCode;
+  readonly retry: ReturnType<typeof buildProviderRetryMetadata>;
+
+  constructor(input: {
+    maxHostedToolIterations: number;
+    streaming?: boolean | null;
+  }) {
+    const streaming = Boolean(input.streaming);
+    super(
+      streaming
+        ? `Adapter-emulated hosted tool streaming loop exceeded ${input.maxHostedToolIterations} iterations.`
+        : `Adapter-emulated hosted tool loop exceeded ${input.maxHostedToolIterations} iterations.`,
+    );
+    this.name = 'CodexProviderHostedToolLoopExceededError';
+    this.code = streaming ? 'hosted_tool_streaming_loop_exceeded' : 'hosted_tool_loop_exceeded';
+    this.retry = buildProviderRetryMetadata('unsupported_feature', null);
+  }
+
+  toResponseError(): JsonRecord {
+    return {
+      message: this.message,
+      type: this.type,
+      code: this.code,
+      category: this.category,
+      retry: this.retry,
+    };
+  }
+}
+
+export function buildHostedToolLoopExceededError(input: {
+  maxHostedToolIterations: number;
+  streaming?: boolean | null;
+}): JsonRecord {
+  return new CodexProviderHostedToolLoopExceededError(input).toResponseError();
+}
+
 export function extractUpstreamError(text: string): string | null {
   const trimmed = normalizeString(text);
   if (!trimmed) {

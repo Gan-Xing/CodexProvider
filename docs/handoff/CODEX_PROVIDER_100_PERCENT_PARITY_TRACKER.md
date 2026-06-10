@@ -62,7 +62,7 @@ Out of scope for the latest completed phase:
 | 13 | P1 | HTML extraction needs quality fixtures | Complete | Phase 7 adds article/docs/CJK/malformed HTML fixtures and tests extraction of title, description, canonical URL, language, main text, code/table/list text, and chrome/hidden-content removal. |
 | 14 | P1 | Metasearch engine parser snapshots need maintenance workflow | Complete | Phase 7 documents parser fixture policy in `docs/SEARCH_QUALITY_SCORING.md`; existing HTML engine fixtures continue to cover no-results, blocked/captcha, and tracking cleanup. |
 | 15 | P1 | Package hygiene checker should scan shipped docs/examples | Complete | Phase 8 hardens `pnpm check-package-surface` to scan README, CHANGELOG, LICENSE, docs, examples, package.json, and the actual `npm pack --dry-run --json` tarball file list for secrets, private paths, generated artifacts, large files, binary artifacts, and host-app imports. |
-| 16 | P1 | Hosted tool execution errors need clear policy | Partially done | `docs/OBSERVABILITY_AND_ERROR_POLICY.md` defines request validation, security violation, recoverable provider error, fatal hosted tool error, and loop-exceeded policy. Typed fatal hosted-tool error classes remain future work. |
+| 16 | P1 | Hosted tool execution errors need clear policy | Complete | `docs/OBSERVABILITY_AND_ERROR_POLICY.md` defines request validation, security violation, recoverable provider error, fatal hosted tool error, and loop-exceeded policy. Cycle 2 adds typed loop-exceeded error handling with structured category and retry metadata for non-streaming and streaming adapter-emulated hosted-tool loops. |
 | 17 | P1 | Provider capability presets need live behavior records | Partially done | Phase 9 records OpenRouter-compatible mixed-runtime behavior. Cycle 1 adds OpenRouter, DeepSeek, and DashScope/Qwen profile helpers plus `docs/PROVIDER_COMPATIBILITY_MATRIX.md`; broader live records remain pending credentials. |
 | 18 | P2 | Deep search is currently heuristic | Partially done | `docs/DEEP_WEB_SEARCH_ROADMAP.md` documents heuristic opt-in status, planner interface, graph execution, reference merge, synthesis contract, and tests needed. |
 | 19 | P2 | Observability should be structured | Partially done | Trace events are now sanitized at the server `emitTrace` exit, and `docs/OBSERVABILITY_AND_ERROR_POLICY.md` defines trace redaction policy. Search latency/cache/citation trace summaries remain future work. |
@@ -457,3 +457,23 @@ OPENSERP_ENDPOINT=missing
 ```
 
 `pnpm smoke:web-search` and `pnpm smoke:host` were run and skipped live upstream/API-backed evidence because credentials were absent. The web-search smoke still verified the offline local-index path. Skip evidence is recorded in `docs/LIVE_SMOKE_RESULTS.md`.
+
+Recursive quality Cycle 2 validation run on 2026-06-10:
+
+```bash
+node scripts/recursive-quality-cycle.mjs scan  # passed: 0 findings
+pnpm test                                      # passed: 281 passing, 1 credential-gated integration skipped
+pnpm typecheck                                 # passed
+pnpm build                                     # passed
+pnpm consumer:harness                          # passed
+pnpm check-boundary                            # passed
+pnpm check-package-surface                     # passed
+pnpm pack:dry-run                              # passed: 593 files, 347.4 kB package size, 1.5 MB unpacked
+```
+
+Additional focused validation:
+
+```bash
+pnpm exec tsx --test test/server.test.ts  # passed: 40 tests
+git diff --check                          # passed
+```

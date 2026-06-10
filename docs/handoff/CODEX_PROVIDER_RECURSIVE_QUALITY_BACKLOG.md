@@ -73,23 +73,39 @@ Cycle semantics:
 <!-- cycle:2:start -->
 ## Cycle 2 Backlog
 
-### Audit
+### C2-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+- [x] Identify Cycle 2 implementation scope: clear CLI scan noise, type hosted-tool loop-exceeded errors, add focused tests, update docs.
+
+### C2-B CLI Scan Noise
+
+- [x] Replace intentional standalone CLI stdout logging with a local stdout writer so recursive scan no longer reports low `console.log` findings in `src/cli.ts`.
+
+### C2-C Hosted Tool Loop Error Taxonomy
+
+- [x] Add a typed hosted-tool loop-exceeded error helper for non-streaming and streaming adapter-emulated hosted-tool loops.
+- [x] Return `category: "unsupported_feature"` and retry metadata for `hosted_tool_loop_exceeded` and `hosted_tool_streaming_loop_exceeded`.
+- [x] Add server tests that exercise both loop-exceeded paths through `/v1/responses`.
+
+### C2-D Docs
+
+- [x] Update observability/error policy docs to move typed loop-exceeded errors from future work to current behavior.
+- [x] Update changelog for the Cycle 2 error metadata fix.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
-- [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 2.
-- [ ] Commit and push.
-- [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
+- [x] Update this backlog so no unchecked `- [ ]` remains in Cycle 2.
+- [x] Commit and push.
+- [x] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
 <!-- cycle:2:end -->

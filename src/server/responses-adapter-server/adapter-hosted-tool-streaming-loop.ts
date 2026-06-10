@@ -27,6 +27,7 @@ import {
   writeJson,
 } from './body.js';
 import {
+  buildHostedToolLoopExceededError,
   normalizeUpstreamError,
 } from './errors.js';
 import {
@@ -262,10 +263,9 @@ export async function writeAdapterHostedToolStreamingResponse({
   }
 
   writeJson(response, 502, {
-    error: {
-      message: `Adapter-emulated hosted tool streaming loop exceeded ${maxHostedToolIterations} iterations.`,
-      type: 'unsupported_feature',
-      code: 'hosted_tool_streaming_loop_exceeded',
-    },
+    error: buildHostedToolLoopExceededError({
+      maxHostedToolIterations,
+      streaming: true,
+    }),
   });
 }
