@@ -16,12 +16,13 @@ export OPENROUTER_MODEL=deepseek/deepseek-chat
 export TAVILY_API_KEY=...
 export BRAVE_SEARCH_API_KEY=...
 export SERPER_API_KEY=...
+export CODEX_PROVIDER_WEB_SEARCH_PROVIDER=builtin-metasearch
 export EMBEDDINGS_API_KEY=...
 export EMBEDDINGS_API_ENDPOINT=https://openrouter.ai/api/v1/embeddings
 export EMBEDDINGS_MODEL=qwen/qwen3-embedding-8b
 ```
 
-The web-search API keys are optional unless the recipe explicitly uses the Tavily-only baseline example. The embedding endpoint/model are defaults only. Any OpenAI-compatible embeddings API can be used.
+The web-search API keys are optional unless `CODEX_PROVIDER_WEB_SEARCH_PROVIDER` explicitly selects `brave`, `serper`, or `tavily`. The embedding endpoint/model are defaults only. Any OpenAI-compatible embeddings API can be used.
 
 ## Smoke 1: Mixed Runtime
 
@@ -53,12 +54,24 @@ pnpm smoke:web-search
 
 The script requires an upstream key (`CODEX_PROVIDER_API_KEY` or a supported provider preset key) and an upstream base URL/model unless they can be inferred. Search credentials are optional: it prefers `SEARXNG_ENDPOINT` / `OPENSERP_ENDPOINT`, then `BRAVE_SEARCH_API_KEY` / `SERPER_API_KEY` / `TAVILY_API_KEY`, and otherwise uses the built-in no-key HTML metasearch engines.
 
+To force a specific web search provider, set:
+
+```bash
+CODEX_PROVIDER_WEB_SEARCH_PROVIDER=brave BRAVE_SEARCH_API_KEY=... pnpm smoke:web-search
+CODEX_PROVIDER_WEB_SEARCH_PROVIDER=serper SERPER_API_KEY=... pnpm smoke:web-search
+CODEX_PROVIDER_WEB_SEARCH_PROVIDER=tavily TAVILY_API_KEY=... pnpm smoke:web-search
+CODEX_PROVIDER_WEB_SEARCH_PROVIDER=builtin-metasearch pnpm smoke:web-search
+```
+
+If the selected API-backed provider is missing its API key, the smoke records a clear skip instead of fabricating evidence.
+
 Expected:
 
 - `{ name: "web_search", mode: "adapter-emulated" }` is declared.
 - `hostedToolExecutors.web_search` is registered.
 - Endpoint engines are used when `SEARXNG_ENDPOINT` or `OPENSERP_ENDPOINT` is present.
 - API engines are used when `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, or `TAVILY_API_KEY` is present and endpoint engines are not configured.
+- `CODEX_PROVIDER_WEB_SEARCH_PROVIDER` overrides automatic endpoint/API/no-key selection for Brave, Serper, Tavily, or built-in metasearch.
 - HTML engines provide best-effort live search when endpoint and API credentials are absent.
 - A live query returns `results`, `sources`, `documents` or `chunks`, and `retrieved_at`.
 - A Responses request can expose synthetic `web_search_call` output when requested through `include`; UI checks should prefer `web_search_call.action.sources` for consulted URLs and treat `web_search_call.results` as adapter/debug compatibility data.

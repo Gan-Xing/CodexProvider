@@ -4,6 +4,9 @@ import {
   authModeForProfileMode,
   buildCodexProviderProfile,
   codexBaseUrlForProfile,
+  createCodexProviderDashScopeQwenProfile,
+  createCodexProviderDeepSeekProfile,
+  createCodexProviderOpenRouterProfile,
   defaultProtocolForProfileMode,
 } from '../src/index.js';
 
@@ -148,4 +151,41 @@ test('profile helper defaults are explicit and reusable by external app-servers'
     upstreamBaseUrl: 'https://api.example.com/v1',
     protocolProxyPort: 58013,
   }), 'http://127.0.0.1:58013/v1');
+});
+
+test('provider profile presets expose recommended mode, env names, and capability metadata', () => {
+  const openrouter = createCodexProviderOpenRouterProfile({
+    protocolProxyPort: 58014,
+  });
+  assert.equal(openrouter.mode, 'mixed');
+  assert.equal(openrouter.providerLabel, 'openrouter');
+  assert.equal(openrouter.upstreamBaseUrl, 'https://openrouter.ai/api/v1');
+  assert.equal(openrouter.codexBaseUrl, 'http://127.0.0.1:58014/v1');
+  assert.equal(openrouter.configInput.apiKeyEnv, 'OPENROUTER_API_KEY');
+  assert.equal(openrouter.providerPreset.env.apiKeyEnv, 'OPENROUTER_API_KEY');
+  assert.equal(openrouter.providerPreset.env.baseUrlEnv, 'OPENROUTER_BASE_URL');
+  assert.equal(openrouter.providerPreset.env.modelEnv, 'OPENROUTER_MODEL');
+  assert.equal(openrouter.providerPreset.capabilityPresetId, 'openrouter');
+  assert.equal(openrouter.providerPreset.capabilities?.supportsBuiltinWebSearchTool, false);
+
+  const deepseek = createCodexProviderDeepSeekProfile({
+    protocolProxyPort: 58015,
+  });
+  assert.equal(deepseek.mode, 'mixed');
+  assert.equal(deepseek.upstreamBaseUrl, 'https://api.deepseek.com');
+  assert.equal(deepseek.configInput.apiKeyEnv, 'DEEPSEEK_API_KEY');
+  assert.equal(deepseek.providerPreset.capabilityPresetId, 'deepseek');
+
+  const qwen = createCodexProviderDashScopeQwenProfile({
+    mode: 'pure-api',
+    protocolProxyPort: 58016,
+  });
+  assert.equal(qwen.mode, 'pure-api');
+  assert.equal(qwen.providerLabel, 'dashscope_qwen');
+  assert.equal(qwen.upstreamBaseUrl, 'https://dashscope.aliyuncs.com/compatible-mode/v1');
+  assert.equal(qwen.configInput.apiKeyEnv, 'DASHSCOPE_API_KEY');
+  assert.equal(qwen.providerPreset.env.alternativeApiKeyEnv, 'QWEN_API_KEY');
+  assert.equal(qwen.providerPreset.capabilityPresetId, 'qwen');
+  assert.equal(qwen.providerPreset.capabilities?.supportsBuiltinWebSearchTool, true);
+  assert.ok(qwen.codexCliArgs.includes('model_providers.dashscope_qwen.env_key="DASHSCOPE_API_KEY"'));
 });

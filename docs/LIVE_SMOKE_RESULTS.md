@@ -205,3 +205,16 @@ This file records redacted live smoke evidence for `@codex-provider/core`.
 | Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 5169 ms. |
 | Adapter-emulated web_search | Passed | Sources: 1; results: 1; annotations: 1; latency: 6296 ms. |
 | Streaming adapter-emulated web_search | Passed | SSE events: 23; sources: 1; results: 1; annotations: 1; latency: 5957 ms. |
+
+## 2026-06-10T23:46:21.463Z Recursive quality Cycle 1 smoke credential audit
+
+- Upstream credentials: not set in the execution environment.
+- API-backed web search credentials: `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, and `TAVILY_API_KEY` not set.
+- Endpoint search credentials: `SEARXNG_ENDPOINT` and `OPENSERP_ENDPOINT` not set.
+- Secrets: no values recorded.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| `pnpm smoke:web-search` | Skipped live upstream | Script built successfully, verified offline local-index `web_search`, then skipped because upstream provider credentials were missing. |
+| API-backed Brave/Serper/Tavily web_search | [!] Pending credentials | Not run because the corresponding API keys were absent. |
+| `pnpm smoke:host` | Skipped live upstream | Script built and dry-run packed successfully, then skipped because upstream provider credentials were missing. |

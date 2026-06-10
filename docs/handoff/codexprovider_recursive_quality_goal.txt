@@ -1,0 +1,76 @@
+Read these existing files first:
+- docs/handoff/CODEX_PROVIDER_RECURSIVE_QUALITY_LOOP_HANDOFF.md
+- docs/handoff/CODEX_PROVIDER_RECURSIVE_QUALITY_BACKLOG_CYCLE1.md
+- scripts/recursive-quality-cycle.mjs
+- docs/handoff/CODEX_PROVIDER_100_PERCENT_PARITY_TRACKER.md
+
+Repo: current repository root
+
+Run recursive quality cycles for CodexProvider. One cycle means:
+audit current code/docs -> generate/update current cycle backlog -> complete all backlog items -> run full validation -> update docs -> commit/push -> run complete-cycle to increment count -> generate next cycle backlog.
+
+Use these initial files exactly:
+- Handoff: docs/handoff/CODEX_PROVIDER_RECURSIVE_QUALITY_LOOP_HANDOFF.md
+- Cycle 1 seed backlog: docs/handoff/CODEX_PROVIDER_RECURSIVE_QUALITY_BACKLOG_CYCLE1.md
+- Counter script: scripts/recursive-quality-cycle.mjs
+
+Before starting:
+1. If docs/handoff/CODEX_PROVIDER_RECURSIVE_QUALITY_BACKLOG.md does not exist, copy docs/handoff/CODEX_PROVIDER_RECURSIVE_QUALITY_BACKLOG_CYCLE1.md to docs/handoff/CODEX_PROVIDER_RECURSIVE_QUALITY_BACKLOG.md.
+2. Run: node scripts/recursive-quality-cycle.mjs init --max-cycles=20 --deadline=2026-06-11T04:30:00.000Z
+3. Run guard/status before every cycle:
+   node scripts/recursive-quality-cycle.mjs guard
+   node scripts/recursive-quality-cycle.mjs status
+
+Do NOT count a single subtask as a cycle. Count only when the current cycle backlog has no unchecked "- [ ]" items and full validation passes.
+
+Targets, excluding CodexNext real host integration:
+A. public alpha release readiness
+B. provider compatibility matrix and provider presets
+C. web_search productization and API-backed smoke path
+D. deep search / research tool roadmap and hardening
+E. observability plus error/security policy
+
+For Cycle 1, use docs/handoff/CODEX_PROVIDER_RECURSIVE_QUALITY_BACKLOG.md as the seed backlog. For later cycles, re-audit the project and generate a new backlog based on remaining gaps and newly introduced weaknesses.
+
+Cycle rules:
+- Complete all "- [ ]" items.
+- If an item needs missing credentials or user decision, mark "- [!]" with exact reason.
+- Do not fake smoke results.
+- Do not publish npm.
+- Do not change private:true unless only preparing release-decision docs.
+- Do not add runtime dependencies unless justified and documented.
+- Do not mix web_search local index with file_search sources.
+- Do not skip failed tests.
+
+Required validation before completing a cycle:
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm consumer:harness
+pnpm check-boundary
+pnpm check-package-surface
+pnpm pack:dry-run
+
+Also run if credentials exist:
+pnpm smoke:web-search
+pnpm smoke:host
+If credentials are missing, record skipped; do not fake evidence.
+
+After validation:
+1. update backlog and related docs
+2. commit with bilingual Conventional Commit title
+3. push
+4. run: node scripts/recursive-quality-cycle.mjs complete-cycle
+5. if complete-cycle succeeds and guard still allows work, start next audit cycle
+
+Stop only if:
+- completedCycles reaches 20
+- London time reaches 2026-06-11 05:30
+- git push permission is missing
+- required secret/account/product decision is missing
+- merge conflict cannot be safely resolved
+- tests cannot run at all and exact error is documented
+- continuing would break unrelated modules
+
+Final report each time:
+Chinese summary, English summary, cycle count before/after, backlog completed, files changed, tests run, commits, push status, remaining risks, next cycle recommendation.

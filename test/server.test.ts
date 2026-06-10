@@ -189,12 +189,14 @@ test('adapter server trace sink captures request translation and non-streaming r
 
   await server.start();
   try {
+    const fakeSecret = `sk-${'testsecretvalue1234567890'}`;
+    const longInput = `trace this request ${fakeSecret} ${'x'.repeat(700)}`;
     const response = await fetch(`${server.baseUrl}/responses`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'trace-model',
-        input: 'trace this request',
+        input: longInput,
       }),
     });
     const body = await response.json() as any;
@@ -209,6 +211,10 @@ test('adapter server trace sink captures request translation and non-streaming r
     assert.equal(events[0].model, 'trace-model');
     assert.equal(events[1].upstreamRequest.model, 'trace-model');
     assert.equal(events[2].response.output[0].content[0].text, 'trace answer');
+    const serializedEvents = JSON.stringify(events);
+    assert.doesNotMatch(serializedEvents, new RegExp(fakeSecret, 'u'));
+    assert.match(serializedEvents, /<redacted>/u);
+    assert.match(events[0].request.input, /<truncated>/u);
   } finally {
     await server.stop();
   }

@@ -72,6 +72,8 @@ The profile surface exposes the safe presets app-servers should use:
 | `mixed` | `codex-auth-compatible` | `chat-completions` | Yes | Codex++ style adapter: Codex sees Responses, the provider adapter owns upstream API calls. |
 | `pure-api` | `api-key-compatible` | `chat-completions` | Yes | API-key-only fallback for OpenAI-compatible providers. |
 
+Provider profile helpers such as `createCodexProviderOpenRouterProfile()`, `createCodexProviderDeepSeekProfile()`, and `createCodexProviderDashScopeQwenProfile()` provide stable base URLs, env naming, recommended profile modes, and capability metadata for common OpenAI-compatible providers.
+
 The low-level adapter converter is split into request, response, and SSE modules under `src/converters/responses-adapter/`; new code should use the canonical root package surface instead of underscore-era module paths.
 
 See [docs/TARGET.md](docs/TARGET.md) for the locked target and phased migration plan.
@@ -82,6 +84,8 @@ See [docs/OPENAI_BUILTIN_TOOL_COMPATIBILITY.md](docs/OPENAI_BUILTIN_TOOL_COMPATI
 
 See [docs/RECIPES.md](docs/RECIPES.md) and [examples](examples) for host-neutral integration examples.
 
+See [docs/PROVIDER_COMPATIBILITY_MATRIX.md](docs/PROVIDER_COMPATIBILITY_MATRIX.md) for provider evidence status and preset coverage.
+
 See [docs/INDEPENDENT_PACKAGE_CHECKLIST.md](docs/INDEPENDENT_PACKAGE_CHECKLIST.md) for the remaining package readiness gates before `private: true` can be removed.
 
-See [docs/LIVE_SMOKE_RECIPES.md](docs/LIVE_SMOKE_RECIPES.md), [docs/UNSAFE_TOOL_SECURITY.md](docs/UNSAFE_TOOL_SECURITY.md), and [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md) for release-readiness validation.
+See [docs/LIVE_SMOKE_RECIPES.md](docs/LIVE_SMOKE_RECIPES.md), [docs/UNSAFE_TOOL_SECURITY.md](docs/UNSAFE_TOOL_SECURITY.md), [docs/PUBLIC_ALPHA_RELEASE_PLAN.md](docs/PUBLIC_ALPHA_RELEASE_PLAN.md), [docs/OBSERVABILITY_AND_ERROR_POLICY.md](docs/OBSERVABILITY_AND_ERROR_POLICY.md), and [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md) for release-readiness validation.

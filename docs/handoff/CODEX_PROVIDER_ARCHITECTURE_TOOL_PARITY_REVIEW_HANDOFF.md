@@ -38,7 +38,7 @@ The active bin surface has also been cleaned to:
 }
 ```
 
-No `codex-provider-relay-server` or `codex-gateway-server` bin remains.
+No historical provider/server bin alias remains.
 
 This is the correct direction. Keep `private: true` for now.
 

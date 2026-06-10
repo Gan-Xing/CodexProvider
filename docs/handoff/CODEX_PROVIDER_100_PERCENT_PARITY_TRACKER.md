@@ -25,7 +25,7 @@ Out of scope for the latest completed phase:
 
 - API-key-backed Brave/Serper/Tavily live search evidence; no search-provider API key was present, so the live run used built-in no-key metasearch.
 - Full provider-preset matrix live records beyond the OpenRouter-compatible mixed-runtime smoke.
-- Public release, npm publish automation, dependency additions, or changing `private: true`.
+- Public release, npm publish automation, dependency additions, or changing `private: true`. Public alpha planning has started, but release approval remains out of scope.
 
 ## Phase Status
 
@@ -41,7 +41,7 @@ Out of scope for the latest completed phase:
 | Phase 7 | Ranking and extraction quality evaluation | Complete | Shared tokenizer, deterministic ranking/extraction fixtures, CJK ranking tests, title-complete boosts, local-index/file_search boundary tests, scoring docs, and parser fixture workflow added. Final local gate passed on 2026-06-10. |
 | Phase 8 | Package hygiene and CI | Complete | `check-package-surface` now scans actual dry-run tarball files for secrets, private paths, generated artifacts, large files, binary artifacts, and host-app imports; CI runs the package-surface gate before pack dry-run; release readiness snapshot refreshed. Final local gate passed on 2026-06-10. |
 | Phase 9 | Live smoke evidence | Complete | Redacted OpenRouter-compatible live evidence recorded in `docs/LIVE_SMOKE_RESULTS.md` for `pnpm smoke:web-search` and `pnpm smoke:host` on 2026-06-10. |
-| Phase 10 | Public alpha release decision | Not started | Out of current scope. |
+| Phase 10 | Public alpha release decision | Planning in progress | `docs/PUBLIC_ALPHA_RELEASE_PLAN.md` defines the `private:true` decision, alpha version policy, npm scope checklist, manual publish steps, and no-auto-publish policy. Publishing remains blocked on explicit release approval. |
 
 ## Audit Item Status
 
@@ -62,10 +62,10 @@ Out of scope for the latest completed phase:
 | 13 | P1 | HTML extraction needs quality fixtures | Complete | Phase 7 adds article/docs/CJK/malformed HTML fixtures and tests extraction of title, description, canonical URL, language, main text, code/table/list text, and chrome/hidden-content removal. |
 | 14 | P1 | Metasearch engine parser snapshots need maintenance workflow | Complete | Phase 7 documents parser fixture policy in `docs/SEARCH_QUALITY_SCORING.md`; existing HTML engine fixtures continue to cover no-results, blocked/captcha, and tracking cleanup. |
 | 15 | P1 | Package hygiene checker should scan shipped docs/examples | Complete | Phase 8 hardens `pnpm check-package-surface` to scan README, CHANGELOG, LICENSE, docs, examples, package.json, and the actual `npm pack --dry-run --json` tarball file list for secrets, private paths, generated artifacts, large files, binary artifacts, and host-app imports. |
-| 16 | P1 | Hosted tool execution errors need clear policy | Not started | Future policy/error-class phase. |
-| 17 | P1 | Provider capability presets need live behavior records | Partially done | Phase 9 records OpenRouter-compatible mixed-runtime behavior; broader preset/provider matrix records remain future work. |
-| 18 | P2 | Deep search is currently heuristic | Not started | Future optional deep-search phase. |
-| 19 | P2 | Observability should be structured | Partially done | Phase 1 adds sanitized `hosted_tool.config_bound` trace metadata; broader observability remains future work. |
+| 16 | P1 | Hosted tool execution errors need clear policy | Partially done | `docs/OBSERVABILITY_AND_ERROR_POLICY.md` defines request validation, security violation, recoverable provider error, fatal hosted tool error, and loop-exceeded policy. Typed fatal hosted-tool error classes remain future work. |
+| 17 | P1 | Provider capability presets need live behavior records | Partially done | Phase 9 records OpenRouter-compatible mixed-runtime behavior. Cycle 1 adds OpenRouter, DeepSeek, and DashScope/Qwen profile helpers plus `docs/PROVIDER_COMPATIBILITY_MATRIX.md`; broader live records remain pending credentials. |
+| 18 | P2 | Deep search is currently heuristic | Partially done | `docs/DEEP_WEB_SEARCH_ROADMAP.md` documents heuristic opt-in status, planner interface, graph execution, reference merge, synthesis contract, and tests needed. |
+| 19 | P2 | Observability should be structured | Partially done | Trace events are now sanitized at the server `emitTrace` exit, and `docs/OBSERVABILITY_AND_ERROR_POLICY.md` defines trace redaction policy. Search latency/cache/citation trace summaries remain future work. |
 | 20 | P2 | CI and release automation | Complete | Phase 8 CI runs test, typecheck, build, consumer harness, boundary, package-surface, and pack dry-run checks. Publishing remains manual and `private: true` is unchanged. |
 
 ## Phase 1 Binding Contract
@@ -418,3 +418,42 @@ TAVILY_API_KEY=missing
 ```
 
 The successful Phase 9 smoke runs used OpenRouter-compatible upstream credentials and built-in no-key metasearch. Redacted evidence is recorded in `docs/LIVE_SMOKE_RESULTS.md`.
+
+Recursive quality Cycle 1 validation run on 2026-06-10:
+
+```bash
+node scripts/recursive-quality-cycle.mjs scan  # passed: 13 low-severity CLI console-output findings, no high findings
+pnpm test                                      # passed: 279 passing, 1 credential-gated integration skipped
+pnpm typecheck                                 # passed
+pnpm build                                     # passed
+pnpm consumer:harness                          # passed
+pnpm check-boundary                            # passed
+pnpm check-package-surface                     # passed
+pnpm pack:dry-run                              # passed: 593 files, 346.1 kB package size, 1.5 MB unpacked
+```
+
+Additional focused validation:
+
+```bash
+pnpm exec tsx --test test/profiles.test.ts test/public_surface.test.ts test/server.test.ts                                      # passed: 56 tests
+pnpm exec tsx --test test/adapter_hosted_tool_config_binding.test.ts test/server.test.ts                                        # passed: 45 tests
+```
+
+Live smoke status:
+
+```bash
+CODEX_PROVIDER_API_KEY=missing
+OPENROUTER_API_KEY=missing
+DEEPSEEK_API_KEY=missing
+DASHSCOPE_API_KEY=missing
+QWEN_API_KEY=missing
+MINIMAX_API_KEY=missing
+KIMI_API_KEY=missing
+BRAVE_SEARCH_API_KEY=missing
+SERPER_API_KEY=missing
+TAVILY_API_KEY=missing
+SEARXNG_ENDPOINT=missing
+OPENSERP_ENDPOINT=missing
+```
+
+`pnpm smoke:web-search` and `pnpm smoke:host` were run and skipped live upstream/API-backed evidence because credentials were absent. The web-search smoke still verified the offline local-index path. Skip evidence is recorded in `docs/LIVE_SMOKE_RESULTS.md`.

@@ -17,6 +17,28 @@ const runtime = new CodexProviderRuntime({
 });
 ```
 
+## Provider Profile Presets
+
+Use provider profile presets when a host wants stable base URLs, env names, recommended profile mode, and capability metadata without hand-copying provider constants.
+
+```ts
+const profile = createCodexProviderOpenRouterProfile({
+  protocolProxyPort: 57321,
+});
+
+console.log(profile.upstreamBaseUrl); // https://openrouter.ai/api/v1
+console.log(profile.providerPreset.env.apiKeyEnv); // OPENROUTER_API_KEY
+console.log(profile.providerPreset.capabilities);
+```
+
+Cycle 1 exposes:
+
+- `createCodexProviderOpenRouterProfile()`
+- `createCodexProviderDeepSeekProfile()`
+- `createCodexProviderDashScopeQwenProfile()`
+
+See [Provider Compatibility Matrix](PROVIDER_COMPATIBILITY_MATRIX.md) for provider-specific evidence status.
+
 ## Adapter-Emulated Hosted Tools
 
 Adapter-emulated tools must be declared and registered.
@@ -95,6 +117,19 @@ const research = createCodexProviderDeepWebSearchExecutor({
   maxSources: 20,
 });
 ```
+
+## API-Backed Web Search Smoke
+
+`pnpm smoke:web-search` can select a search provider explicitly:
+
+```bash
+CODEX_PROVIDER_WEB_SEARCH_PROVIDER=brave BRAVE_SEARCH_API_KEY=... pnpm smoke:web-search
+CODEX_PROVIDER_WEB_SEARCH_PROVIDER=serper SERPER_API_KEY=... pnpm smoke:web-search
+CODEX_PROVIDER_WEB_SEARCH_PROVIDER=tavily TAVILY_API_KEY=... pnpm smoke:web-search
+CODEX_PROVIDER_WEB_SEARCH_PROVIDER=builtin-metasearch pnpm smoke:web-search
+```
+
+No-key built-in metasearch is appropriate for development and fallback validation. Brave, Serper, or Tavily API search is the production-oriented path when credentials are available. HTML search engines are best-effort integrations and may change or block automated access.
 
 ## Local Vector File Search
 

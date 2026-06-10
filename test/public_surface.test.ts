@@ -122,8 +122,10 @@ createCodexProviderBraveApiEngine
 createCodexProviderBraveHtmlEngine
 createCodexProviderCodeInterpreterExecutor
 createCodexProviderComputerExecutor
+createCodexProviderDashScopeQwenProfile
 createCodexProviderDeepSearchGraph
 createCodexProviderDeepSearchRunner
+createCodexProviderDeepSeekProfile
 createCodexProviderDeepWebSearchExecutor
 createCodexProviderDuckDuckGoHtmlEngine
 createCodexProviderEcosiaHtmlEngine
@@ -146,6 +148,7 @@ createCodexProviderMojeekHtmlEngine
 createCodexProviderOpenAICompatibleImageGenerationProvider
 createCodexProviderOpenAiWebSearchExecutor
 createCodexProviderOpenRouterEmbeddingProvider
+createCodexProviderOpenRouterProfile
 createCodexProviderOpenSerpEndpointEngine
 createCodexProviderProviderWebSearchSource
 createCodexProviderRemoteDocumentsFileSearchSource
@@ -383,8 +386,12 @@ test('codex provider package includes public examples and package readiness docs
     'docs/OPENAI_BUILTIN_TOOL_COMPATIBILITY.md',
     'docs/INDEPENDENT_PACKAGE_CHECKLIST.md',
     'docs/LIVE_SMOKE_RECIPES.md',
+    'docs/OBSERVABILITY_AND_ERROR_POLICY.md',
     'docs/RELEASE_READINESS.md',
+    'docs/PUBLIC_ALPHA_RELEASE_PLAN.md',
+    'docs/PROVIDER_COMPATIBILITY_MATRIX.md',
     'docs/RECIPES.md',
+    'docs/DEEP_WEB_SEARCH_ROADMAP.md',
     'docs/UNSAFE_TOOL_SECURITY.md',
     'docs/handoff/CODEX_PROVIDER_RESPONSES_ADAPTER_REFACTOR_HANDOFF.md',
     'docs/handoff/CODEX_PROVIDER_SELF_HOSTED_WEB_SEARCH_HANDOFF.md',

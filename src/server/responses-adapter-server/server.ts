@@ -413,9 +413,100 @@ export class OpenAICompatibleResponsesAdapterServer {
       return;
     }
     try {
-      this.traceSink(event);
+      this.traceSink(sanitizeTraceEvent(event));
     } catch {
       // Ignore trace sink failures so protocol serving stays unaffected.
     }
   }
+}
+
+const TRACE_STRING_MAX_LENGTH = 500;
+const TRACE_ARRAY_MAX_LENGTH = 25;
+const TRACE_OBJECT_MAX_KEYS = 80;
+const TRACE_MAX_DEPTH = 8;
+const TRACE_REDACTED = '<redacted>';
+const TRACE_TRUNCATED = '<truncated>';
+const SECRET_TRACE_VALUE_PATTERNS = [
+  /\bsk-(?:or-v1-)?[A-Za-z0-9_-]{20,}\b/gu,
+  /\bsk-ant-[A-Za-z0-9_-]{20,}\b/gu,
+  /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{20,}\b|\bgithub_pat_[A-Za-z0-9_]{20,}\b/gu,
+  /\bAIza[0-9A-Za-z_-]{20,}\b/gu,
+  /\bBearer\s+[A-Za-z0-9._~+/-]{24,}={0,2}\b/gu,
+];
+
+function sanitizeTraceEvent(event: CodexProviderTraceEvent): CodexProviderTraceEvent {
+  return sanitizeTraceValue(event, 0, '') as CodexProviderTraceEvent;
+}
+
+function sanitizeTraceValue(value: unknown, depth: number, key: string): unknown {
+  if (isSensitiveTraceKey(key)) {
+    return TRACE_REDACTED;
+  }
+  if (value === null || value === undefined) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return sanitizeTraceString(value);
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    if (depth >= TRACE_MAX_DEPTH) {
+      return TRACE_TRUNCATED;
+    }
+    const items = value
+      .slice(0, TRACE_ARRAY_MAX_LENGTH)
+      .map((entry) => sanitizeTraceValue(entry, depth + 1, ''));
+    if (value.length > TRACE_ARRAY_MAX_LENGTH) {
+      items.push({
+        truncated_items: value.length - TRACE_ARRAY_MAX_LENGTH,
+      });
+    }
+    return items;
+  }
+  if (typeof value === 'object') {
+    if (depth >= TRACE_MAX_DEPTH) {
+      return TRACE_TRUNCATED;
+    }
+    const result: JsonRecord = {};
+    const entries = Object.entries(value as JsonRecord);
+    for (const [entryKey, entryValue] of entries.slice(0, TRACE_OBJECT_MAX_KEYS)) {
+      result[entryKey] = sanitizeTraceValue(entryValue, depth + 1, entryKey);
+    }
+    if (entries.length > TRACE_OBJECT_MAX_KEYS) {
+      result.truncated_keys = entries.length - TRACE_OBJECT_MAX_KEYS;
+    }
+    return result;
+  }
+  return String(value);
+}
+
+function isSensitiveTraceKey(key: string): boolean {
+  const normalized = key
+    .replace(/([a-z0-9])([A-Z])/gu, '$1_$2')
+    .replace(/[-\s]+/gu, '_')
+    .toLowerCase();
+  return normalized === 'authorization'
+    || normalized === 'token'
+    || normalized.includes('api_key')
+    || normalized.includes('bearer')
+    || normalized.includes('access_token')
+    || normalized.includes('refresh_token')
+    || normalized.includes('session_token')
+    || normalized.includes('id_token')
+    || normalized.includes('secret')
+    || normalized.includes('password')
+    || normalized.includes('credential');
+}
+
+function sanitizeTraceString(value: string): string {
+  let sanitized = value;
+  for (const pattern of SECRET_TRACE_VALUE_PATTERNS) {
+    sanitized = sanitized.replace(pattern, TRACE_REDACTED);
+  }
+  if (sanitized.length > TRACE_STRING_MAX_LENGTH) {
+    return `${sanitized.slice(0, TRACE_STRING_MAX_LENGTH)}...${TRACE_TRUNCATED}`;
+  }
+  return sanitized;
 }

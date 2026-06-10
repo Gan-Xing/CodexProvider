@@ -302,7 +302,7 @@ resolveBuiltinWebSearchTransport
 resolveAdapterEmulatedHostedTools
 ```
 
-Suggested naming should stay `adapter-emulated`, not `relay-emulated`.
+Suggested naming should stay `adapter-emulated`, not the historical relay-style wording.
 
 ### 6.6 `request-to-chat/tool-choice.ts`
 

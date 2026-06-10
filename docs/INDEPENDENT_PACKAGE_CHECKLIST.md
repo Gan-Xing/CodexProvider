@@ -19,6 +19,7 @@
 - [x] Live smoke recipe documentation exists for upstream, web search, file search, image generation, and unsafe-tool default checks.
 - [x] Unsafe tool security notes exist for code interpreter, computer, shell, and apply-patch boundaries.
 - [x] Draft release readiness policy exists.
+- [x] Public alpha release plan exists while keeping publishing manual.
 - [x] Standalone consumer harness validates root entrypoint usage without CodexBridge internals.
 - [x] Non-web OpenRouter live smoke results are recorded in `docs/LIVE_SMOKE_RESULTS.md`.
 - [x] Live smoke recipes are executed and recorded against real upstream providers.

@@ -32,6 +32,11 @@ type SmokeEnv = {
   searchEndpoint: string | null;
 };
 
+type SmokeEnvResolution = {
+  env: SmokeEnv | null;
+  skipReason: string | null;
+};
+
 type TimedResult<T> = {
   durationMs: number;
   value: T;
@@ -57,7 +62,7 @@ const localEngine = createCodexProviderLocalIndexSearchEngine({
 
 const retrieval = createCodexProviderWebRetrievalFetcher();
 
-const env = resolveSmokeEnv();
+const { env, skipReason } = resolveSmokeEnv();
 const liveEngines = env ? createLiveSearchEngines(env) : [];
 const search = createCodexProviderMetaSearchService({
   engines: [...liveEngines, localEngine],
@@ -76,9 +81,10 @@ await runOfflineLocalIndexSmoke();
 
 if (!env) {
   console.log([
-    'live web_search smoke skipped: missing upstream environment variables.',
+    `live web_search smoke skipped: ${skipReason ?? 'missing upstream environment variables.'}`,
     'Required: CODEX_PROVIDER_API_KEY or a provider preset API key; CODEX_PROVIDER_BASE_URL and CODEX_PROVIDER_MODEL unless inferred.',
-    'Search credentials are optional: SEARXNG_ENDPOINT/OPENSERP_ENDPOINT, Brave/Serper/Tavily keys, or built-in no-key metasearch can be used.',
+    'Search credentials are optional unless CODEX_PROVIDER_WEB_SEARCH_PROVIDER selects brave, serper, or tavily.',
+    'CODEX_PROVIDER_WEB_SEARCH_PROVIDER may be brave, serper, tavily, or builtin-metasearch.',
     'Offline local-index web_search smoke passed.',
   ].join('\n'));
   process.exit(0);
@@ -371,7 +377,7 @@ function createLiveSearchEngines(env: SmokeEnv): CodexProviderSearchEngine[] {
   }
 }
 
-function resolveSmokeEnv(): SmokeEnv | null {
+function resolveSmokeEnv(): SmokeEnvResolution {
   const upstream = firstPresent([
     ['CODEX_PROVIDER_API_KEY', process.env.CODEX_PROVIDER_API_KEY],
     ['OPENROUTER_API_KEY', process.env.OPENROUTER_API_KEY],
@@ -383,7 +389,10 @@ function resolveSmokeEnv(): SmokeEnv | null {
     ['KIMI_API_KEY', process.env.KIMI_API_KEY],
   ]);
   if (!upstream) {
-    return null;
+    return {
+      env: null,
+      skipReason: 'missing upstream environment variables.',
+    };
   }
   const upstreamBaseUrl = normalizeString(process.env.CODEX_PROVIDER_BASE_URL)
     || inferredBaseUrlForKey(upstream.name);
@@ -396,8 +405,12 @@ function resolveSmokeEnv(): SmokeEnv | null {
     || normalizeString(process.env.KIMI_MODEL)
     || inferredModelForKey(upstream.name);
   if (!upstreamBaseUrl || !model) {
-    return null;
+    return {
+      env: null,
+      skipReason: 'missing upstream base URL or model.',
+    };
   }
+  const selectedProvider = normalizeSearchProvider(process.env.CODEX_PROVIDER_WEB_SEARCH_PROVIDER);
   const endpointSearch = firstPresent([
     ['SEARXNG_ENDPOINT', process.env.SEARXNG_ENDPOINT],
     ['CODEX_PROVIDER_SEARXNG_ENDPOINT', process.env.CODEX_PROVIDER_SEARXNG_ENDPOINT],
@@ -409,7 +422,9 @@ function resolveSmokeEnv(): SmokeEnv | null {
     ['SERPER_API_KEY', process.env.SERPER_API_KEY],
     ['TAVILY_API_KEY', process.env.TAVILY_API_KEY],
   ]);
-  const search = endpointSearch
+  const search = selectedProvider
+    ? selectedSearchProviderConfig(selectedProvider)
+    : endpointSearch
     ? {
         credentialKind: 'endpoint' as const,
         credentialName: endpointSearch.name,
@@ -432,16 +447,31 @@ function resolveSmokeEnv(): SmokeEnv | null {
           apiKey: null,
           endpoint: null,
         };
+  if (!search) {
+    return {
+      env: null,
+      skipReason: `CODEX_PROVIDER_WEB_SEARCH_PROVIDER=${normalizeString(process.env.CODEX_PROVIDER_WEB_SEARCH_PROVIDER)} is not supported.`,
+    };
+  }
+  if (search.credentialKind === 'api-key' && !search.apiKey) {
+    return {
+      env: null,
+      skipReason: `CODEX_PROVIDER_WEB_SEARCH_PROVIDER=${search.provider} requires ${search.credentialName}.`,
+    };
+  }
   return {
-    upstreamKeyName: upstream.name,
-    upstreamApiKey: upstream.value,
-    upstreamBaseUrl,
-    model,
-    searchCredentialName: search.credentialName,
-    searchCredentialKind: search.credentialKind,
-    searchProvider: search.provider,
-    searchApiKey: search.apiKey,
-    searchEndpoint: search.endpoint,
+    env: {
+      upstreamKeyName: upstream.name,
+      upstreamApiKey: upstream.value,
+      upstreamBaseUrl,
+      model,
+      searchCredentialName: search.credentialName,
+      searchCredentialKind: search.credentialKind,
+      searchProvider: search.provider,
+      searchApiKey: search.apiKey,
+      searchEndpoint: search.endpoint,
+    },
+    skipReason: null,
   };
 }
 
@@ -467,6 +497,62 @@ function searchProviderForApiKey(name: string): SmokeEnv['searchProvider'] {
 
 function searchProviderForEndpoint(name: string): SmokeEnv['searchProvider'] {
   return name.includes('SEARXNG') ? 'searxng' : 'openserp';
+}
+
+function normalizeSearchProvider(value: unknown): SmokeEnv['searchProvider'] | null | 'unsupported' {
+  const normalized = normalizeString(value).toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  if (normalized === 'brave' || normalized === 'serper' || normalized === 'tavily' || normalized === 'builtin-metasearch') {
+    return normalized;
+  }
+  return 'unsupported';
+}
+
+function selectedSearchProviderConfig(provider: SmokeEnv['searchProvider'] | 'unsupported'): {
+  credentialKind: SmokeEnv['searchCredentialKind'];
+  credentialName: string | null;
+  provider: SmokeEnv['searchProvider'];
+  apiKey: string | null;
+  endpoint: string | null;
+} | null {
+  switch (provider) {
+    case 'brave':
+      return {
+        credentialKind: 'api-key',
+        credentialName: 'BRAVE_SEARCH_API_KEY',
+        provider,
+        apiKey: normalizeString(process.env.BRAVE_SEARCH_API_KEY) || null,
+        endpoint: null,
+      };
+    case 'serper':
+      return {
+        credentialKind: 'api-key',
+        credentialName: 'SERPER_API_KEY',
+        provider,
+        apiKey: normalizeString(process.env.SERPER_API_KEY) || null,
+        endpoint: null,
+      };
+    case 'tavily':
+      return {
+        credentialKind: 'api-key',
+        credentialName: 'TAVILY_API_KEY',
+        provider,
+        apiKey: normalizeString(process.env.TAVILY_API_KEY) || null,
+        endpoint: null,
+      };
+    case 'builtin-metasearch':
+      return {
+        credentialKind: 'none',
+        credentialName: null,
+        provider,
+        apiKey: null,
+        endpoint: null,
+      };
+    default:
+      return null;
+  }
 }
 
 function inferredBaseUrlForKey(name: string): string {

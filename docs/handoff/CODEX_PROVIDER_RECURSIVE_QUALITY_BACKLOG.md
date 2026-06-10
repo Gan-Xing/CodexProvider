@@ -1,0 +1,70 @@
+# CodexProvider Recursive Quality Backlog
+
+This file is managed by the recursive quality loop.
+
+Cycle semantics:
+
+- A cycle is counted only after every item in the active cycle is completed (`- [x]`) or explicitly resolved as an external blocker (`- [!]`).
+- A single subtask does not count as a cycle.
+- After one cycle is completed and validated, re-audit the project and generate the next cycle's backlog.
+- Stop when 20 cycles are completed or London time reaches 2026-06-11 05:30.
+
+<!-- cycle:1:start -->
+## Cycle 1 Backlog
+
+### C1-A Release Readiness
+
+- [x] Audit README.md, CHANGELOG.md, docs/RELEASE_READINESS.md, and docs/INDEPENDENT_PACKAGE_CHECKLIST.md for public-alpha readiness.
+- [x] Add/update docs/PUBLIC_ALPHA_RELEASE_PLAN.md with private:true decision, alpha version policy, npm scope checklist, manual publish steps, and no-auto-publish policy.
+- [x] Confirm pnpm pack:dry-run snapshot is current.
+- [x] Confirm shipped package surface contains no host-app dependency or secrets.
+
+### C1-B Provider Compatibility Matrix
+
+- [x] Add/update docs/PROVIDER_COMPATIBILITY_MATRIX.md.
+- [x] Include OpenRouter, DeepSeek official, DashScope/Qwen, SiliconFlow, MiniMax, Moonshot/Kimi, and OpenAI direct Responses.
+- [x] For each provider include base URL env, model env, protocol, recommended profile mode, tools support, streaming support, forced tool behavior, file_search status, web_search status, quirks, and evidence status.
+- [x] Link existing OpenRouter smoke evidence.
+- [x] Mark providers without credentials as `[!] Pending credentials`; do not fake results.
+
+### C1-C Provider Presets
+
+- [x] Audit profile/runtime modules to choose the right provider preset location.
+- [x] Implement minimal provider preset API for OpenRouter and DeepSeek official.
+- [x] Add DashScope/Qwen preset if time allows.
+- [x] Add root exports.
+- [x] Add unit tests for base URLs, profile mode, provider capabilities, and env naming.
+- [x] Update README or docs/RECIPES.md with preset usage.
+
+### C1-D Web Search Productization
+
+- [x] Audit examples/live-web-search-smoke.ts for explicit API-backed Brave/Serper/Tavily selection.
+- [x] Add env-driven provider selection if missing: CODEX_PROVIDER_WEB_SEARCH_PROVIDER=brave|serper|tavily|builtin-metasearch.
+- [x] Document required API key env names.
+- [x] Document no-key metasearch vs API-backed search tradeoffs.
+- [!] Pending credentials: API-backed Brave/Serper/Tavily smoke was not run because `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, and `TAVILY_API_KEY` were absent.
+- [x] If credentials are missing, mark as `[!] Pending credentials`.
+
+### C1-E Deep Search / Observability / Error Policy
+
+- [x] Audit src/web-search/deep/ and document current heuristic/opt-in status.
+- [x] Add/update docs/DEEP_WEB_SEARCH_ROADMAP.md.
+- [x] Add/update docs/OBSERVABILITY_AND_ERROR_POLICY.md.
+- [x] Define request validation error, security violation, recoverable hosted tool provider error, fatal hosted tool error, tool loop exceeded, and trace redaction policy.
+- [x] Check existing traces do not expose secrets or full document contents.
+- [x] If typed fatal hosted tool errors require code changes beyond this cycle, add them to the next cycle backlog.
+
+### C1-F Validation + Counter
+
+- [x] Run node scripts/recursive-quality-cycle.mjs scan and inspect the report.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
+- [x] Update this backlog so no unchecked `- [ ]` remains in Cycle 1.
+- [x] Commit and push.
+- [x] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
+<!-- cycle:1:end -->

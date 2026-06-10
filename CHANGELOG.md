@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added public alpha release plan, provider compatibility matrix, deep web search roadmap, and observability/error policy docs.
+- Added OpenRouter, DeepSeek, and DashScope/Qwen provider profile helpers with env and capability metadata.
+
+### Changed
+
+- Added explicit `CODEX_PROVIDER_WEB_SEARCH_PROVIDER` selection for live web-search smoke runs.
+- Sanitized trace events before invoking `traceSink` by redacting secret-looking values and truncating large payloads.
+
 ## 0.1.0-alpha.0
 
 ### Added

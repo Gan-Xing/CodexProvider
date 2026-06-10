@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "maxCycles": 20,
+  "completedCycles": 0,
+  "activeCycle": 1,
+  "deadlineUtc": "2026-06-11T04:30:00.000Z",
+  "startedAt": "2026-06-10T23:31:06.183Z",
+  "updatedAt": "2026-06-10T23:31:06.183Z",
+  "cycleHistory": []
+}

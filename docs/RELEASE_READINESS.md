@@ -27,6 +27,7 @@ This package is still internal-only.
 - Changelog: keep `CHANGELOG.md` grouped by version with `Added`, `Changed`, `Fixed`, and `Validation` bullets.
 - Release mode: manual release only for now. Do not add automatic npm publishing until live provider smoke evidence is recorded and reviewed.
 - GitHub Actions: CI runs local verification and package hygiene checks, but publishing remains manual.
+- Public alpha decision details are tracked in `docs/PUBLIC_ALPHA_RELEASE_PLAN.md`.
 
 ## Recommended Version Strategy
 
@@ -95,8 +96,8 @@ Recorded on 2026-06-10 with `npm pack --dry-run --json`:
 
 - Package: `@codex-provider/core@0.1.0-alpha.0`
 - Tarball: `codex-provider-core-0.1.0-alpha.0.tgz`
-- Total files: 583
-- Package size: 327.3 kB
+- Total files: 593
+- Package size: 346.1 kB
 - Unpacked size: 1.5 MB
 - Top-level shipped entries: `dist`, `README.md`, `CHANGELOG.md`, `LICENSE`, `docs`, `examples`, `package.json`
 - Examples are intentionally shipped for alpha host integration reference.
