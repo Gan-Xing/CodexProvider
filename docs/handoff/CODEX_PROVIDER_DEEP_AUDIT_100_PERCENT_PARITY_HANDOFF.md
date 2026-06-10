@@ -850,6 +850,12 @@ Before public release:
 
 ## 3. Multi-Stage Execution Plan
 
+Branch policy:
+
+- All implementation, documentation, validation, and commit work must happen on `main`.
+- Do not create, switch to, or push a separate working branch unless the user explicitly requests a branch.
+- If a previous local branch exists, fast-forward or merge the completed work back to `main`, push `main`, then remove the temporary branch when safe.
+
 Each phase must be implemented independently. After every phase:
 
 1. Run full local gate.
@@ -1159,36 +1165,37 @@ Goal: drive CodexProvider from internal-alpha to 100% verified provider/tool par
 Rules:
 1. Work one phase at a time.
 2. Do not skip phases unless the tracker marks the phase complete.
-3. Before editing, read:
+3. Work on main only. Do not create or switch to a separate branch unless the user explicitly asks for one.
+4. Before editing, read:
    - docs/handoff/CODEX_PROVIDER_DEEP_AUDIT_100_PERCENT_PARITY_HANDOFF.md
    - docs/handoff/CODEX_PROVIDER_100_PERCENT_PARITY_TRACKER.md if it exists
    - README.md
    - docs/OPENAI_BUILTIN_TOOL_COMPATIBILITY.md
    - docs/INDEPENDENT_PACKAGE_CHECKLIST.md
    - docs/RELEASE_READINESS.md
-4. For the current phase:
+5. For the current phase:
    - inspect the relevant code
    - write or update tests first when practical
    - implement the smallest complete fix
    - update docs
    - update the tracker
-5. Run the full local gate after each phase:
+6. Run the full local gate after each phase:
    pnpm test
    pnpm typecheck
    pnpm build
    pnpm consumer:harness
    pnpm check-boundary
    pnpm pack:dry-run
-6. If credentials are present and the phase touches live behavior, also run:
+7. If credentials are present and the phase touches live behavior, also run:
    pnpm smoke:web-search
    pnpm smoke:host
-7. Do not add runtime dependencies unless the phase explicitly allows it.
-8. Do not add sqlite/browser/vector-db/sandbox dependencies.
-9. Do not introduce default unsafe executors.
-10. Do not leak secrets into docs, tests, examples, or traces.
-11. Keep web_search local index separate from file_search sources.
-12. Preserve root entrypoint compatibility.
-13. Use only canonical CodexProvider names. Do not reintroduce Relay/Gateway names except archived docs.
+8. Do not add runtime dependencies unless the phase explicitly allows it.
+9. Do not add sqlite/browser/vector-db/sandbox dependencies.
+10. Do not introduce default unsafe executors.
+11. Do not leak secrets into docs, tests, examples, or traces.
+12. Keep web_search local index separate from file_search sources.
+13. Preserve root entrypoint compatibility.
+14. Use only canonical CodexProvider names. Do not reintroduce Relay/Gateway names except archived docs.
 
 Required completion output for each phase:
 - Chinese summary

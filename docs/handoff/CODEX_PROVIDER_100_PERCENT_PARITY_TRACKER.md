@@ -4,7 +4,7 @@ Last updated: 2026-06-10
 
 Scope source: `docs/handoff/CODEX_PROVIDER_DEEP_AUDIT_100_PERCENT_PARITY_HANDOFF.md`
 
-Branch policy: work on `main` by default unless the user explicitly requests a separate branch.
+Branch policy: all future changes must be made on `main`. Do not create or switch to a separate working branch unless the user explicitly requests it.
 
 ## Current Scope
 
