@@ -13,8 +13,8 @@ export class CodexProviderWebSearchInvalidParameterError extends Error {
 
   readonly param: string;
 
-  constructor(param: string, value: unknown) {
-    super(webSearchReturnTokenBudgetErrorMessage(param, value));
+  constructor(param: string, value: unknown, expected = '"default" or "unlimited"') {
+    super(invalidParameterErrorMessage(param, value, expected));
     this.name = 'CodexProviderWebSearchInvalidParameterError';
     this.param = param;
   }
@@ -70,7 +70,11 @@ export function buildWebSearchReturnTokenBudgetWarning(
 }
 
 function webSearchReturnTokenBudgetErrorMessage(param: string, value: unknown): string {
-  return `Invalid value for ${param}: expected "default" or "unlimited", received ${describeValue(value)}.`;
+  return invalidParameterErrorMessage(param, value, '"default" or "unlimited"');
+}
+
+function invalidParameterErrorMessage(param: string, value: unknown, expected: string): string {
+  return `Invalid value for ${param}: expected ${expected}, received ${describeValue(value)}.`;
 }
 
 function describeValue(value: unknown): string {
