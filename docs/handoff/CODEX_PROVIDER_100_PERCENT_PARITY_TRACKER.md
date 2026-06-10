@@ -4,7 +4,7 @@ Last updated: 2026-06-10
 
 Scope source: `docs/handoff/CODEX_PROVIDER_DEEP_AUDIT_100_PERCENT_PARITY_HANDOFF.md`
 
-Current working branch: `feat/hosted-tool-config-binding`
+Branch policy: work on `main` by default unless the user explicitly requests a separate branch.
 
 ## Current Scope
 
