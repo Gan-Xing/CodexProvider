@@ -17,6 +17,9 @@ import {
 import {
   appendDeferredToolsFromToolSearch,
 } from './adapter-deferred-tools.js';
+import type {
+  AdapterHostedToolRequestConfigMap,
+} from './adapter-hosted-tool-config.js';
 import {
   executeAdapterHostedToolCall,
 } from './adapter-hosted-tool-execution.js';
@@ -90,6 +93,7 @@ export async function writeAdapterHostedToolStreamingResponse({
   emitHostedToolSseEvents,
   providerKind,
   providerName,
+  requestConfigs,
   fetchUpstreamWithRetry,
   writeStreamingDataLinesResponse,
   writeStreamingDataLinesResponseWithHostedToolResults,
@@ -108,6 +112,7 @@ export async function writeAdapterHostedToolStreamingResponse({
   emitHostedToolSseEvents: boolean;
   providerKind: string;
   providerName: string;
+  requestConfigs?: AdapterHostedToolRequestConfigMap;
   fetchUpstreamWithRetry: FetchUpstreamWithRetry;
   writeStreamingDataLinesResponse: WriteStreamingDataLinesResponse;
   writeStreamingDataLinesResponseWithHostedToolResults: WriteStreamingDataLinesResponseWithHostedToolResults;
@@ -189,6 +194,7 @@ export async function writeAdapterHostedToolStreamingResponse({
       readSseDataLines(upstream.response.body),
       executableHostedTools,
       hostedToolExecutorRegistry,
+      requestConfigs,
     );
     if (decision.kind === 'final_stream') {
       const dataLines = chainSseDataLines(decision.bufferedChunks, decision.remaining);

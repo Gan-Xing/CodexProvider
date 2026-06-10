@@ -131,6 +131,15 @@ export type CodexProviderTraceEvent =
     eventCount: number;
   }
   | {
+    type: 'hosted_tool.config_bound';
+    route: 'responses';
+    toolName: string;
+    emulatedToolName: string;
+    callId: string;
+    iteration: number;
+    summary: JsonRecord;
+  }
+  | {
     type: 'hosted_tool.executed';
     route: 'responses';
     toolName: string;

@@ -29,8 +29,8 @@ Official OpenAI docs checked for this matrix:
 
 | Tool | OpenAI tool type | Current support | Tool mode | Executor required | Output parity | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Web search | `web_search` | Strong v1. Adapter executor supports native metasearch, Tavily/Brave/Serper API engines, no-key HTML engines, SearXNG/OpenSERP endpoint adapters, retrieval/chunking, local cache indexes, and optional deep-search custom tooling. | `provider-native` / `adapter-emulated` | Yes for `adapter-emulated` | Strong adapter parity for synthetic `web_search_call`, include-gated `action.sources` / `results`, explicit detailed `actions`, and `[[source:N]]` to `url_citation` annotations. UI integrations should prefer `web_search_call.action.sources` for the complete consulted URL list; `web_search_call.results` is an adapter/debug/compatibility enhancement for raw normalized results. Exact OpenAI hosted index quality is not claimed. | P1 done |
-| File search | `file_search` | Strong v1. Local-fs, memory, sqlite-fts, in-memory-vector, local-vector, cache fingerprint, RRF, safety bounds, vector-store contract, remote-doc contract, signed page-token pagination, and `include: ["file_search_call.results"]` exposure exist. | `adapter-emulated` | Yes | Strong adapter parity for OpenAI-like `data[]`, `has_more` / `next_page`, and synthetic `file_search_call.results`; exact OpenAI-hosted retrieval annotations are not claimed. | P1 done |
+| Web search | `web_search` | Strong v1. Adapter executor supports native metasearch, Tavily/Brave/Serper API engines, no-key HTML engines, SearXNG/OpenSERP endpoint adapters, retrieval/chunking, local cache indexes, optional deep-search custom tooling, and request-level `tools[]` config binding for adapter-emulated execution. | `provider-native` / `adapter-emulated` | Yes for `adapter-emulated` | Strong adapter parity for synthetic `web_search_call`, include-gated `action.sources` / `results`, explicit detailed `actions`, and `[[source:N]]` to `url_citation` annotations. Adapter-emulated calls bind request `filters`, `search_context_size`, `return_token_budget`, `user_location`, `external_web_access`, and result limits before executor execution, so model function args cannot drop or loosen request constraints. Exact OpenAI hosted index quality is not claimed. | P1 done |
+| File search | `file_search` | Strong v1. Local-fs, memory, sqlite-fts, in-memory-vector, local-vector, cache fingerprint, RRF, safety bounds, vector-store contract, remote-doc contract, signed page-token pagination, `include: ["file_search_call.results"]` exposure, and request-level `tools[]` config binding exist. | `adapter-emulated` | Yes | Strong adapter parity for OpenAI-like `data[]`, `has_more` / `next_page`, and synthetic `file_search_call.results`. Adapter-emulated calls bind request `vector_store_ids`, `filters`, `ranking_options`, `max_num_results`, and `include_content` before executor execution, so model function args cannot bypass request scoping. Exact OpenAI-hosted retrieval annotations are not claimed. | P1 done |
 | Tool search | `tool_search` as package-owned deferred discovery surface. | Partial. Registry/converter/server loop support adapter-emulated `tool_search`; `createCodexProviderToolSearchExecutor()` can return deferred function tools and namespaces. | `adapter-emulated` / client-deferred | Yes | Partial. Returned tools are appended to the next Chat request; no provider-native output item is synthesized. | P2 done |
 | Remote MCP / connectors | `mcp` | No package executor. OpenAI-hosted Responses can use `mcp`; Codex hosts may also handle MCP locally. | `provider-native` / `codex-local-first`; future `adapter-emulated` only with explicit host adapter | Yes for adapter | No | P2 |
 | Skills | Not an OpenAI Responses hosted tool type; Codex-local customization surface. | No package support. Should stay host/Codex-local unless modeled as deferred tool definitions later. | `codex-local-first` | No package executor by default | Not applicable | P2 |
@@ -85,6 +85,24 @@ The next phase should keep moving heavy or unsafe tools behind explicit executor
    - `apply_patch` execution
 
 5. Codex-local tools remain Codex-local unless the host opts into an explicit adapter executor.
+
+6. Adapter-emulated hosted tool request config is executor-bound.
+   For OpenAI Responses `tools[]` entries, hosted tool configuration is request-level policy, not model-owned function-call data. The adapter extracts the request tool declaration config, attaches it to matching Chat function tool calls, and merges it into executor arguments for both non-streaming and streaming hosted tool loops.
+
+   Web search merge policy:
+   - query fields come from model function args.
+   - request `search_context_size`, `return_token_budget`, and `user_location` win when present.
+   - `external_web_access: false` dominates.
+   - `filters.allowed_domains` are intersected.
+   - `filters.blocked_domains` are unioned.
+   - result limits use the smaller positive value.
+
+   File search merge policy:
+   - query fields come from model function args.
+   - request `vector_store_ids` constrain model vector ids by intersection.
+   - request and model `filters` are combined with `and`.
+   - result limits use the smaller positive value.
+   - `include_content: false` dominates.
 
 ## Priority Plan
 

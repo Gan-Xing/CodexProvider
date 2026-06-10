@@ -8,6 +8,10 @@ import {
   parseToolCallArguments,
   type AdapterHostedToolCall,
 } from './adapter-hosted-tools.js';
+import {
+  mergeAdapterHostedToolArguments,
+  summarizeAdapterHostedToolConfigBinding,
+} from './adapter-hosted-tool-config.js';
 import type {
   AdapterHostedToolExecutionRecord,
   CodexProviderTraceEvent,
@@ -43,10 +47,30 @@ export async function executeAdapterHostedToolCall({
     || normalizeString(entry.declaration.emulatedToolName)
     || entry.declaration.name;
   const rawArguments = normalizeString(entry.toolCall?.function?.arguments) || '{}';
+  const modelArgumentsObject = parseToolCallArguments(rawArguments);
+  const argumentsObject = mergeAdapterHostedToolArguments(
+    entry.declaration.name,
+    modelArgumentsObject,
+    entry.requestConfig?.config ?? null,
+  );
   let content: string;
   let resultContent: unknown = null;
   let resultMetadata: JsonRecord | null = null;
   const startedAt = Date.now();
+  emitTrace({
+    type: 'hosted_tool.config_bound',
+    route: 'responses',
+    toolName: entry.declaration.name,
+    emulatedToolName,
+    callId,
+    iteration,
+    summary: summarizeAdapterHostedToolConfigBinding({
+      toolName: entry.declaration.name,
+      modelArguments: modelArgumentsObject,
+      effectiveArguments: argumentsObject,
+      requestConfig: entry.requestConfig ?? null,
+    }),
+  });
   emitSseEvent?.(buildHostedToolSseEvent({
     type: 'hosted_tool.started',
     entry,
@@ -54,9 +78,8 @@ export async function executeAdapterHostedToolCall({
     callId,
     iteration,
     startedAt,
-    argumentsObject: parseToolCallArguments(rawArguments),
+    argumentsObject,
   }));
-  const argumentsObject = parseToolCallArguments(rawArguments);
   try {
     const result = await hostedToolExecutorRegistry.execute({
       toolName: entry.declaration.name,

@@ -15,6 +15,9 @@ import {
 import {
   appendDeferredToolsFromToolSearch,
 } from './adapter-deferred-tools.js';
+import type {
+  AdapterHostedToolRequestConfigMap,
+} from './adapter-hosted-tool-config.js';
 import {
   executeAdapterHostedToolCall,
 } from './adapter-hosted-tool-execution.js';
@@ -58,6 +61,7 @@ export async function completeAdapterHostedToolLoop({
   maxHostedToolIterations,
   providerKind,
   providerName,
+  requestConfigs,
   fetchUpstreamWithRetry,
   emitTrace,
 }: {
@@ -72,6 +76,7 @@ export async function completeAdapterHostedToolLoop({
   maxHostedToolIterations: number;
   providerKind: string;
   providerName: string;
+  requestConfigs?: AdapterHostedToolRequestConfigMap;
   fetchUpstreamWithRetry: FetchUpstreamWithRetry;
   emitTrace: EmitTrace;
 }): Promise<{
@@ -97,6 +102,7 @@ export async function completeAdapterHostedToolLoop({
       currentJson,
       executableHostedTools,
       hostedToolExecutorRegistry,
+      requestConfigs,
     );
     if (executableCalls.length === 0) {
       return {

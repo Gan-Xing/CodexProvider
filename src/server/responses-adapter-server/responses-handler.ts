@@ -27,6 +27,9 @@ import {
   completeAdapterHostedToolLoop,
 } from './adapter-hosted-tool-loop.js';
 import {
+  extractAdapterHostedToolRequestConfigs,
+} from './adapter-hosted-tool-config.js';
+import {
   writeAdapterHostedToolStreamingResponse,
 } from './adapter-hosted-tool-streaming-loop.js';
 import {
@@ -214,6 +217,10 @@ export async function handleResponsesAdapterRequest({
     effectiveRequestBody,
     executableHostedTools,
   );
+  const adapterHostedToolRequestConfigs = extractAdapterHostedToolRequestConfigs(
+    effectiveRequestBody,
+    executableHostedTools,
+  );
   const upstreamStream = stream;
   const chatBody = responsesRequestToChatCompletions(effectiveRequestBody, {
     model: requestedModel,
@@ -279,6 +286,7 @@ export async function handleResponsesAdapterRequest({
       emitHostedToolSseEvents,
       providerKind,
       providerName,
+      requestConfigs: adapterHostedToolRequestConfigs,
       fetchUpstreamWithRetry,
       writeStreamingDataLinesResponse,
       writeStreamingDataLinesResponseWithHostedToolResults,
@@ -373,6 +381,7 @@ export async function handleResponsesAdapterRequest({
     maxHostedToolIterations,
     providerKind,
     providerName,
+    requestConfigs: adapterHostedToolRequestConfigs,
     fetchUpstreamWithRetry,
     emitTrace,
   });

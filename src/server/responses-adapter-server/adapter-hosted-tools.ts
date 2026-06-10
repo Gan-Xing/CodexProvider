@@ -8,6 +8,10 @@ import type {
 import type {
   CodexProviderHostedToolExecutorRegistry,
 } from '../../hosted_tool_executors.js';
+import type {
+  AdapterHostedToolRequestConfig,
+  AdapterHostedToolRequestConfigMap,
+} from './adapter-hosted-tool-config.js';
 import {
   asyncIteratorToIterable,
   chatStreamChunkFinishedToolCalls,
@@ -30,6 +34,7 @@ import {
 
 export interface AdapterHostedToolCall {
   declaration: NormalizedCodexProviderHostedToolDeclaration;
+  requestConfig?: AdapterHostedToolRequestConfig | null;
   toolCall: JsonRecord;
   message: JsonRecord;
 }
@@ -53,6 +58,7 @@ export async function inspectAdapterHostedStreamingTurn(
   dataLines: AsyncIterable<string>,
   hostedTools: NormalizedCodexProviderHostedToolDeclaration[],
   registry: CodexProviderHostedToolExecutorRegistry,
+  requestConfigs: AdapterHostedToolRequestConfigMap = new Map(),
 ): Promise<AdapterHostedStreamingDecision> {
   const iterator = dataLines[Symbol.asyncIterator]();
   const bufferedChunks: string[] = [];
@@ -65,7 +71,7 @@ export async function inspectAdapterHostedStreamingTurn(
     while (true) {
       const next = await iterator.next();
       if (next.done) {
-        return streamingDecisionFromBufferedChunks(bufferedChunks, accumulator, hostedTools, registry);
+        return streamingDecisionFromBufferedChunks(bufferedChunks, accumulator, hostedTools, registry, requestConfigs);
       }
       const data = next.value;
       bufferedChunks.push(data);
@@ -83,7 +89,7 @@ export async function inspectAdapterHostedStreamingTurn(
       }
       if (accumulator.sawToolCallDelta && chatStreamChunkFinishedToolCalls(chunk)) {
         await drainAsyncIterator(iterator);
-        return streamingDecisionFromBufferedChunks(bufferedChunks, accumulator, hostedTools, registry);
+        return streamingDecisionFromBufferedChunks(bufferedChunks, accumulator, hostedTools, registry, requestConfigs);
       }
     }
   } catch (error) {
@@ -99,6 +105,7 @@ function streamingDecisionFromBufferedChunks(
   accumulator: StreamingToolCallAccumulator,
   hostedTools: NormalizedCodexProviderHostedToolDeclaration[],
   registry: CodexProviderHostedToolExecutorRegistry,
+  requestConfigs: AdapterHostedToolRequestConfigMap,
 ): AdapterHostedStreamingDecision {
   const toolCalls = [...accumulator.toolCallsByKey.values()];
   if (toolCalls.length === 0) {
@@ -121,6 +128,7 @@ function streamingDecisionFromBufferedChunks(
     },
     hostedTools,
     registry,
+    requestConfigs,
   );
   if (executableCalls.length === 0) {
     return {
@@ -145,6 +153,7 @@ export function collectAdapterHostedToolCalls(
   chatResponse: JsonRecord,
   hostedTools: NormalizedCodexProviderHostedToolDeclaration[],
   registry: CodexProviderHostedToolExecutorRegistry,
+  requestConfigs: AdapterHostedToolRequestConfigMap = new Map(),
 ): AdapterHostedToolCall[] {
   const calls: AdapterHostedToolCall[] = [];
   for (const choice of normalizeArray(chatResponse?.choices)) {
@@ -166,6 +175,7 @@ export function collectAdapterHostedToolCalls(
       }
       calls.push({
         declaration,
+        requestConfig: requestConfigs.get(emulatedToolName) ?? null,
         toolCall,
         message,
       });
