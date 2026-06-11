@@ -393,8 +393,49 @@ test('deep search runner records partial failures and unresponsive diagnostics',
     failed_subquery_count: 1,
     unresponsive_engine_count: 1,
     source_count: 1,
+    minimum_source_count: null,
+    below_minimum_sources: false,
     no_supporting_evidence: false,
   });
+});
+
+test('deep web search executor records when sources are below the requested minimum', async () => {
+  const search: CodexProviderMetaSearchService = {
+    async search(request) {
+      return searchResponse(request, [{
+        title: 'Limited Evidence',
+        url: 'https://docs.example.com/limited',
+        snippet: 'Only one relevant source was found.',
+        engines: ['fake'],
+        engineRanks: { fake: 1 },
+        score: 8,
+      }]);
+    },
+  };
+  const executor = createCodexProviderDeepWebSearchExecutor({
+    search,
+    maxSubqueries: 1,
+    maxResultsPerSubquery: 1,
+    now: () => new Date('2026-06-08T00:00:00.000Z'),
+  });
+
+  const result = await executor(baseRequest({
+    query: 'limited evidence topic',
+    min_sources: 2,
+  }));
+  const content = result.content as any;
+
+  assert.equal(content.sources.length, 1);
+  assert.equal(content.synthesis.minimum_source_count, 2);
+  assert.equal(content.synthesis.below_minimum_sources, true);
+  assert.equal(content.synthesis.no_supporting_evidence, false);
+  assert.match(content.synthesis.instructions, /below the requested minimum of 2/u);
+  assert.equal(content.diagnostics.minimum_source_count, 2);
+  assert.equal(content.diagnostics.below_minimum_sources, true);
+  assert.equal(content.diagnostics.no_supporting_evidence, false);
+  assert.equal(result.metadata?.minimumSourceCount, 2);
+  assert.equal(result.metadata?.belowMinimumSources, true);
+  assert.equal(result.metadata?.noSupportingEvidence, false);
 });
 
 test('deep web search executor marks no supporting evidence when all branches are empty', async () => {

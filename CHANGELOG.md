@@ -17,6 +17,7 @@
 - Added deep-search response and executor metadata diagnostics for failed subqueries, unresponsive engines, and planner budget counts.
 - Added an opt-in deep-search custom hosted-tool recipe and regression coverage for keeping it separate from default `web_search`.
 - Added deep-search no-supporting-evidence response and executor metadata for empty research graphs.
+- Added optional deep-search minimum-source diagnostics and hosted-tool metadata for limited-evidence results.
 
 ### Changed
 

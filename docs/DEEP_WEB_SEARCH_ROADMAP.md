@@ -76,11 +76,12 @@ Current synthesis support:
 - Cycle 11 adds response and hosted-tool metadata diagnostics for failed subqueries, unresponsive engines, selected/discarded planner counts, and source counts.
 - Cycle 12 adds recipe and example coverage that registers `custom:deep_web_search` separately from default `web_search`.
 - Cycle 13 adds `no_supporting_evidence` response diagnostics plus `noSupportingEvidence` hosted-tool metadata when all searched branches return zero merged sources.
+- Cycle 14 adds optional `min_sources` request handling with below-minimum-source synthesis instructions, response diagnostics, and hosted-tool metadata.
 
 Roadmap:
 
 - Define a host-injected synthesis executor that can be disabled by default.
-- Add citation budget controls and minimum-source requirements.
+- Add citation budget controls.
 - Add answer-shape modes such as brief answer, evidence table, and research memo.
 
 ## Test Plan
@@ -93,3 +94,4 @@ Required before recommending deep search as productized:
 - Done: executor tests for budget limits, external web access false, domain filters, and unresponsive engines.
 - Done: documentation examples that keep `custom:deep_web_search` separate from default `web_search`.
 - Done: no-supporting-evidence tests for empty branch results and hosted-tool metadata.
+- Done: minimum-source tests for limited-evidence synthesis instructions and hosted-tool metadata.

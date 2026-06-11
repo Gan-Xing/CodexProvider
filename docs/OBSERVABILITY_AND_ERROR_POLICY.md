@@ -85,6 +85,8 @@ Cycle 9 audit added local-index hit/miss counts to metasearch-backed web-search 
 
 Cycle 13 audit added deep-search `no_supporting_evidence` response diagnostics and hosted-tool `noSupportingEvidence` metadata. The flag is derived from an empty merged-source set and does not copy query text, snippets, URLs, or provider payloads into observability metadata.
 
+Cycle 14 audit added deep-search `minimum_source_count` / `below_minimum_sources` response diagnostics and hosted-tool `minimumSourceCount` / `belowMinimumSources` metadata. These fields expose aggregate source-count policy state only.
+
 Remaining hardening for future cycles:
 
 - No known structured-observability gaps remain from this recursive audit. Future cycles should re-audit as hosted-tool surfaces or telemetry requirements change.

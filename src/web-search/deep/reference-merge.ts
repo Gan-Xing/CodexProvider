@@ -29,6 +29,10 @@ export interface CodexProviderDeepSearchReferenceMergeOptions {
   maxSources?: number | null;
 }
 
+export interface CodexProviderDeepSearchSynthesisInstructionOptions {
+  minimumSourceCount?: number | null;
+}
+
 export function mergeCodexProviderDeepSearchReferences(
   subqueries: CodexProviderDeepSearchSubqueryResult[],
   options: CodexProviderDeepSearchReferenceMergeOptions = {},
@@ -68,15 +72,21 @@ export function mergeCodexProviderDeepSearchReferences(
 
 export function buildCodexProviderDeepSearchSynthesisInstructions(
   references: CodexProviderDeepSearchReference[],
+  options: CodexProviderDeepSearchSynthesisInstructionOptions = {},
 ): string {
   if (references.length === 0) {
     return 'No supporting sources were found. State that the research graph did not find supporting web evidence, avoid citations, and do not infer factual claims beyond the query and subquery diagnostics.';
   }
-  return [
+  const minimumSourceCount = normalizePositiveInteger(options.minimumSourceCount);
+  const clauses = [
     `Synthesize the deep search findings using the ${references.length} merged sources.`,
     'Cite factual claims with [[source:N]] placeholders where N is the merged source id.',
     'Prefer sources that support multiple subqueries when resolving conflicts.',
-  ].join(' ');
+  ];
+  if (minimumSourceCount !== null && references.length < minimumSourceCount) {
+    clauses.push(`Only ${references.length} merged sources were found, below the requested minimum of ${minimumSourceCount}; state that evidence is limited and do not overstate confidence.`);
+  }
+  return clauses.join(' ');
 }
 
 function referenceFromGroup(group: {
@@ -114,4 +124,12 @@ function clampInteger(value: unknown, min: number, max: number, fallback: number
     return fallback;
   }
   return Math.min(max, Math.max(min, number));
+}
+
+function normalizePositiveInteger(value: unknown): number | null {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < 1) {
+    return null;
+  }
+  return number;
 }

@@ -39,6 +39,7 @@ export interface CodexProviderDeepSearchRequest {
   maxSubqueries?: number | null;
   maxResultsPerSubquery?: number | null;
   maxSources?: number | null;
+  minSources?: number | null;
   allowedDomains?: string[] | null;
   blockedDomains?: string[] | null;
   externalWebAccess?: boolean | null;
@@ -83,6 +84,8 @@ export interface CodexProviderDeepSearchResponse {
     instructions: string;
     source_count: number;
     subquery_count: number;
+    minimum_source_count: number | null;
+    below_minimum_sources: boolean;
     no_supporting_evidence: boolean;
   };
   diagnostics: {
@@ -93,6 +96,8 @@ export interface CodexProviderDeepSearchResponse {
     failed_subquery_count: number;
     unresponsive_engine_count: number;
     source_count: number;
+    minimum_source_count: number | null;
+    below_minimum_sources: boolean;
     no_supporting_evidence: boolean;
   };
   retrieved_at: string;
@@ -167,6 +172,8 @@ export function createCodexProviderDeepWebSearchExecutor(
         discardedSubqueryCount: content.diagnostics.discarded_subquery_count,
         failedSubqueryCount: content.diagnostics.failed_subquery_count,
         unresponsiveEngineCount: content.diagnostics.unresponsive_engine_count,
+        minimumSourceCount: content.diagnostics.minimum_source_count,
+        belowMinimumSources: content.diagnostics.below_minimum_sources,
         noSupportingEvidence: content.diagnostics.no_supporting_evidence,
         externalWebAccess: content.external_web_access,
       },
@@ -242,6 +249,7 @@ function deepSearchResponseFromReferences({
   const unresponsiveEngines = subqueries.flatMap((subquery) => subquery.response?.unresponsiveEngines ?? []);
   const failedSubqueryCount = subqueries.filter((subquery) => subquery.error).length;
   const noSupportingEvidence = references.length === 0;
+  const belowMinimumSources = request.minSources !== null && references.length < request.minSources;
   return {
     query: request.query,
     provider: 'deep-search',
@@ -278,9 +286,13 @@ function deepSearchResponseFromReferences({
       url: reference.url,
     })),
     synthesis: {
-      instructions: buildCodexProviderDeepSearchSynthesisInstructions(references),
+      instructions: buildCodexProviderDeepSearchSynthesisInstructions(references, {
+        minimumSourceCount: request.minSources,
+      }),
       source_count: references.length,
       subquery_count: subqueries.length,
+      minimum_source_count: request.minSources,
+      below_minimum_sources: belowMinimumSources,
       no_supporting_evidence: noSupportingEvidence,
     },
     diagnostics: {
@@ -291,6 +303,8 @@ function deepSearchResponseFromReferences({
       failed_subquery_count: failedSubqueryCount,
       unresponsive_engine_count: unresponsiveEngines.length,
       source_count: references.length,
+      minimum_source_count: request.minSources,
+      below_minimum_sources: belowMinimumSources,
       no_supporting_evidence: noSupportingEvidence,
     },
     retrieved_at: now.toISOString(),
@@ -310,6 +324,7 @@ interface RequiredDeepSearchRequest {
   maxSubqueries: number;
   maxResultsPerSubquery: number;
   maxSources: number;
+  minSources: number | null;
   allowedDomains: string[];
   blockedDomains: string[];
   externalWebAccess: boolean;
@@ -334,6 +349,7 @@ function normalizeDeepSearchRequest(
     maxSubqueries: clampInteger(request.maxSubqueries ?? options.maxSubqueries, 1, 12, 4),
     maxResultsPerSubquery: clampInteger(request.maxResultsPerSubquery ?? options.maxResultsPerSubquery, 1, 20, 5),
     maxSources: clampInteger(request.maxSources ?? options.maxSources, 1, 100, 20),
+    minSources: optionalClampInteger(request.minSources, 1, 100),
     allowedDomains: normalizeDomainList(request.allowedDomains),
     blockedDomains: normalizeDomainList(request.blockedDomains),
     externalWebAccess: request.externalWebAccess !== false,
@@ -357,6 +373,7 @@ function deepSearchRequestFromHostedTool(
     maxSubqueries: args.max_subqueries ?? args.maxSubqueries,
     maxResultsPerSubquery: args.max_results_per_subquery ?? args.maxResultsPerSubquery ?? args.max_results,
     maxSources: args.max_sources ?? args.maxSources,
+    minSources: args.min_sources ?? args.minSources,
     allowedDomains: filters.allowedDomains,
     blockedDomains: filters.blockedDomains,
     externalWebAccess: args.external_web_access !== false,
@@ -437,6 +454,17 @@ function clampInteger(value: unknown, min: number, max: number, fallback: number
   const number = Number(value);
   if (!Number.isInteger(number)) {
     return fallback;
+  }
+  return Math.min(max, Math.max(min, number));
+}
+
+function optionalClampInteger(value: unknown, min: number, max: number): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const number = Number(value);
+  if (!Number.isInteger(number)) {
+    return null;
   }
   return Math.min(max, Math.max(min, number));
 }
