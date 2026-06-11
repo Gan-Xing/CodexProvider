@@ -83,6 +83,8 @@ Cycle 8 audit added retrieval cache hit/miss counts to `web_search.executed` tra
 
 Cycle 9 audit added local-index hit/miss counts to metasearch-backed web-search metadata and `web_search.executed` trace summaries. Local-index hits count result rows returned by engines explicitly marked as local indexes; misses count local-index engine queries that completed successfully with zero results.
 
+Cycle 13 audit added deep-search `no_supporting_evidence` response diagnostics and hosted-tool `noSupportingEvidence` metadata. The flag is derived from an empty merged-source set and does not copy query text, snippets, URLs, or provider payloads into observability metadata.
+
 Remaining hardening for future cycles:
 
 - No known structured-observability gaps remain from this recursive audit. Future cycles should re-audit as hosted-tool surfaces or telemetry requirements change.

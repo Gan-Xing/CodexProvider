@@ -393,7 +393,43 @@ test('deep search runner records partial failures and unresponsive diagnostics',
     failed_subquery_count: 1,
     unresponsive_engine_count: 1,
     source_count: 1,
+    no_supporting_evidence: false,
   });
+});
+
+test('deep web search executor marks no supporting evidence when all branches are empty', async () => {
+  const seenRequests: CodexProviderSearchRequest[] = [];
+  const search: CodexProviderMetaSearchService = {
+    async search(request) {
+      seenRequests.push(JSON.parse(JSON.stringify(request)));
+      return searchResponse(request, []);
+    },
+  };
+  const executor = createCodexProviderDeepWebSearchExecutor({
+    search,
+    maxSubqueries: 2,
+    maxResultsPerSubquery: 1,
+    now: () => new Date('2026-06-08T00:00:00.000Z'),
+  });
+
+  const result = await executor(baseRequest({
+    query: 'uncovered research topic',
+    max_sources: 3,
+  }));
+  const content = result.content as any;
+
+  assert.equal(seenRequests.length, 2);
+  assert.equal(content.results.length, 0);
+  assert.equal(content.sources.length, 0);
+  assert.equal(content.citations.length, 0);
+  assert.equal(content.synthesis.source_count, 0);
+  assert.equal(content.synthesis.no_supporting_evidence, true);
+  assert.match(content.synthesis.instructions, /No supporting sources were found/u);
+  assert.equal(content.diagnostics.source_count, 0);
+  assert.equal(content.diagnostics.no_supporting_evidence, true);
+  assert.equal(result.metadata?.sourceCount, 0);
+  assert.equal(result.metadata?.resultCount, 0);
+  assert.equal(result.metadata?.noSupportingEvidence, true);
 });
 
 test('deep web search executor exposes deep-search content for custom hosted tools', async () => {

@@ -459,23 +459,32 @@ Cycle semantics:
 <!-- cycle:13:start -->
 ## Cycle 13 Backlog
 
-### Audit
+### C13-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+- [x] Identify Cycle 13 implementation scope: add deep-search no-supporting-evidence metadata and policy coverage.
+
+### C13-B Deep Search No-Evidence Policy
+
+- [x] Add response-level `synthesis.no_supporting_evidence` and `diagnostics.no_supporting_evidence` when merged sources are empty.
+- [x] Add hosted-tool executor `noSupportingEvidence` metadata for empty research graphs.
+- [x] Strengthen no-source synthesis instructions so downstream models avoid citations and unsupported factual claims.
+- [x] Add regression coverage for empty branch results and no-supporting-evidence metadata.
+- [x] Update roadmap, tracker, changelog, observability policy, and recursive backlog.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
-- [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 13.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
+- [x] Update this backlog so no unchecked `- [ ]` remains in Cycle 13, except the commit/push and complete-cycle steps that must happen after the feature commit.
 - [ ] Commit and push.
 - [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
 <!-- cycle:13:end -->

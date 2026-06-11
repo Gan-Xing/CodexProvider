@@ -70,7 +70,7 @@ export function buildCodexProviderDeepSearchSynthesisInstructions(
   references: CodexProviderDeepSearchReference[],
 ): string {
   if (references.length === 0) {
-    return 'No sources were found. State that the research graph did not find supporting web evidence.';
+    return 'No supporting sources were found. State that the research graph did not find supporting web evidence, avoid citations, and do not infer factual claims beyond the query and subquery diagnostics.';
   }
   return [
     `Synthesize the deep search findings using the ${references.length} merged sources.`,

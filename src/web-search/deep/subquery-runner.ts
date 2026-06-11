@@ -83,6 +83,7 @@ export interface CodexProviderDeepSearchResponse {
     instructions: string;
     source_count: number;
     subquery_count: number;
+    no_supporting_evidence: boolean;
   };
   diagnostics: {
     planner_strategy: string | null;
@@ -92,6 +93,7 @@ export interface CodexProviderDeepSearchResponse {
     failed_subquery_count: number;
     unresponsive_engine_count: number;
     source_count: number;
+    no_supporting_evidence: boolean;
   };
   retrieved_at: string;
   external_web_access: boolean;
@@ -165,6 +167,7 @@ export function createCodexProviderDeepWebSearchExecutor(
         discardedSubqueryCount: content.diagnostics.discarded_subquery_count,
         failedSubqueryCount: content.diagnostics.failed_subquery_count,
         unresponsiveEngineCount: content.diagnostics.unresponsive_engine_count,
+        noSupportingEvidence: content.diagnostics.no_supporting_evidence,
         externalWebAccess: content.external_web_access,
       },
     };
@@ -238,6 +241,7 @@ function deepSearchResponseFromReferences({
   const searchNodeCount = graph.nodes.filter((node) => node.type === 'search').length;
   const unresponsiveEngines = subqueries.flatMap((subquery) => subquery.response?.unresponsiveEngines ?? []);
   const failedSubqueryCount = subqueries.filter((subquery) => subquery.error).length;
+  const noSupportingEvidence = references.length === 0;
   return {
     query: request.query,
     provider: 'deep-search',
@@ -277,6 +281,7 @@ function deepSearchResponseFromReferences({
       instructions: buildCodexProviderDeepSearchSynthesisInstructions(references),
       source_count: references.length,
       subquery_count: subqueries.length,
+      no_supporting_evidence: noSupportingEvidence,
     },
     diagnostics: {
       planner_strategy: plan.diagnostics?.strategy ?? null,
@@ -286,6 +291,7 @@ function deepSearchResponseFromReferences({
       failed_subquery_count: failedSubqueryCount,
       unresponsive_engine_count: unresponsiveEngines.length,
       source_count: references.length,
+      no_supporting_evidence: noSupportingEvidence,
     },
     retrieved_at: now.toISOString(),
     external_web_access: request.externalWebAccess,
