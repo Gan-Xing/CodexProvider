@@ -669,6 +669,31 @@ Cycle semantics:
 - [x] Run pnpm check-package-surface.
 - [x] Run pnpm pack:dry-run.
 - [x] Update this backlog so no unchecked `- [ ]` remains in Cycle 18, except the commit/push and complete-cycle steps that must happen after the feature commit.
+- [x] Commit and push.
+- [x] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
+<!-- cycle:18:end -->
+
+
+<!-- cycle:19:start -->
+## Cycle 19 Backlog
+
+### Audit
+
+- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [ ] Generate a concrete backlog for this cycle based on current repository state.
+- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+
+### Validation
+
+- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
+- [ ] Run pnpm test.
+- [ ] Run pnpm typecheck.
+- [ ] Run pnpm build.
+- [ ] Run pnpm consumer:harness.
+- [ ] Run pnpm check-boundary.
+- [ ] Run pnpm check-package-surface.
+- [ ] Run pnpm pack:dry-run.
+- [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 19.
 - [ ] Commit and push.
 - [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
-<!-- cycle:18:end -->
+<!-- cycle:19:end -->
