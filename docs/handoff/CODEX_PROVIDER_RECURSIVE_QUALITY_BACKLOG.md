@@ -282,3 +282,28 @@ Cycle semantics:
 - [x] Commit and push.
 - [x] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
 <!-- cycle:7:end -->
+
+
+<!-- cycle:8:start -->
+## Cycle 8 Backlog
+
+### Audit
+
+- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [ ] Generate a concrete backlog for this cycle based on current repository state.
+- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+
+### Validation
+
+- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
+- [ ] Run pnpm test.
+- [ ] Run pnpm typecheck.
+- [ ] Run pnpm build.
+- [ ] Run pnpm consumer:harness.
+- [ ] Run pnpm check-boundary.
+- [ ] Run pnpm check-package-surface.
+- [ ] Run pnpm pack:dry-run.
+- [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 8.
+- [ ] Commit and push.
+- [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
+<!-- cycle:8:end -->

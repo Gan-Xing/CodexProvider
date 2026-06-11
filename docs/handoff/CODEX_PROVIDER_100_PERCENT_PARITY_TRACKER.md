@@ -568,7 +568,7 @@ pnpm build                                     # passed
 pnpm consumer:harness                          # passed
 pnpm check-boundary                            # passed
 pnpm check-package-surface                     # passed
-pnpm pack:dry-run                              # passed: 593 files, 351.5 kB package size, 1.6 MB unpacked
+pnpm pack:dry-run                              # passed: 593 files, 351.6 kB package size, 1.6 MB unpacked
 ```
 
 Additional focused and optional validation:
