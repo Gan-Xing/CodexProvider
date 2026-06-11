@@ -71,9 +71,10 @@ Cycle 1 audit found that trace events were opt-in but could previously include f
 
 Cycle 2 audit closed the plain-object hosted-tool loop-exceeded gap. Non-streaming and streaming adapter-emulated hosted-tool loop exhaustion now use a typed internal error helper and return structured `category` and `retry` metadata through the public Responses route.
 
+Cycle 4 audit added regression coverage for hosted-tool SSE trace redaction. Client SSE lifecycle events still carry executor output, while mirrored `stream.event` traces are sanitized before `traceSink` receives deltas, metadata, and output previews.
+
 Remaining hardening for future cycles:
 
 - Add structured trace events for search engine latency/failure stats.
 - Add retrieval cache hit/miss and local index hit/miss trace summaries.
 - Add citation placeholder count summaries.
-- Add tests for trace redaction on hosted-tool SSE output previews and deltas.

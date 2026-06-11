@@ -92,12 +92,12 @@ It must not include secrets, `.env` files, local indexes, generated caches, Tele
 
 ## Last Dry-Run Snapshot
 
-Recorded on 2026-06-10 with `npm pack --dry-run --json`:
+Recorded on 2026-06-11 with `npm pack --dry-run --json`:
 
 - Package: `@codex-provider/core@0.1.0-alpha.0`
 - Tarball: `codex-provider-core-0.1.0-alpha.0.tgz`
 - Total files: 593
-- Package size: 348.3 kB
+- Package size: 348.7 kB
 - Unpacked size: 1.6 MB
 - Top-level shipped entries: `dist`, `README.md`, `CHANGELOG.md`, `LICENSE`, `docs`, `examples`, `package.json`
 - Examples are intentionally shipped for alpha host integration reference.

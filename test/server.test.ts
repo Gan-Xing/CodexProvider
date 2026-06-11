@@ -2517,6 +2517,128 @@ test('adapter server emits opt-in hosted tool SSE lifecycle events', async () =>
   }
 });
 
+test('adapter server redacts hosted tool SSE deltas and previews before trace sinks', async () => {
+  const fakeSecret = `sk-${'hostedtoolsecret1234567890'}`;
+  const traceEvents: any[] = [];
+  const server = new OpenAICompatibleResponsesAdapterServer({
+    apiKey: 'test-key',
+    traceSink: (event) => {
+      traceEvents.push(JSON.parse(JSON.stringify(event)));
+    },
+    providerCapabilities: {
+      supportsBuiltinWebSearchTool: false,
+    },
+    hostedTools: [{
+      name: 'web_search',
+      mode: 'adapter-emulated',
+      emulatedToolName: 'adapter_web_search',
+    }],
+    hostedToolExecutors: {
+      web_search: async (request) => {
+        await request.emitDelta?.(`querying with ${fakeSecret}`, {
+          authorization: `Bearer ${fakeSecret}`,
+        });
+        return {
+          content: {
+            results: [{
+              title: 'Sensitive Adapter Result',
+              url: 'https://example.com/sensitive-adapter',
+              snippet: `preview contains ${fakeSecret}`,
+            }],
+          },
+        };
+      },
+    },
+    emitHostedToolSseEvents: true,
+    fetchImpl: (async (_url, init) => {
+      const requestBody = JSON.parse(String(init?.body ?? '{}'));
+      if (requestBody.messages.some((message: any) => message.role === 'tool')) {
+        return createEventStreamResponse([
+          {
+            id: 'chatcmpl_sensitive_search_2',
+            created: 1_700_000_515,
+            model: 'adapter-search-model',
+            choices: [{
+              index: 0,
+              delta: {
+                content: 'sensitive final answer',
+              },
+            }],
+          },
+          {
+            id: 'chatcmpl_sensitive_search_2',
+            created: 1_700_000_515,
+            model: 'adapter-search-model',
+            choices: [{
+              index: 0,
+              finish_reason: 'stop',
+            }],
+          },
+        ]);
+      }
+      return createEventStreamResponse([
+        {
+          id: 'chatcmpl_sensitive_search_1',
+          created: 1_700_000_515,
+          model: 'adapter-search-model',
+          choices: [{
+            index: 0,
+            delta: {
+              tool_calls: [{
+                index: 0,
+                id: 'call_sensitive_search_1',
+                type: 'function',
+                function: {
+                  name: 'adapter_web_search',
+                  arguments: '{"query":"sensitive search"}',
+                },
+              }],
+            },
+          }],
+        },
+        {
+          id: 'chatcmpl_sensitive_search_1',
+          created: 1_700_000_515,
+          model: 'adapter-search-model',
+          choices: [{
+            index: 0,
+            finish_reason: 'tool_calls',
+          }],
+        },
+      ]);
+    }) as typeof fetch,
+  });
+
+  await server.start();
+  try {
+    const response = await fetch(`${server.baseUrl}/v1/responses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'adapter-search-model',
+        input: 'Find sensitive adapter info.',
+        stream: true,
+        tools: [{
+          type: 'web_search',
+        }],
+      }),
+    });
+    const responseText = await response.text();
+    const events = parseSseText(responseText);
+    assert.equal(response.status, 200);
+    assert.match(responseText, new RegExp(fakeSecret, 'u'));
+    assert.equal(events.some((event) => event.event === 'hosted_tool.delta'), true);
+    assert.equal(events.some((event) => event.event === 'hosted_tool.completed'), true);
+
+    const serializedTraceEvents = JSON.stringify(traceEvents);
+    assert.doesNotMatch(serializedTraceEvents, new RegExp(fakeSecret, 'u'));
+    assert.match(serializedTraceEvents, /<redacted>/u);
+    assert.equal(traceEvents.some((event) => event.type === 'stream.event'), true);
+  } finally {
+    await server.stop();
+  }
+});
+
 test('adapter server emits code_interpreter stdout and stderr hosted tool deltas', async () => {
   const server = new OpenAICompatibleResponsesAdapterServer({
     apiKey: 'test-key',

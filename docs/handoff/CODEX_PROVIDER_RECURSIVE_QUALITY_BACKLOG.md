@@ -155,23 +155,30 @@ Cycle semantics:
 <!-- cycle:4:start -->
 ## Cycle 4 Backlog
 
-### Audit
+### C4-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+- [x] Identify Cycle 4 implementation scope: close hosted-tool SSE trace redaction test coverage.
+
+### C4-B Observability Redaction Coverage
+
+- [x] Add a server regression test that emits fake-secret content through hosted-tool SSE delta metadata and completed output preview.
+- [x] Verify client SSE still carries executor output while mirrored trace events sent to `traceSink` are redacted.
+- [x] Update observability docs to remove hosted-tool SSE redaction tests from future work.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
-- [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 4.
-- [ ] Commit and push.
-- [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
+- [x] Update this backlog so no unchecked `- [ ]` remains in Cycle 4.
+- [x] Commit and push.
+- [x] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
 <!-- cycle:4:end -->
