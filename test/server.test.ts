@@ -1088,6 +1088,7 @@ test('adapter server executes adapter-emulated web_search inside the Chat Comple
       assert.equal(requestBody.messages.at(-1).role, 'tool');
       assert.equal(requestBody.messages.at(-1).tool_call_id, 'call_search_1');
       assert.match(requestBody.messages.at(-1).content, /Codex Adapter Result/u);
+      assert.equal(requestBody.tool_choice, undefined);
       return new Response(JSON.stringify({
         id: 'chatcmpl_adapter_search_2',
         created: 1_700_000_452,
@@ -1889,6 +1890,7 @@ test('adapter server streams final answer after adapter-emulated web_search exec
       assert.equal(requestBody.messages.at(-2).tool_calls[0].function.name, 'adapter_web_search');
       assert.equal(requestBody.messages.at(-1).role, 'tool');
       assert.match(requestBody.messages.at(-1).content, /Streaming Adapter Result/u);
+      assert.equal(requestBody.tool_choice, undefined);
       return createEventStreamResponse([
         {
           id: 'chatcmpl_stream_adapter_search_2',
@@ -1937,6 +1939,7 @@ test('adapter server streams final answer after adapter-emulated web_search exec
         tools: [{
           type: 'web_search',
         }],
+        tool_choice: 'web_search',
       }),
     });
     const text = await response.text();

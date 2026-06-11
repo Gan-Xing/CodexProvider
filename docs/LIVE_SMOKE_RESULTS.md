@@ -218,3 +218,38 @@ This file records redacted live smoke evidence for `@codex-provider/core`.
 | `pnpm smoke:web-search` | Skipped live upstream | Script built successfully, verified offline local-index `web_search`, then skipped because upstream provider credentials were missing. |
 | API-backed Brave/Serper/Tavily web_search | [!] Pending credentials | Not run because the corresponding API keys were absent. |
 | `pnpm smoke:host` | Skipped live upstream | Script built and dry-run packed successfully, then skipped because upstream provider credentials were missing. |
+
+## 2026-06-11T10:23:30.494Z Adapter-emulated web_search live smoke
+
+- Provider base URL host: `144.217.243.161:8320`
+- Model: `gpt-5.3-codex-spark`
+- Search provider: `builtin-metasearch`
+- Upstream key env: `CODEX_PROVIDER_API_KEY=<redacted>`
+- Search credential: `not set; built-in no-key metasearch`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Offline local-index path | Passed | Direct executor request used `external_web_access=false` and returned the seeded local-cache result. |
+| Non-streaming adapter web_search | Passed | web_search_call sources: 5; results: 5; annotations: 1; latency: 5133 ms. |
+| Streaming adapter web_search | Passed | SSE events: 14; web_search_call sources: 5; results: 5; annotations: 1; latency: 8816 ms. |
+
+## 2026-06-11T10:24:07.343Z CodexProviderRuntime live host integration smoke
+
+- Provider base URL host: `144.217.243.161:8320`
+- Model: `gpt-5.3-codex-spark`
+- Runtime mode: `mixed`
+- Tool strategy: `adapter-emulated`
+- Upstream key env: `CODEX_PROVIDER_API_KEY=<redacted>`
+- Search provider: `builtin-metasearch`
+- Search key env: `<not set; built-in no-key metasearch>`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Mixed runtime local adapter | Passed | Adapter base URL host: 127.0.0.1:40841. |
+| Normal response | Passed | Latency: 1995 ms. |
+| Custom tool loop | Passed | First turn produced echo_probe; second turn returned final text. Latency: 2318 ms. |
+| Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 1597 ms. |
+| Adapter-emulated web_search | Passed | Sources: 5; results: 5; annotations: 1; latency: 6262 ms. |
+| Streaming adapter-emulated web_search | Passed | SSE events: 14; sources: 5; results: 5; annotations: 1; latency: 5870 ms. |

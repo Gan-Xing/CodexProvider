@@ -261,6 +261,7 @@ export async function writeAdapterHostedToolStreamingResponse({
       });
       appendDeferredToolsFromToolSearch(loopChatBody, executionResult);
     }
+    delete loopChatBody.tool_choice;
   }
 
   writeJson(response, 502, {

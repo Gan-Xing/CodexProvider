@@ -136,6 +136,7 @@ export async function completeAdapterHostedToolLoop({
         appendDeferredToolsFromToolSearch(loopChatBody, executionResult);
       }
     }
+    delete loopChatBody.tool_choice;
 
     const upstream = await fetchUpstreamWithRetry(
       upstreamUrl,
