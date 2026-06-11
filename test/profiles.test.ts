@@ -6,6 +6,8 @@ import {
   codexBaseUrlForProfile,
   createCodexProviderDashScopeQwenProfile,
   createCodexProviderDeepSeekProfile,
+  createCodexProviderMiniMaxProfile,
+  createCodexProviderMoonshotKimiProfile,
   createCodexProviderOpenRouterProfile,
   defaultProtocolForProfileMode,
 } from '../src/index.js';
@@ -188,4 +190,26 @@ test('provider profile presets expose recommended mode, env names, and capabilit
   assert.equal(qwen.providerPreset.capabilityPresetId, 'qwen');
   assert.equal(qwen.providerPreset.capabilities?.supportsBuiltinWebSearchTool, true);
   assert.ok(qwen.codexCliArgs.includes('model_providers.dashscope_qwen.env_key="DASHSCOPE_API_KEY"'));
+
+  const minimax = createCodexProviderMiniMaxProfile({
+    protocolProxyPort: 58017,
+  });
+  assert.equal(minimax.mode, 'mixed');
+  assert.equal(minimax.providerLabel, 'minimax');
+  assert.equal(minimax.upstreamBaseUrl, 'https://api.minimaxi.com/v1');
+  assert.equal(minimax.configInput.apiKeyEnv, 'MINIMAX_API_KEY');
+  assert.equal(minimax.providerPreset.env.modelEnv, 'MINIMAX_MODEL');
+  assert.equal(minimax.providerPreset.capabilityPresetId, 'minimax');
+  assert.equal(minimax.providerPreset.capabilities?.multimodal?.supportsImageInput, false);
+
+  const kimi = createCodexProviderMoonshotKimiProfile({
+    protocolProxyPort: 58018,
+  });
+  assert.equal(kimi.mode, 'mixed');
+  assert.equal(kimi.providerLabel, 'kimi');
+  assert.equal(kimi.upstreamBaseUrl, 'https://api.kimi.com/coding');
+  assert.equal(kimi.configInput.apiKeyEnv, 'KIMI_API_KEY');
+  assert.equal(kimi.providerPreset.env.alternativeApiKeyEnv, 'MOONSHOT_API_KEY');
+  assert.equal(kimi.providerPreset.capabilityPresetId, 'kimi');
+  assert.equal(kimi.providerPreset.capabilities?.multimodal?.supportsFileInput, false);
 });

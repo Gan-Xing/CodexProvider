@@ -64,7 +64,9 @@ export interface CodexProviderProfile {
 export type CodexProviderProviderProfilePresetId =
   | 'openrouter'
   | 'deepseek'
-  | 'dashscope-qwen';
+  | 'dashscope-qwen'
+  | 'minimax'
+  | 'moonshot-kimi';
 
 export interface BuildCodexProviderPresetProfileInput {
   mode?: CodexProviderProfileMode | null;
@@ -148,6 +150,27 @@ const PROVIDER_PROFILE_PRESETS: Record<CodexProviderProviderProfilePresetId, Pro
     alternativeModelEnv: 'QWEN_MODEL',
     recommendedProfileMode: 'mixed',
   },
+  minimax: {
+    id: 'minimax',
+    capabilityPresetId: 'minimax',
+    providerLabel: 'minimax',
+    apiKeyEnv: 'MINIMAX_API_KEY',
+    baseUrlEnv: 'MINIMAX_BASE_URL',
+    modelEnv: 'MINIMAX_MODEL',
+    recommendedProfileMode: 'mixed',
+  },
+  'moonshot-kimi': {
+    id: 'moonshot-kimi',
+    capabilityPresetId: 'kimi',
+    providerLabel: 'kimi',
+    apiKeyEnv: 'KIMI_API_KEY',
+    baseUrlEnv: 'KIMI_BASE_URL',
+    modelEnv: 'KIMI_MODEL',
+    alternativeApiKeyEnv: 'MOONSHOT_API_KEY',
+    alternativeBaseUrlEnv: 'MOONSHOT_BASE_URL',
+    alternativeModelEnv: 'MOONSHOT_MODEL',
+    recommendedProfileMode: 'mixed',
+  },
 };
 
 export function buildCodexProviderProfile(
@@ -213,6 +236,18 @@ export function createCodexProviderDashScopeQwenProfile(
   input: BuildCodexProviderPresetProfileInput = {},
 ): CodexProviderPresetProfile {
   return buildPresetProfile('dashscope-qwen', input);
+}
+
+export function createCodexProviderMiniMaxProfile(
+  input: BuildCodexProviderPresetProfileInput = {},
+): CodexProviderPresetProfile {
+  return buildPresetProfile('minimax', input);
+}
+
+export function createCodexProviderMoonshotKimiProfile(
+  input: BuildCodexProviderPresetProfileInput = {},
+): CodexProviderPresetProfile {
+  return buildPresetProfile('moonshot-kimi', input);
 }
 
 export function defaultProtocolForProfileMode(

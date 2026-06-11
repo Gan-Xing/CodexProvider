@@ -114,23 +114,39 @@ Cycle semantics:
 <!-- cycle:3:start -->
 ## Cycle 3 Backlog
 
-### Audit
+### C3-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+- [x] Identify Cycle 3 implementation scope: extend provider profile helper coverage for documented providers with existing capability presets.
+
+### C3-B Provider Profile Presets
+
+- [x] Add `createCodexProviderMiniMaxProfile()` backed by the existing MiniMax capability preset.
+- [x] Add `createCodexProviderMoonshotKimiProfile()` backed by the existing Kimi capability preset.
+- [x] Preserve provider preset metadata for env names, default base URLs, recommended mode, upstream path, and capability metadata.
+- [x] Add profile tests for MiniMax and Moonshot/Kimi defaults.
+- [x] Update root public-surface expectations for the new helpers.
+
+### C3-C Documentation
+
+- [x] Update README and recipes with the expanded helper surface.
+- [x] Update provider compatibility matrix to mark MiniMax and Moonshot/Kimi profile helpers as available while live evidence remains `[!] Pending credentials`.
+- [x] Update the recursive loop handoff planned-helper list to match the actual helper names.
+- [!] SiliconFlow profile helper remains blocked because no package capability preset or live behavior record exists yet.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
-- [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 3.
-- [ ] Commit and push.
-- [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
+- [x] Update this backlog so no unchecked `- [ ]` remains in Cycle 3.
+- [x] Commit and push.
+- [x] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
 <!-- cycle:3:end -->

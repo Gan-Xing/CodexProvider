@@ -84,10 +84,11 @@ Presets 应逐步形成：
 createCodexProviderOpenRouterProfile()
 createCodexProviderDeepSeekProfile()
 createCodexProviderDashScopeQwenProfile()
-createCodexProviderSiliconFlowProfile()
 createCodexProviderMiniMaxProfile()
-createCodexProviderKimiProfile()
+createCodexProviderMoonshotKimiProfile()
 ```
+
+SiliconFlow remains pending until a package capability preset and live behavior record exist.
 
 ### C. Web Search Productization
 

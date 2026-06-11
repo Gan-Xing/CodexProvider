@@ -31,11 +31,13 @@ console.log(profile.providerPreset.env.apiKeyEnv); // OPENROUTER_API_KEY
 console.log(profile.providerPreset.capabilities);
 ```
 
-Cycle 1 exposes:
+The current profile helper surface exposes:
 
 - `createCodexProviderOpenRouterProfile()`
 - `createCodexProviderDeepSeekProfile()`
 - `createCodexProviderDashScopeQwenProfile()`
+- `createCodexProviderMiniMaxProfile()`
+- `createCodexProviderMoonshotKimiProfile()`
 
 See [Provider Compatibility Matrix](PROVIDER_COMPATIBILITY_MATRIX.md) for provider-specific evidence status.
 
