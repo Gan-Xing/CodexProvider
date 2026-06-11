@@ -611,7 +611,7 @@ pnpm build                                     # passed
 pnpm consumer:harness                          # passed
 pnpm check-boundary                            # passed
 pnpm check-package-surface                     # passed
-pnpm pack:dry-run                              # passed: 593 files, 352.8 kB package size, 1.6 MB unpacked
+pnpm pack:dry-run                              # passed: 593 files, 352.9 kB package size, 1.6 MB unpacked
 ```
 
 Additional focused and optional validation:
@@ -619,4 +619,5 @@ Additional focused and optional validation:
 ```bash
 pnpm exec tsx --test test/web_search_local_index.test.ts test/web_search_executor.test.ts test/web_search_responses_output.test.ts  # passed: 30 tests
 credential presence check                                                                                                            # upstream and API-backed search credentials missing; live smokes skipped
+git diff --check                                                                                                                     # passed
 ```
