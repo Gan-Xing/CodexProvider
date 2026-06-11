@@ -287,23 +287,32 @@ Cycle semantics:
 <!-- cycle:8:start -->
 ## Cycle 8 Backlog
 
-### Audit
+### C8-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+- [x] Identify Cycle 8 implementation scope: add retrieval cache hit/miss counts to web-search execution observability.
+
+### C8-B Retrieval Cache Observability
+
+- [x] Add `retrievalCacheHitCount` and `retrievalCacheMissCount` to `web_search.executed` traces.
+- [x] Add the same retrieval cache counts to standard web-search executor metadata.
+- [x] Cover cache-hit and cache-miss behavior without tracing query text, URLs, snippets, or retrieved document bodies.
+- [x] Update observability docs, tracker, changelog, and recursive backlog.
+- [x] Leave local-index hit/miss trace summaries for a future cycle because they require engine-level instrumentation beyond retrieval document metadata.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
-- [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 8.
-- [ ] Commit and push.
-- [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
+- [x] Update this backlog so no unchecked `- [ ]` remains in Cycle 8.
+- [x] Commit and push.
+- [x] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
 <!-- cycle:8:end -->

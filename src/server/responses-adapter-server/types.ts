@@ -156,6 +156,8 @@ export type CodexProviderTraceEvent =
     documentCount: number;
     chunkCount: number;
     retrievalErrorCount: number;
+    retrievalCacheHitCount: number;
+    retrievalCacheMissCount: number;
     unresponsiveEngineCount: number;
     engineTimingCount: number;
     warningCount: number;

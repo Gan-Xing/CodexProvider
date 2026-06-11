@@ -208,6 +208,7 @@ function emitWebSearchExecutionTrace({
   const content = jsonRecordFromUnknown(resultContent);
   const metadata = jsonRecordFromUnknown(resultMetadata);
   const timings = jsonRecordFromUnknown(content?.timings);
+  const documents = jsonRecordsFromArray(content?.documents);
 
   emitTrace({
     type: 'web_search.executed',
@@ -225,6 +226,16 @@ function emitWebSearchExecutionTrace({
     documentCount: countFromMetadata(metadata, 'documentCount', content?.documents),
     chunkCount: countFromMetadata(metadata, 'chunkCount', content?.chunks),
     retrievalErrorCount: countFromMetadata(metadata, 'retrievalErrorCount', metadata?.retrievalErrors),
+    retrievalCacheHitCount: countFromMetadata(
+      metadata,
+      'retrievalCacheHitCount',
+      documents.filter((document) => document.from_cache === true),
+    ),
+    retrievalCacheMissCount: countFromMetadata(
+      metadata,
+      'retrievalCacheMissCount',
+      documents.filter((document) => document.from_cache === false),
+    ),
     unresponsiveEngineCount: arrayCount(content?.unresponsive_engines),
     engineTimingCount: timings ? Object.keys(timings).filter((key) => Number.isFinite(timings[key])).length : 0,
     warningCount: arrayCount(metadata?.warnings),
@@ -257,4 +268,18 @@ function jsonRecordFromUnknown(value: unknown): JsonRecord | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as JsonRecord
     : null;
+}
+
+function jsonRecordsFromArray(value: unknown): JsonRecord[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const records: JsonRecord[] = [];
+  for (const entry of value) {
+    const record = jsonRecordFromUnknown(entry);
+    if (record) {
+      records.push(record);
+    }
+  }
+  return records;
 }

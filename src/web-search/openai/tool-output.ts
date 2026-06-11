@@ -133,6 +133,8 @@ export function buildCodexProviderOpenAiWebSearchToolOutput({
       url: entry.result.url,
       error: entry.error,
     }));
+  const retrievalCacheHitCount = documents.filter((document) => document.from_cache).length;
+  const retrievalCacheMissCount = documents.filter((document) => !document.from_cache).length;
   const content: CodexProviderOpenAiWebSearchExecutorContent = {
     query: request.query,
     provider: 'metasearch',
@@ -162,6 +164,8 @@ export function buildCodexProviderOpenAiWebSearchToolOutput({
       documentCount: documents.length,
       chunkCount: chunks.length,
       retrievalErrorCount: retrievalErrors.length,
+      retrievalCacheHitCount,
+      retrievalCacheMissCount,
       retrievalErrors,
       externalWebAccess: request.externalWebAccess,
       searchContextSize: request.searchContextSize,

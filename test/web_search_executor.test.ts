@@ -480,6 +480,8 @@ test('metasearch web_search executor returns sources, chunks, and citation instr
   assert.match(content.chunks[0].text, /retrieval citations/u);
   assert.match(content.instructions, /\[\[source:N\]\]/u);
   assert.equal(result.metadata?.chunkCount, 1);
+  assert.equal(result.metadata?.retrievalCacheHitCount, 0);
+  assert.equal(result.metadata?.retrievalCacheMissCount, 1);
 });
 
 test('metasearch web_search executor fetches pages by default with engine results', async () => {
@@ -545,6 +547,8 @@ test('metasearch web_search executor fetches pages by default with engine result
   assert.match(content.chunks[0].text, /Default page retrieval content/u);
   assert.equal(result.metadata?.documentCount, 1);
   assert.equal(result.metadata?.chunkCount, 1);
+  assert.equal(result.metadata?.retrievalCacheHitCount, 0);
+  assert.equal(result.metadata?.retrievalCacheMissCount, 1);
 });
 
 test('metasearch web_search executor keeps page retrieval disabled when fetchPages is false', async () => {
@@ -683,6 +687,8 @@ test('metasearch web_search executor passes external_web_access=false through re
   assert.equal(retrievalExternalWebAccess, false);
   assert.equal(content.external_web_access, false);
   assert.equal(content.documents[0].from_cache, true);
+  assert.equal(result.metadata?.retrievalCacheHitCount, 1);
+  assert.equal(result.metadata?.retrievalCacheMissCount, 0);
 });
 
 test('web_search executor can build metasearch service from engines and processor', async () => {

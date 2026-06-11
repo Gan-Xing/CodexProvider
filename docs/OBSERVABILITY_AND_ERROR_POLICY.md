@@ -79,6 +79,8 @@ Cycle 6 audit added count-only `web_search.citations` trace summaries for adapte
 
 Cycle 7 audit added count-only `web_search.executed` trace summaries for adapter-emulated web search executor runs. The event records stream mode, call id, execution status, duration, result/source/document/chunk/retrieval-error/unresponsive-engine/timing/warning counts, external-web-access flag, search-context size, and metasearch mode without copying query text, URLs, snippets, retrieved documents, or raw provider payloads.
 
+Cycle 8 audit added retrieval cache hit/miss counts to `web_search.executed` trace summaries and web-search executor metadata. The counts are derived from `documents[].from_cache` and expose only aggregate hit/miss totals.
+
 Remaining hardening for future cycles:
 
-- Add retrieval cache hit/miss and local index hit/miss trace summaries.
+- Add local index hit/miss trace summaries.

@@ -377,6 +377,8 @@ test('responses output exposes adapter web_search call with sources, results, an
           documentCount: 1,
           chunkCount: 1,
           retrievalErrorCount: 0,
+          retrievalCacheHitCount: 0,
+          retrievalCacheMissCount: 1,
           externalWebAccess: true,
           searchContextSize: 'medium',
           warnings: ['ignored parameter'],
@@ -494,6 +496,8 @@ test('responses output exposes adapter web_search call with sources, results, an
     assert.equal(executionTrace.documentCount, 1);
     assert.equal(executionTrace.chunkCount, 1);
     assert.equal(executionTrace.retrievalErrorCount, 0);
+    assert.equal(executionTrace.retrievalCacheHitCount, 0);
+    assert.equal(executionTrace.retrievalCacheMissCount, 1);
     assert.equal(executionTrace.unresponsiveEngineCount, 1);
     assert.equal(executionTrace.engineTimingCount, 1);
     assert.equal(executionTrace.warningCount, 1);
@@ -631,7 +635,7 @@ test('streaming responses completed event includes adapter web_search call outpu
             text: 'Streaming retrieved page text.',
             content_type: 'text/html',
             fetched_at: '2026-06-09T00:00:00.000Z',
-            from_cache: false,
+            from_cache: true,
           }],
           chunks: [{
             source_id: 1,
@@ -796,6 +800,8 @@ test('streaming responses completed event includes adapter web_search call outpu
     assert.equal(executionTrace.documentCount, 1);
     assert.equal(executionTrace.chunkCount, 1);
     assert.equal(executionTrace.retrievalErrorCount, 1);
+    assert.equal(executionTrace.retrievalCacheHitCount, 1);
+    assert.equal(executionTrace.retrievalCacheMissCount, 0);
     assert.equal(executionTrace.unresponsiveEngineCount, 0);
     assert.equal(executionTrace.engineTimingCount, 1);
     assert.equal(executionTrace.warningCount, 0);
