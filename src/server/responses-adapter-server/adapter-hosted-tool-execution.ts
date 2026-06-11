@@ -32,6 +32,7 @@ export async function executeAdapterHostedToolCall({
   providerName,
   emitTrace,
   emitSseEvent = null,
+  stream = false,
 }: {
   entry: AdapterHostedToolCall;
   iteration: number;
@@ -41,6 +42,7 @@ export async function executeAdapterHostedToolCall({
   providerName: string;
   emitTrace: EmitTrace;
   emitSseEvent?: ((event: JsonRecord) => void) | null;
+  stream?: boolean;
 }): Promise<AdapterHostedToolExecutionRecord> {
   const callId = normalizeString(entry.toolCall?.id) || `call_${iteration}`;
   const emulatedToolName = normalizeString(entry.toolCall?.function?.name)
@@ -56,6 +58,7 @@ export async function executeAdapterHostedToolCall({
   let content: string;
   let resultContent: unknown = null;
   let resultMetadata: JsonRecord | null = null;
+  let executionStatus: 'completed' | 'failed' = 'completed';
   const startedAt = Date.now();
   emitTrace({
     type: 'hosted_tool.config_bound',
@@ -120,6 +123,7 @@ export async function executeAdapterHostedToolCall({
       outputPreview: hostedToolOutputPreview(content),
     }));
   } catch (error) {
+    executionStatus = 'failed';
     resultContent = {
       error: {
         message: error instanceof Error ? error.message : String(error),
@@ -142,6 +146,19 @@ export async function executeAdapterHostedToolCall({
     }));
   }
 
+  const durationMs = Math.max(0, Date.now() - startedAt);
+  emitWebSearchExecutionTrace({
+    toolName: entry.declaration.name,
+    emulatedToolName,
+    callId,
+    iteration,
+    stream,
+    executionStatus,
+    durationMs,
+    resultContent,
+    resultMetadata,
+    emitTrace,
+  });
   emitTrace({
     type: 'hosted_tool.executed',
     route: 'responses',
@@ -160,4 +177,84 @@ export async function executeAdapterHostedToolCall({
     resultContent,
     resultMetadata,
   };
+}
+
+function emitWebSearchExecutionTrace({
+  toolName,
+  emulatedToolName,
+  callId,
+  iteration,
+  stream,
+  executionStatus,
+  durationMs,
+  resultContent,
+  resultMetadata,
+  emitTrace,
+}: {
+  toolName: string;
+  emulatedToolName: string;
+  callId: string;
+  iteration: number;
+  stream: boolean;
+  executionStatus: 'completed' | 'failed';
+  durationMs: number;
+  resultContent: unknown;
+  resultMetadata: JsonRecord | null;
+  emitTrace: EmitTrace;
+}): void {
+  if (toolName !== 'web_search') {
+    return;
+  }
+  const content = jsonRecordFromUnknown(resultContent);
+  const metadata = jsonRecordFromUnknown(resultMetadata);
+  const timings = jsonRecordFromUnknown(content?.timings);
+
+  emitTrace({
+    type: 'web_search.executed',
+    route: 'responses',
+    stream,
+    toolName: 'web_search',
+    emulatedToolName,
+    callId,
+    iteration,
+    executionStatus,
+    durationMs,
+    mode: normalizeString(metadata?.mode) || null,
+    resultCount: countFromMetadata(metadata, 'resultCount', content?.results),
+    sourceCount: countFromMetadata(metadata, 'sourceCount', content?.sources),
+    documentCount: countFromMetadata(metadata, 'documentCount', content?.documents),
+    chunkCount: countFromMetadata(metadata, 'chunkCount', content?.chunks),
+    retrievalErrorCount: countFromMetadata(metadata, 'retrievalErrorCount', metadata?.retrievalErrors),
+    unresponsiveEngineCount: arrayCount(content?.unresponsive_engines),
+    engineTimingCount: timings ? Object.keys(timings).filter((key) => Number.isFinite(timings[key])).length : 0,
+    warningCount: arrayCount(metadata?.warnings),
+    externalWebAccess: booleanFromUnknown(metadata?.externalWebAccess) ?? booleanFromUnknown(content?.external_web_access),
+    searchContextSize: normalizeString(metadata?.searchContextSize) || normalizeString(content?.search_context_size) || null,
+  });
+}
+
+function countFromMetadata(
+  metadata: JsonRecord | null,
+  key: string,
+  fallbackArray: unknown,
+): number {
+  const value = metadata?.[key];
+  if (Number.isFinite(value)) {
+    return Math.max(0, Math.trunc(value));
+  }
+  return arrayCount(fallbackArray);
+}
+
+function arrayCount(value: unknown): number {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+function booleanFromUnknown(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
+}
+
+function jsonRecordFromUnknown(value: unknown): JsonRecord | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as JsonRecord
+    : null;
 }

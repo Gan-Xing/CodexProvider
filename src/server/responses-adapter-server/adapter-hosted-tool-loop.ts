@@ -125,6 +125,7 @@ export async function completeAdapterHostedToolLoop({
           providerKind,
           providerName,
           emitTrace,
+          stream: false,
         });
         executions.push(executionResult);
         loopChatBody.messages.push({

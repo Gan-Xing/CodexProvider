@@ -240,6 +240,7 @@ export async function writeAdapterHostedToolStreamingResponse({
         providerKind,
         providerName,
         emitTrace,
+        stream: true,
         emitSseEvent: emitHostedToolSseEvents
           ? (event) => {
             ensureSseResponseHeaders(response);

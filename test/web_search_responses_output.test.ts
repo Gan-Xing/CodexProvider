@@ -357,6 +357,29 @@ test('responses output exposes adapter web_search call with sources, results, an
             text: 'Phase 7 chunk text for find in page.',
             score: 0.93,
           }],
+          unresponsive_engines: [{
+            engine: 'timeout-engine',
+            code: 'timeout',
+            message: 'Search engine timed out before completion.',
+            durationMs: 250,
+          }],
+          timings: {
+            primary: 42,
+          },
+          external_web_access: true,
+          search_context_size: 'medium',
+        },
+        metadata: {
+          provider: 'metasearch',
+          mode: 'balanced',
+          resultCount: 1,
+          sourceCount: 1,
+          documentCount: 1,
+          chunkCount: 1,
+          retrievalErrorCount: 0,
+          externalWebAccess: true,
+          searchContextSize: 'medium',
+          warnings: ['ignored parameter'],
         },
       }),
     },
@@ -455,6 +478,29 @@ test('responses output exposes adapter web_search call with sources, results, an
         missingSourceCount: 0,
       },
     );
+    const executionTrace = traceEvents.find((event) => event.type === 'web_search.executed');
+    assert.equal(executionTrace.type, 'web_search.executed');
+    assert.equal(executionTrace.route, 'responses');
+    assert.equal(executionTrace.stream, false);
+    assert.equal(executionTrace.toolName, 'web_search');
+    assert.equal(executionTrace.emulatedToolName, 'adapter_web_search');
+    assert.equal(executionTrace.callId, 'call_web_search_output_1');
+    assert.equal(executionTrace.iteration, 1);
+    assert.equal(executionTrace.executionStatus, 'completed');
+    assert.equal(Number.isFinite(executionTrace.durationMs), true);
+    assert.equal(executionTrace.mode, 'balanced');
+    assert.equal(executionTrace.resultCount, 1);
+    assert.equal(executionTrace.sourceCount, 1);
+    assert.equal(executionTrace.documentCount, 1);
+    assert.equal(executionTrace.chunkCount, 1);
+    assert.equal(executionTrace.retrievalErrorCount, 0);
+    assert.equal(executionTrace.unresponsiveEngineCount, 1);
+    assert.equal(executionTrace.engineTimingCount, 1);
+    assert.equal(executionTrace.warningCount, 1);
+    assert.equal(executionTrace.externalWebAccess, true);
+    assert.equal(executionTrace.searchContextSize, 'medium');
+    assert.equal(JSON.stringify(executionTrace).includes('phase 7 search'), false);
+    assert.equal(JSON.stringify(executionTrace).includes('example.com'), false);
   } finally {
     await server.stop();
   }
@@ -595,6 +641,28 @@ test('streaming responses completed event includes adapter web_search call outpu
             text: 'Streaming chunk text for find in page.',
             score: 0.88,
           }],
+          unresponsive_engines: [],
+          timings: {
+            streaming: 17,
+          },
+          external_web_access: false,
+          search_context_size: 'low',
+        },
+        metadata: {
+          provider: 'metasearch',
+          mode: 'fast',
+          resultCount: 1,
+          sourceCount: 1,
+          documentCount: 1,
+          chunkCount: 1,
+          retrievalErrorCount: 1,
+          retrievalErrors: [{
+            source_id: 1,
+            url: 'https://example.com/streaming-phase-7',
+            error: 'fetch timeout',
+          }],
+          externalWebAccess: false,
+          searchContextSize: 'low',
         },
       }),
     },
@@ -712,6 +780,29 @@ test('streaming responses completed event includes adapter web_search call outpu
         missingSourceCount: 0,
       },
     );
+    const executionTrace = traceEvents.find((event) => event.type === 'web_search.executed');
+    assert.equal(executionTrace.type, 'web_search.executed');
+    assert.equal(executionTrace.route, 'responses');
+    assert.equal(executionTrace.stream, true);
+    assert.equal(executionTrace.toolName, 'web_search');
+    assert.equal(executionTrace.emulatedToolName, 'adapter_web_search');
+    assert.equal(executionTrace.callId, 'call_web_search_stream_output_1');
+    assert.equal(executionTrace.iteration, 1);
+    assert.equal(executionTrace.executionStatus, 'completed');
+    assert.equal(Number.isFinite(executionTrace.durationMs), true);
+    assert.equal(executionTrace.mode, 'fast');
+    assert.equal(executionTrace.resultCount, 1);
+    assert.equal(executionTrace.sourceCount, 1);
+    assert.equal(executionTrace.documentCount, 1);
+    assert.equal(executionTrace.chunkCount, 1);
+    assert.equal(executionTrace.retrievalErrorCount, 1);
+    assert.equal(executionTrace.unresponsiveEngineCount, 0);
+    assert.equal(executionTrace.engineTimingCount, 1);
+    assert.equal(executionTrace.warningCount, 0);
+    assert.equal(executionTrace.externalWebAccess, false);
+    assert.equal(executionTrace.searchContextSize, 'low');
+    assert.equal(JSON.stringify(executionTrace).includes('streaming phase 7'), false);
+    assert.equal(JSON.stringify(executionTrace).includes('example.com'), false);
   } finally {
     await server.stop();
   }

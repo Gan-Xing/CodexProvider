@@ -141,6 +141,28 @@ export type CodexProviderTraceEvent =
     missingSourceCount: number;
   }
   | {
+    type: 'web_search.executed';
+    route: 'responses';
+    stream: boolean;
+    toolName: 'web_search';
+    emulatedToolName: string;
+    callId: string;
+    iteration: number;
+    executionStatus: 'completed' | 'failed';
+    durationMs: number;
+    mode: string | null;
+    resultCount: number;
+    sourceCount: number;
+    documentCount: number;
+    chunkCount: number;
+    retrievalErrorCount: number;
+    unresponsiveEngineCount: number;
+    engineTimingCount: number;
+    warningCount: number;
+    externalWebAccess: boolean | null;
+    searchContextSize: string | null;
+  }
+  | {
     type: 'hosted_tool.config_bound';
     route: 'responses';
     toolName: string;

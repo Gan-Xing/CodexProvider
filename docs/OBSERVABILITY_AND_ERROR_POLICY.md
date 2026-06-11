@@ -23,6 +23,7 @@ Current event families:
 - `upstream.error`
 - `stream.event`
 - `stream.completed`
+- `web_search.executed`
 - `web_search.citations`
 - `hosted_tool.config_bound`
 - `hosted_tool.executed`
@@ -76,7 +77,8 @@ Cycle 4 audit added regression coverage for hosted-tool SSE trace redaction. Cli
 
 Cycle 6 audit added count-only `web_search.citations` trace summaries for adapter-emulated web search output annotation. The event records source, output text part, placeholder, annotation, and missing-source counts without copying answer text or source documents into a dedicated observability event.
 
+Cycle 7 audit added count-only `web_search.executed` trace summaries for adapter-emulated web search executor runs. The event records stream mode, call id, execution status, duration, result/source/document/chunk/retrieval-error/unresponsive-engine/timing/warning counts, external-web-access flag, search-context size, and metasearch mode without copying query text, URLs, snippets, retrieved documents, or raw provider payloads.
+
 Remaining hardening for future cycles:
 
-- Add structured trace events for search engine latency/failure stats.
 - Add retrieval cache hit/miss and local index hit/miss trace summaries.
