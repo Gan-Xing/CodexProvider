@@ -19,6 +19,7 @@
 - Added deep-search no-supporting-evidence response and executor metadata for empty research graphs.
 - Added optional deep-search minimum-source diagnostics and hosted-tool metadata for limited-evidence results.
 - Added optional deep-search citation budget controls with response diagnostics and hosted-tool metadata.
+- Added optional deep-search answer-shape guidance with response diagnostics and hosted-tool metadata.
 
 ### Changed
 

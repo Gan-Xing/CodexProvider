@@ -24,6 +24,7 @@ import {
 import {
   buildCodexProviderDeepSearchSynthesisInstructions,
   mergeCodexProviderDeepSearchReferences,
+  type CodexProviderDeepSearchAnswerShape,
   type CodexProviderDeepSearchReference,
   type CodexProviderDeepSearchSubqueryResult,
 } from './reference-merge.js';
@@ -41,6 +42,7 @@ export interface CodexProviderDeepSearchRequest {
   maxSources?: number | null;
   minSources?: number | null;
   citationBudget?: number | null;
+  answerShape?: CodexProviderDeepSearchAnswerShape | null;
   allowedDomains?: string[] | null;
   blockedDomains?: string[] | null;
   externalWebAccess?: boolean | null;
@@ -89,6 +91,7 @@ export interface CodexProviderDeepSearchResponse {
     below_minimum_sources: boolean;
     citation_budget: number | null;
     citation_count: number;
+    answer_shape: CodexProviderDeepSearchAnswerShape | null;
     no_supporting_evidence: boolean;
   };
   diagnostics: {
@@ -103,6 +106,7 @@ export interface CodexProviderDeepSearchResponse {
     below_minimum_sources: boolean;
     citation_budget: number | null;
     citation_count: number;
+    answer_shape: CodexProviderDeepSearchAnswerShape | null;
     no_supporting_evidence: boolean;
   };
   retrieved_at: string;
@@ -181,6 +185,7 @@ export function createCodexProviderDeepWebSearchExecutor(
         belowMinimumSources: content.diagnostics.below_minimum_sources,
         citationBudget: content.diagnostics.citation_budget,
         citationCount: content.diagnostics.citation_count,
+        answerShape: content.diagnostics.answer_shape,
         noSupportingEvidence: content.diagnostics.no_supporting_evidence,
         externalWebAccess: content.external_web_access,
       },
@@ -299,6 +304,7 @@ function deepSearchResponseFromReferences({
       instructions: buildCodexProviderDeepSearchSynthesisInstructions(references, {
         minimumSourceCount: request.minSources,
         citationBudget: request.citationBudget,
+        answerShape: request.answerShape,
       }),
       source_count: references.length,
       subquery_count: subqueries.length,
@@ -306,6 +312,7 @@ function deepSearchResponseFromReferences({
       below_minimum_sources: belowMinimumSources,
       citation_budget: request.citationBudget,
       citation_count: citationReferences.length,
+      answer_shape: request.answerShape,
       no_supporting_evidence: noSupportingEvidence,
     },
     diagnostics: {
@@ -320,6 +327,7 @@ function deepSearchResponseFromReferences({
       below_minimum_sources: belowMinimumSources,
       citation_budget: request.citationBudget,
       citation_count: citationReferences.length,
+      answer_shape: request.answerShape,
       no_supporting_evidence: noSupportingEvidence,
     },
     retrieved_at: now.toISOString(),
@@ -341,6 +349,7 @@ interface RequiredDeepSearchRequest {
   maxSources: number;
   minSources: number | null;
   citationBudget: number | null;
+  answerShape: CodexProviderDeepSearchAnswerShape | null;
   allowedDomains: string[];
   blockedDomains: string[];
   externalWebAccess: boolean;
@@ -367,6 +376,7 @@ function normalizeDeepSearchRequest(
     maxSources: clampInteger(request.maxSources ?? options.maxSources, 1, 100, 20),
     minSources: optionalClampInteger(request.minSources, 1, 100),
     citationBudget: optionalClampInteger(request.citationBudget, 0, 100),
+    answerShape: normalizeAnswerShape(request.answerShape),
     allowedDomains: normalizeDomainList(request.allowedDomains),
     blockedDomains: normalizeDomainList(request.blockedDomains),
     externalWebAccess: request.externalWebAccess !== false,
@@ -392,6 +402,7 @@ function deepSearchRequestFromHostedTool(
     maxSources: args.max_sources ?? args.maxSources,
     minSources: args.min_sources ?? args.minSources,
     citationBudget: args.citation_budget ?? args.citationBudget ?? args.max_citations ?? args.maxCitations,
+    answerShape: args.answer_shape ?? args.answerShape ?? args.shape,
     allowedDomains: filters.allowedDomains,
     blockedDomains: filters.blockedDomains,
     externalWebAccess: args.external_web_access !== false,
@@ -440,6 +451,20 @@ function normalizeTimeRange(value: unknown): CodexProviderSearchTimeRange | null
   const normalized = normalizeString(value).toLowerCase();
   if (normalized === 'day' || normalized === 'week' || normalized === 'month' || normalized === 'year') {
     return normalized;
+  }
+  return null;
+}
+
+function normalizeAnswerShape(value: unknown): CodexProviderDeepSearchAnswerShape | null {
+  const normalized = normalizeString(value).toLowerCase().replace(/[\s-]+/gu, '_');
+  if (normalized === 'brief') {
+    return 'brief';
+  }
+  if (normalized === 'evidence_table' || normalized === 'table') {
+    return 'evidence_table';
+  }
+  if (normalized === 'research_memo' || normalized === 'memo') {
+    return 'research_memo';
   }
   return null;
 }

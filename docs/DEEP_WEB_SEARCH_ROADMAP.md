@@ -78,11 +78,11 @@ Current synthesis support:
 - Cycle 13 adds `no_supporting_evidence` response diagnostics plus `noSupportingEvidence` hosted-tool metadata when all searched branches return zero merged sources.
 - Cycle 14 adds optional `min_sources` request handling with below-minimum-source synthesis instructions, response diagnostics, and hosted-tool metadata.
 - Cycle 15 adds optional `citation_budget` / `max_citations` request handling with capped citation output, synthesis instructions, response diagnostics, and hosted-tool metadata.
+- Cycle 16 adds optional `answer_shape` request handling for `brief`, `evidence_table`, and `research_memo` synthesis guidance with response diagnostics and hosted-tool metadata.
 
 Roadmap:
 
 - Define a host-injected synthesis executor that can be disabled by default.
-- Add answer-shape modes such as brief answer, evidence table, and research memo.
 
 ## Test Plan
 
@@ -96,3 +96,4 @@ Required before recommending deep search as productized:
 - Done: no-supporting-evidence tests for empty branch results and hosted-tool metadata.
 - Done: minimum-source tests for limited-evidence synthesis instructions and hosted-tool metadata.
 - Done: citation-budget tests for capped citation output, zero-citation mode, and hosted-tool metadata.
+- Done: answer-shape tests for hosted-tool argument normalization, synthesis guidance, and hosted-tool metadata.

@@ -25,6 +25,8 @@ export interface CodexProviderDeepSearchReference {
   node_ids: string[];
 }
 
+export type CodexProviderDeepSearchAnswerShape = 'brief' | 'evidence_table' | 'research_memo';
+
 export interface CodexProviderDeepSearchReferenceMergeOptions {
   maxSources?: number | null;
 }
@@ -32,6 +34,7 @@ export interface CodexProviderDeepSearchReferenceMergeOptions {
 export interface CodexProviderDeepSearchSynthesisInstructionOptions {
   minimumSourceCount?: number | null;
   citationBudget?: number | null;
+  answerShape?: CodexProviderDeepSearchAnswerShape | null;
 }
 
 export function mergeCodexProviderDeepSearchReferences(
@@ -75,8 +78,13 @@ export function buildCodexProviderDeepSearchSynthesisInstructions(
   references: CodexProviderDeepSearchReference[],
   options: CodexProviderDeepSearchSynthesisInstructionOptions = {},
 ): string {
+  const answerShape = normalizeAnswerShape(options.answerShape);
+  const shapeInstruction = answerShapeInstruction(answerShape);
   if (references.length === 0) {
-    return 'No supporting sources were found. State that the research graph did not find supporting web evidence, avoid citations, and do not infer factual claims beyond the query and subquery diagnostics.';
+    return [
+      'No supporting sources were found. State that the research graph did not find supporting web evidence, avoid citations, and do not infer factual claims beyond the query and subquery diagnostics.',
+      shapeInstruction,
+    ].filter(Boolean).join(' ');
   }
   const minimumSourceCount = normalizePositiveInteger(options.minimumSourceCount);
   const citationBudget = normalizeNonNegativeInteger(options.citationBudget);
@@ -92,6 +100,9 @@ export function buildCodexProviderDeepSearchSynthesisInstructions(
     }
   }
   clauses.push('Prefer sources that support multiple subqueries when resolving conflicts.');
+  if (shapeInstruction) {
+    clauses.push(shapeInstruction);
+  }
   if (minimumSourceCount !== null && references.length < minimumSourceCount) {
     clauses.push(`Only ${references.length} merged sources were found, below the requested minimum of ${minimumSourceCount}; state that evidence is limited and do not overstate confidence.`);
   }
@@ -152,4 +163,31 @@ function normalizeNonNegativeInteger(value: unknown): number | null {
     return null;
   }
   return number;
+}
+
+function normalizeAnswerShape(value: unknown): CodexProviderDeepSearchAnswerShape | null {
+  const normalized = String(value ?? '').trim().toLowerCase().replace(/[\s-]+/gu, '_');
+  if (normalized === 'brief') {
+    return 'brief';
+  }
+  if (normalized === 'evidence_table' || normalized === 'table') {
+    return 'evidence_table';
+  }
+  if (normalized === 'research_memo' || normalized === 'memo') {
+    return 'research_memo';
+  }
+  return null;
+}
+
+function answerShapeInstruction(shape: CodexProviderDeepSearchAnswerShape | null): string {
+  if (shape === 'brief') {
+    return 'Answer shape: brief. Put the key conclusion first, then include only the most relevant cited evidence and caveats.';
+  }
+  if (shape === 'evidence_table') {
+    return 'Answer shape: evidence_table. Prefer a compact evidence table with claim, cited source ids, and caveat columns before any short narrative.';
+  }
+  if (shape === 'research_memo') {
+    return 'Answer shape: research_memo. Prefer a research memo with summary, evidence, conflicts or caveats, and follow-up questions.';
+  }
+  return '';
 }

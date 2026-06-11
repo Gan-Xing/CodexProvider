@@ -397,6 +397,7 @@ test('deep search runner records partial failures and unresponsive diagnostics',
     below_minimum_sources: false,
     citation_budget: null,
     citation_count: 1,
+    answer_shape: null,
     no_supporting_evidence: false,
   });
 });
@@ -432,17 +433,20 @@ test('deep web search executor records when sources are below the requested mini
   assert.equal(content.synthesis.below_minimum_sources, true);
   assert.equal(content.synthesis.citation_budget, null);
   assert.equal(content.synthesis.citation_count, 1);
+  assert.equal(content.synthesis.answer_shape, null);
   assert.equal(content.synthesis.no_supporting_evidence, false);
   assert.match(content.synthesis.instructions, /below the requested minimum of 2/u);
   assert.equal(content.diagnostics.minimum_source_count, 2);
   assert.equal(content.diagnostics.below_minimum_sources, true);
   assert.equal(content.diagnostics.citation_budget, null);
   assert.equal(content.diagnostics.citation_count, 1);
+  assert.equal(content.diagnostics.answer_shape, null);
   assert.equal(content.diagnostics.no_supporting_evidence, false);
   assert.equal(result.metadata?.minimumSourceCount, 2);
   assert.equal(result.metadata?.belowMinimumSources, true);
   assert.equal(result.metadata?.citationBudget, null);
   assert.equal(result.metadata?.citationCount, 1);
+  assert.equal(result.metadata?.answerShape, null);
   assert.equal(result.metadata?.noSupportingEvidence, false);
 });
 
@@ -533,6 +537,39 @@ test('deep web search executor supports zero citation budget without dropping so
   assert.equal(result.metadata?.citationCount, 0);
 });
 
+test('deep web search executor records answer shape guidance', async () => {
+  const search: CodexProviderMetaSearchService = {
+    async search(request) {
+      return searchResponse(request, [{
+        title: 'Evidence Table Source',
+        url: 'https://docs.example.com/evidence-table',
+        snippet: 'Evidence table source for answer-shape guidance.',
+        engines: ['fake'],
+        engineRanks: { fake: 1 },
+        score: 10,
+      }]);
+    },
+  };
+  const executor = createCodexProviderDeepWebSearchExecutor({
+    search,
+    maxSubqueries: 1,
+    maxResultsPerSubquery: 1,
+    now: () => new Date('2026-06-08T00:00:00.000Z'),
+  });
+
+  const result = await executor(baseRequest({
+    query: 'answer shape topic',
+    answer_shape: 'evidence-table',
+  }));
+  const content = result.content as any;
+
+  assert.equal(content.synthesis.answer_shape, 'evidence_table');
+  assert.match(content.synthesis.instructions, /Answer shape: evidence_table/u);
+  assert.match(content.synthesis.instructions, /claim, cited source ids, and caveat columns/u);
+  assert.equal(content.diagnostics.answer_shape, 'evidence_table');
+  assert.equal(result.metadata?.answerShape, 'evidence_table');
+});
+
 test('deep web search executor marks no supporting evidence when all branches are empty', async () => {
   const seenRequests: CodexProviderSearchRequest[] = [];
   const search: CodexProviderMetaSearchService = {
@@ -561,16 +598,19 @@ test('deep web search executor marks no supporting evidence when all branches ar
   assert.equal(content.synthesis.source_count, 0);
   assert.equal(content.synthesis.citation_budget, null);
   assert.equal(content.synthesis.citation_count, 0);
+  assert.equal(content.synthesis.answer_shape, null);
   assert.equal(content.synthesis.no_supporting_evidence, true);
   assert.match(content.synthesis.instructions, /No supporting sources were found/u);
   assert.equal(content.diagnostics.source_count, 0);
   assert.equal(content.diagnostics.citation_budget, null);
   assert.equal(content.diagnostics.citation_count, 0);
+  assert.equal(content.diagnostics.answer_shape, null);
   assert.equal(content.diagnostics.no_supporting_evidence, true);
   assert.equal(result.metadata?.sourceCount, 0);
   assert.equal(result.metadata?.resultCount, 0);
   assert.equal(result.metadata?.citationBudget, null);
   assert.equal(result.metadata?.citationCount, 0);
+  assert.equal(result.metadata?.answerShape, null);
   assert.equal(result.metadata?.noSupportingEvidence, true);
 });
 

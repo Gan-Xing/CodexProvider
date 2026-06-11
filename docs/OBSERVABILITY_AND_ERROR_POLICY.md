@@ -89,6 +89,8 @@ Cycle 14 audit added deep-search `minimum_source_count` / `below_minimum_sources
 
 Cycle 15 audit added deep-search `citation_budget` / `citation_count` response diagnostics and hosted-tool `citationBudget` / `citationCount` metadata. These fields expose aggregate citation-budget state only and do not copy query text, URLs, snippets, or source contents.
 
+Cycle 16 audit added deep-search `answer_shape` response diagnostics and hosted-tool `answerShape` metadata. The field records only the normalized requested synthesis shape and does not copy source contents or model output.
+
 Remaining hardening for future cycles:
 
 - No known structured-observability gaps remain from this recursive audit. Future cycles should re-audit as hosted-tool surfaces or telemetry requirements change.
