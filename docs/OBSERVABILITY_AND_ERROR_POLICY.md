@@ -95,6 +95,8 @@ Cycle 17 audit added deep-search graph budget diagnostics and hosted-tool metada
 
 Cycle 18 audit added deep-search subquery timeout and retry metadata. Per-node response fields include attempt count, timeout status, and duration; hosted-tool metadata includes aggregate timeout, retry, attempt, timeout-budget, and max-attempt counts. These fields are operational counters and timings only, and do not copy source contents or model output.
 
+Cycle 19 audit added deep-search `supporting_node_ids` on returned results and sources. These ids are graph provenance labels that let hosts trace merged sources back to the search nodes that found them; they do not expose source content beyond the already returned result/source entries.
+
 Remaining hardening for future cycles:
 
 - No known structured-observability gaps remain from this recursive audit. Future cycles should re-audit as hosted-tool surfaces or telemetry requirements change.

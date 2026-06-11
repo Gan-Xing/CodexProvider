@@ -304,6 +304,8 @@ test('deep search runner executes subqueries and merges duplicate references', a
     'cache retrieval reliability',
     'local index reliability',
   ]);
+  assert.deepEqual(response.sources[0].supporting_node_ids, ['q1', 'q2']);
+  assert.deepEqual(response.results[0].supporting_node_ids, ['q1', 'q2']);
   assert.match(response.synthesis.instructions, /\[\[source:N\]\]/u);
   assert.equal(response.external_web_access, false);
 });

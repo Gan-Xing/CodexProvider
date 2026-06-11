@@ -677,23 +677,33 @@ Cycle semantics:
 <!-- cycle:19:start -->
 ## Cycle 19 Backlog
 
-### Audit
+### C19-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan and inspect the report.
+- [x] Identify Cycle 19 implementation scope: expose merged deep-search source provenance node ids.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+
+### C19-B Deep Search Merged Source Provenance
+
+- [x] Add `supporting_node_ids` to deep-search results and sources.
+- [x] Populate `supporting_node_ids` from reference-merge `node_ids` without changing source limits or citation budgets.
+- [x] Preserve existing `supporting_queries` behavior.
+- [x] Add regression coverage proving duplicate merged sources expose stable supporting node ids.
+- [x] Update roadmap, tracker, changelog, observability policy, and recursive backlog.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
-- [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 19.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
+- [x] Update this backlog so no unchecked `- [ ]` remains in Cycle 19, except the commit/push and complete-cycle steps that must happen after the feature commit.
 - [ ] Commit and push.
 - [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
 <!-- cycle:19:end -->

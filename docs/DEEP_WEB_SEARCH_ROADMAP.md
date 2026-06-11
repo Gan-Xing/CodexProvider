@@ -60,6 +60,7 @@ Current merge support:
 - Scores sources higher when they support multiple subqueries or engines.
 - Preserves supporting queries and node ids.
 - Cycle 10 adds regression coverage for URL tracking-parameter canonicalization and stable citation ids.
+- Cycle 19 exposes supporting node ids on returned deep-search results and sources so hosts can trace merged evidence back to the search graph.
 
 Roadmap:
 
@@ -99,3 +100,4 @@ Required before recommending deep search as productized:
 - Done: answer-shape tests for hosted-tool argument normalization, synthesis guidance, and hosted-tool metadata.
 - Done: graph-budget tests for configured query/source/result budgets, executed subqueries, raw result counts, unresponsive engines, and duration metadata.
 - Done: subquery timeout/retry tests for opt-in timeout forwarding, retry attempts, per-node metadata, aggregate diagnostics, and hosted-tool metadata.
+- Done: source-provenance tests for `supporting_node_ids` on merged deep-search results and sources.

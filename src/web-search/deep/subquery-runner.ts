@@ -59,6 +59,7 @@ export interface CodexProviderDeepSearchSource {
   source: string;
   snippet: string;
   supporting_queries: string[];
+  supporting_node_ids: string[];
 }
 
 export interface CodexProviderDeepSearchResult {
@@ -68,6 +69,7 @@ export interface CodexProviderDeepSearchResult {
   source: string;
   score: number;
   supporting_queries: string[];
+  supporting_node_ids: string[];
 }
 
 export interface CodexProviderDeepSearchResponse {
@@ -415,6 +417,7 @@ function deepSearchResponseFromReferences({
       source: reference.source,
       score: reference.score,
       supporting_queries: [...reference.supporting_queries],
+      supporting_node_ids: [...reference.node_ids],
     })),
     sources: references.map((reference) => ({
       id: reference.id,
@@ -423,6 +426,7 @@ function deepSearchResponseFromReferences({
       source: reference.source,
       snippet: reference.snippet,
       supporting_queries: [...reference.supporting_queries],
+      supporting_node_ids: [...reference.node_ids],
     })),
     citations: citationReferences.map((reference) => ({
       type: 'url_citation' as const,
