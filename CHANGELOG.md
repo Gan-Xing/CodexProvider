@@ -15,6 +15,7 @@
 - Added local-index hit/miss counts to metasearch-backed web-search metadata and `web_search.executed` traces.
 - Added heuristic deep-search planner diagnostics and fixture coverage for decomposition, graph rejection, and reference merging.
 - Added deep-search response and executor metadata diagnostics for failed subqueries, unresponsive engines, and planner budget counts.
+- Added an opt-in deep-search custom hosted-tool recipe and regression coverage for keeping it separate from default `web_search`.
 
 ### Changed
 

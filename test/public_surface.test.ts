@@ -449,6 +449,19 @@ test('codex provider docs and examples prefer primary product naming', () => {
   }
 });
 
+test('deep search docs and example keep custom tool separate from web_search', () => {
+  const packageRoot = path.resolve(import.meta.dirname, '..');
+  const recipes = fs.readFileSync(path.join(packageRoot, 'docs/RECIPES.md'), 'utf8');
+  const example = fs.readFileSync(path.join(packageRoot, 'examples/adapter-emulated-web-search-metasearch.ts'), 'utf8');
+
+  assert.match(recipes, /separate custom hosted tool, not as the default `web_search`/u);
+  assert.match(recipes, /name: "custom:deep_web_search"/u);
+  assert.match(recipes, /"custom:deep_web_search": research/u);
+  assert.match(example, /name: 'web_search'/u);
+  assert.match(example, /name: 'custom:deep_web_search'/u);
+  assert.match(example, /'custom:deep_web_search': deepWebSearch/u);
+});
+
 test('codex provider release readiness docs keep unsafe tools disabled by default', () => {
   const packageRoot = path.resolve(import.meta.dirname, '..');
   const securityDoc = fs.readFileSync(path.join(packageRoot, 'docs/UNSAFE_TOOL_SECURITY.md'), 'utf8');

@@ -74,6 +74,7 @@ Current synthesis support:
 - Returns instructions for a downstream model to cite merged sources with `[[source:N]]` placeholders.
 - Does not synthesize final prose inside the executor.
 - Cycle 11 adds response and hosted-tool metadata diagnostics for failed subqueries, unresponsive engines, selected/discarded planner counts, and source counts.
+- Cycle 12 adds recipe and example coverage that registers `custom:deep_web_search` separately from default `web_search`.
 
 Roadmap:
 
@@ -90,4 +91,4 @@ Required before recommending deep search as productized:
 - Done: graph tests for topological levels, cycles, missing dependencies, and partial failure handling.
 - Done: reference merge tests for URL canonicalization, repeated source boosts, and citation id stability.
 - Done: executor tests for budget limits, external web access false, domain filters, and unresponsive engines.
-- Documentation examples that keep `custom:deep_web_search` separate from default `web_search`.
+- Done: documentation examples that keep `custom:deep_web_search` separate from default `web_search`.

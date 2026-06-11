@@ -121,6 +121,29 @@ const research = createCodexProviderDeepWebSearchExecutor({
 });
 ```
 
+Register it as its own custom hosted tool alongside, not instead of, normal `web_search`:
+
+```ts
+const runtime = new CodexProviderRuntime({
+  toolStrategy: "adapter-emulated",
+  hostedTools: [
+    { name: "web_search", mode: "adapter-emulated" },
+    {
+      name: "custom:deep_web_search",
+      mode: "adapter-emulated",
+      emulatedToolName: "deep_web_search",
+      description: "Run an opt-in deep web research graph over the configured metasearch service.",
+    },
+  ],
+  hostedToolExecutors: {
+    web_search: webSearch,
+    "custom:deep_web_search": research,
+  },
+});
+```
+
+See `examples/adapter-emulated-web-search-metasearch.ts` for a full metasearch wiring example with both tools declared separately.
+
 ## API-Backed Web Search Smoke
 
 `pnpm smoke:web-search` can select a search provider explicitly:
