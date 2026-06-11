@@ -528,23 +528,35 @@ Cycle semantics:
 <!-- cycle:15:start -->
 ## Cycle 15 Backlog
 
-### Audit
+### C15-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+- [x] Identify Cycle 15 implementation scope: add opt-in deep-search citation-budget controls.
+
+### C15-B Deep Search Citation Budget Policy
+
+- [x] Add optional `citation_budget` / `citationBudget` hosted-tool request handling for deep search.
+- [x] Add optional `max_citations` / `maxCitations` hosted-tool aliases for citation budgets.
+- [x] Cap citation output without dropping merged `sources` or `results`.
+- [x] Add response-level `citation_budget` and `citation_count` fields in synthesis and diagnostics.
+- [x] Add hosted-tool executor `citationBudget` and `citationCount` metadata.
+- [x] Add synthesis guidance for capped citation budgets and zero-citation mode.
+- [x] Add regression coverage for capped citations and zero-citation mode.
+- [x] Update roadmap, tracker, changelog, observability policy, and recursive backlog.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
-- [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 15.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
+- [x] Update this backlog so no unchecked `- [ ]` remains in Cycle 15, except the commit/push and complete-cycle steps that must happen after the feature commit.
 - [ ] Commit and push.
 - [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
 <!-- cycle:15:end -->

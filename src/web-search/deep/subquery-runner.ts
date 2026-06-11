@@ -40,6 +40,7 @@ export interface CodexProviderDeepSearchRequest {
   maxResultsPerSubquery?: number | null;
   maxSources?: number | null;
   minSources?: number | null;
+  citationBudget?: number | null;
   allowedDomains?: string[] | null;
   blockedDomains?: string[] | null;
   externalWebAccess?: boolean | null;
@@ -86,6 +87,8 @@ export interface CodexProviderDeepSearchResponse {
     subquery_count: number;
     minimum_source_count: number | null;
     below_minimum_sources: boolean;
+    citation_budget: number | null;
+    citation_count: number;
     no_supporting_evidence: boolean;
   };
   diagnostics: {
@@ -98,6 +101,8 @@ export interface CodexProviderDeepSearchResponse {
     source_count: number;
     minimum_source_count: number | null;
     below_minimum_sources: boolean;
+    citation_budget: number | null;
+    citation_count: number;
     no_supporting_evidence: boolean;
   };
   retrieved_at: string;
@@ -174,6 +179,8 @@ export function createCodexProviderDeepWebSearchExecutor(
         unresponsiveEngineCount: content.diagnostics.unresponsive_engine_count,
         minimumSourceCount: content.diagnostics.minimum_source_count,
         belowMinimumSources: content.diagnostics.below_minimum_sources,
+        citationBudget: content.diagnostics.citation_budget,
+        citationCount: content.diagnostics.citation_count,
         noSupportingEvidence: content.diagnostics.no_supporting_evidence,
         externalWebAccess: content.external_web_access,
       },
@@ -250,6 +257,9 @@ function deepSearchResponseFromReferences({
   const failedSubqueryCount = subqueries.filter((subquery) => subquery.error).length;
   const noSupportingEvidence = references.length === 0;
   const belowMinimumSources = request.minSources !== null && references.length < request.minSources;
+  const citationReferences = request.citationBudget === null
+    ? references
+    : references.slice(0, request.citationBudget);
   return {
     query: request.query,
     provider: 'deep-search',
@@ -280,7 +290,7 @@ function deepSearchResponseFromReferences({
       snippet: reference.snippet,
       supporting_queries: [...reference.supporting_queries],
     })),
-    citations: references.map((reference) => ({
+    citations: citationReferences.map((reference) => ({
       type: 'url_citation' as const,
       title: reference.title,
       url: reference.url,
@@ -288,11 +298,14 @@ function deepSearchResponseFromReferences({
     synthesis: {
       instructions: buildCodexProviderDeepSearchSynthesisInstructions(references, {
         minimumSourceCount: request.minSources,
+        citationBudget: request.citationBudget,
       }),
       source_count: references.length,
       subquery_count: subqueries.length,
       minimum_source_count: request.minSources,
       below_minimum_sources: belowMinimumSources,
+      citation_budget: request.citationBudget,
+      citation_count: citationReferences.length,
       no_supporting_evidence: noSupportingEvidence,
     },
     diagnostics: {
@@ -305,6 +318,8 @@ function deepSearchResponseFromReferences({
       source_count: references.length,
       minimum_source_count: request.minSources,
       below_minimum_sources: belowMinimumSources,
+      citation_budget: request.citationBudget,
+      citation_count: citationReferences.length,
       no_supporting_evidence: noSupportingEvidence,
     },
     retrieved_at: now.toISOString(),
@@ -325,6 +340,7 @@ interface RequiredDeepSearchRequest {
   maxResultsPerSubquery: number;
   maxSources: number;
   minSources: number | null;
+  citationBudget: number | null;
   allowedDomains: string[];
   blockedDomains: string[];
   externalWebAccess: boolean;
@@ -350,6 +366,7 @@ function normalizeDeepSearchRequest(
     maxResultsPerSubquery: clampInteger(request.maxResultsPerSubquery ?? options.maxResultsPerSubquery, 1, 20, 5),
     maxSources: clampInteger(request.maxSources ?? options.maxSources, 1, 100, 20),
     minSources: optionalClampInteger(request.minSources, 1, 100),
+    citationBudget: optionalClampInteger(request.citationBudget, 0, 100),
     allowedDomains: normalizeDomainList(request.allowedDomains),
     blockedDomains: normalizeDomainList(request.blockedDomains),
     externalWebAccess: request.externalWebAccess !== false,
@@ -374,6 +391,7 @@ function deepSearchRequestFromHostedTool(
     maxResultsPerSubquery: args.max_results_per_subquery ?? args.maxResultsPerSubquery ?? args.max_results,
     maxSources: args.max_sources ?? args.maxSources,
     minSources: args.min_sources ?? args.minSources,
+    citationBudget: args.citation_budget ?? args.citationBudget ?? args.max_citations ?? args.maxCitations,
     allowedDomains: filters.allowedDomains,
     blockedDomains: filters.blockedDomains,
     externalWebAccess: args.external_web_access !== false,

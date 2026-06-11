@@ -31,6 +31,7 @@ export interface CodexProviderDeepSearchReferenceMergeOptions {
 
 export interface CodexProviderDeepSearchSynthesisInstructionOptions {
   minimumSourceCount?: number | null;
+  citationBudget?: number | null;
 }
 
 export function mergeCodexProviderDeepSearchReferences(
@@ -78,11 +79,19 @@ export function buildCodexProviderDeepSearchSynthesisInstructions(
     return 'No supporting sources were found. State that the research graph did not find supporting web evidence, avoid citations, and do not infer factual claims beyond the query and subquery diagnostics.';
   }
   const minimumSourceCount = normalizePositiveInteger(options.minimumSourceCount);
+  const citationBudget = normalizeNonNegativeInteger(options.citationBudget);
   const clauses = [
     `Synthesize the deep search findings using the ${references.length} merged sources.`,
-    'Cite factual claims with [[source:N]] placeholders where N is the merged source id.',
-    'Prefer sources that support multiple subqueries when resolving conflicts.',
   ];
+  if (citationBudget === 0) {
+    clauses.push('Citation budget is 0. Do not include citation placeholders; summarize merged sources as uncited background only.');
+  } else {
+    clauses.push('Cite factual claims with [[source:N]] placeholders where N is the merged source id.');
+    if (citationBudget !== null && citationBudget < references.length) {
+      clauses.push(`Use no more than ${citationBudget} distinct cited sources and cite only source ids 1 through ${citationBudget}; use remaining merged sources only as uncited background.`);
+    }
+  }
+  clauses.push('Prefer sources that support multiple subqueries when resolving conflicts.');
   if (minimumSourceCount !== null && references.length < minimumSourceCount) {
     clauses.push(`Only ${references.length} merged sources were found, below the requested minimum of ${minimumSourceCount}; state that evidence is limited and do not overstate confidence.`);
   }
@@ -129,6 +138,17 @@ function clampInteger(value: unknown, min: number, max: number, fallback: number
 function normalizePositiveInteger(value: unknown): number | null {
   const number = Number(value);
   if (!Number.isInteger(number) || number < 1) {
+    return null;
+  }
+  return number;
+}
+
+function normalizeNonNegativeInteger(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < 0) {
     return null;
   }
   return number;

@@ -395,6 +395,8 @@ test('deep search runner records partial failures and unresponsive diagnostics',
     source_count: 1,
     minimum_source_count: null,
     below_minimum_sources: false,
+    citation_budget: null,
+    citation_count: 1,
     no_supporting_evidence: false,
   });
 });
@@ -428,14 +430,107 @@ test('deep web search executor records when sources are below the requested mini
   assert.equal(content.sources.length, 1);
   assert.equal(content.synthesis.minimum_source_count, 2);
   assert.equal(content.synthesis.below_minimum_sources, true);
+  assert.equal(content.synthesis.citation_budget, null);
+  assert.equal(content.synthesis.citation_count, 1);
   assert.equal(content.synthesis.no_supporting_evidence, false);
   assert.match(content.synthesis.instructions, /below the requested minimum of 2/u);
   assert.equal(content.diagnostics.minimum_source_count, 2);
   assert.equal(content.diagnostics.below_minimum_sources, true);
+  assert.equal(content.diagnostics.citation_budget, null);
+  assert.equal(content.diagnostics.citation_count, 1);
   assert.equal(content.diagnostics.no_supporting_evidence, false);
   assert.equal(result.metadata?.minimumSourceCount, 2);
   assert.equal(result.metadata?.belowMinimumSources, true);
+  assert.equal(result.metadata?.citationBudget, null);
+  assert.equal(result.metadata?.citationCount, 1);
   assert.equal(result.metadata?.noSupportingEvidence, false);
+});
+
+test('deep web search executor applies citation budget without dropping sources', async () => {
+  const search: CodexProviderMetaSearchService = {
+    async search(request) {
+      return searchResponse(request, [
+        {
+          title: 'Primary Evidence',
+          url: 'https://docs.example.com/primary',
+          snippet: 'Primary evidence for a budgeted citation.',
+          engines: ['fake'],
+          engineRanks: { fake: 1 },
+          score: 12,
+        },
+        {
+          title: 'Secondary Evidence',
+          url: 'https://docs.example.com/secondary',
+          snippet: 'Secondary evidence remains available as background.',
+          engines: ['fake'],
+          engineRanks: { fake: 2 },
+          score: 8,
+        },
+      ]);
+    },
+  };
+  const executor = createCodexProviderDeepWebSearchExecutor({
+    search,
+    maxSubqueries: 1,
+    maxResultsPerSubquery: 2,
+    now: () => new Date('2026-06-08T00:00:00.000Z'),
+  });
+
+  const result = await executor(baseRequest({
+    query: 'citation budget topic',
+    citation_budget: 1,
+  }));
+  const content = result.content as any;
+
+  assert.equal(content.sources.length, 2);
+  assert.equal(content.citations.length, 1);
+  assert.equal(content.citations[0].url, 'https://docs.example.com/primary');
+  assert.equal(content.synthesis.citation_budget, 1);
+  assert.equal(content.synthesis.citation_count, 1);
+  assert.match(content.synthesis.instructions, /no more than 1 distinct cited sources/u);
+  assert.match(content.synthesis.instructions, /source ids 1 through 1/u);
+  assert.equal(content.diagnostics.citation_budget, 1);
+  assert.equal(content.diagnostics.citation_count, 1);
+  assert.equal(result.metadata?.citationBudget, 1);
+  assert.equal(result.metadata?.citationCount, 1);
+});
+
+test('deep web search executor supports zero citation budget without dropping sources', async () => {
+  const search: CodexProviderMetaSearchService = {
+    async search(request) {
+      return searchResponse(request, [{
+        title: 'Uncited Evidence',
+        url: 'https://docs.example.com/uncited',
+        snippet: 'Evidence can still be inspected even when citations are disabled.',
+        engines: ['fake'],
+        engineRanks: { fake: 1 },
+        score: 10,
+      }]);
+    },
+  };
+  const executor = createCodexProviderDeepWebSearchExecutor({
+    search,
+    maxSubqueries: 1,
+    maxResultsPerSubquery: 1,
+    now: () => new Date('2026-06-08T00:00:00.000Z'),
+  });
+
+  const result = await executor(baseRequest({
+    query: 'uncited evidence topic',
+    max_citations: 0,
+  }));
+  const content = result.content as any;
+
+  assert.equal(content.sources.length, 1);
+  assert.equal(content.citations.length, 0);
+  assert.equal(content.synthesis.citation_budget, 0);
+  assert.equal(content.synthesis.citation_count, 0);
+  assert.match(content.synthesis.instructions, /Citation budget is 0/u);
+  assert.doesNotMatch(content.synthesis.instructions, /\[\[source:N\]\]/u);
+  assert.equal(content.diagnostics.citation_budget, 0);
+  assert.equal(content.diagnostics.citation_count, 0);
+  assert.equal(result.metadata?.citationBudget, 0);
+  assert.equal(result.metadata?.citationCount, 0);
 });
 
 test('deep web search executor marks no supporting evidence when all branches are empty', async () => {
@@ -464,12 +559,18 @@ test('deep web search executor marks no supporting evidence when all branches ar
   assert.equal(content.sources.length, 0);
   assert.equal(content.citations.length, 0);
   assert.equal(content.synthesis.source_count, 0);
+  assert.equal(content.synthesis.citation_budget, null);
+  assert.equal(content.synthesis.citation_count, 0);
   assert.equal(content.synthesis.no_supporting_evidence, true);
   assert.match(content.synthesis.instructions, /No supporting sources were found/u);
   assert.equal(content.diagnostics.source_count, 0);
+  assert.equal(content.diagnostics.citation_budget, null);
+  assert.equal(content.diagnostics.citation_count, 0);
   assert.equal(content.diagnostics.no_supporting_evidence, true);
   assert.equal(result.metadata?.sourceCount, 0);
   assert.equal(result.metadata?.resultCount, 0);
+  assert.equal(result.metadata?.citationBudget, null);
+  assert.equal(result.metadata?.citationCount, 0);
   assert.equal(result.metadata?.noSupportingEvidence, true);
 });
 

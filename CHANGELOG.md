@@ -18,6 +18,7 @@
 - Added an opt-in deep-search custom hosted-tool recipe and regression coverage for keeping it separate from default `web_search`.
 - Added deep-search no-supporting-evidence response and executor metadata for empty research graphs.
 - Added optional deep-search minimum-source diagnostics and hosted-tool metadata for limited-evidence results.
+- Added optional deep-search citation budget controls with response diagnostics and hosted-tool metadata.
 
 ### Changed
 

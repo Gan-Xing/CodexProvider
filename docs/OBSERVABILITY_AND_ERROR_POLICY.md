@@ -87,6 +87,8 @@ Cycle 13 audit added deep-search `no_supporting_evidence` response diagnostics a
 
 Cycle 14 audit added deep-search `minimum_source_count` / `below_minimum_sources` response diagnostics and hosted-tool `minimumSourceCount` / `belowMinimumSources` metadata. These fields expose aggregate source-count policy state only.
 
+Cycle 15 audit added deep-search `citation_budget` / `citation_count` response diagnostics and hosted-tool `citationBudget` / `citationCount` metadata. These fields expose aggregate citation-budget state only and do not copy query text, URLs, snippets, or source contents.
+
 Remaining hardening for future cycles:
 
 - No known structured-observability gaps remain from this recursive audit. Future cycles should re-audit as hosted-tool surfaces or telemetry requirements change.

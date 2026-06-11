@@ -18,7 +18,7 @@ The current planner is heuristic. It decomposes a query into bounded subqueries,
 - Default `web_search` remains a single search/retrieval executor.
 - Deep search must be registered explicitly through `createCodexProviderDeepWebSearchExecutor`.
 - Hosts should expose it as a separate custom hosted tool name, for example `custom:deep_web_search`.
-- Deep search results should preserve merged sources and citation placeholders rather than hiding which subquery found each source.
+- Deep search results should preserve merged sources and citation placeholders rather than hiding which subquery found each source. Explicit citation budgets may cap citation output, but they do not drop merged sources.
 
 ## Planner Interface
 
@@ -77,11 +77,11 @@ Current synthesis support:
 - Cycle 12 adds recipe and example coverage that registers `custom:deep_web_search` separately from default `web_search`.
 - Cycle 13 adds `no_supporting_evidence` response diagnostics plus `noSupportingEvidence` hosted-tool metadata when all searched branches return zero merged sources.
 - Cycle 14 adds optional `min_sources` request handling with below-minimum-source synthesis instructions, response diagnostics, and hosted-tool metadata.
+- Cycle 15 adds optional `citation_budget` / `max_citations` request handling with capped citation output, synthesis instructions, response diagnostics, and hosted-tool metadata.
 
 Roadmap:
 
 - Define a host-injected synthesis executor that can be disabled by default.
-- Add citation budget controls.
 - Add answer-shape modes such as brief answer, evidence table, and research memo.
 
 ## Test Plan
@@ -95,3 +95,4 @@ Required before recommending deep search as productized:
 - Done: documentation examples that keep `custom:deep_web_search` separate from default `web_search`.
 - Done: no-supporting-evidence tests for empty branch results and hosted-tool metadata.
 - Done: minimum-source tests for limited-evidence synthesis instructions and hosted-tool metadata.
+- Done: citation-budget tests for capped citation output, zero-citation mode, and hosted-tool metadata.
