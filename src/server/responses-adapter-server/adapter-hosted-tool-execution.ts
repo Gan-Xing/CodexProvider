@@ -236,6 +236,8 @@ function emitWebSearchExecutionTrace({
       'retrievalCacheMissCount',
       documents.filter((document) => document.from_cache === false),
     ),
+    localIndexHitCount: countFromMetadata(metadata, 'localIndexHitCount', []),
+    localIndexMissCount: countFromMetadata(metadata, 'localIndexMissCount', []),
     unresponsiveEngineCount: arrayCount(content?.unresponsive_engines),
     engineTimingCount: timings ? Object.keys(timings).filter((key) => Number.isFinite(timings[key])).length : 0,
     warningCount: arrayCount(metadata?.warnings),

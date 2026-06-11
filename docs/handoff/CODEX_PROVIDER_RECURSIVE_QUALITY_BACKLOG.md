@@ -321,22 +321,31 @@ Cycle semantics:
 <!-- cycle:9:start -->
 ## Cycle 9 Backlog
 
-### Audit
+### C9-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+- [x] Identify Cycle 9 implementation scope: add local-index hit/miss counts to web-search observability.
+
+### C9-B Local Index Observability
+
+- [x] Mark local-index search engines so metasearch can identify local-index outcomes without inspecting result text.
+- [x] Add local-index hit/miss summary metadata to metasearch-backed web-search responses.
+- [x] Add `localIndexHitCount` and `localIndexMissCount` to `web_search.executed` traces.
+- [x] Cover local-index hit and miss behavior without tracing query text, URLs, snippets, or indexed document bodies.
+- [x] Update observability docs, tracker, changelog, and recursive backlog.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
 - [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 9.
 - [ ] Commit and push.
 - [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.

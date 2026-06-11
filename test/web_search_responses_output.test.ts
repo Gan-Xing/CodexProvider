@@ -379,6 +379,8 @@ test('responses output exposes adapter web_search call with sources, results, an
           retrievalErrorCount: 0,
           retrievalCacheHitCount: 0,
           retrievalCacheMissCount: 1,
+          localIndexHitCount: 1,
+          localIndexMissCount: 0,
           externalWebAccess: true,
           searchContextSize: 'medium',
           warnings: ['ignored parameter'],
@@ -498,6 +500,8 @@ test('responses output exposes adapter web_search call with sources, results, an
     assert.equal(executionTrace.retrievalErrorCount, 0);
     assert.equal(executionTrace.retrievalCacheHitCount, 0);
     assert.equal(executionTrace.retrievalCacheMissCount, 1);
+    assert.equal(executionTrace.localIndexHitCount, 1);
+    assert.equal(executionTrace.localIndexMissCount, 0);
     assert.equal(executionTrace.unresponsiveEngineCount, 1);
     assert.equal(executionTrace.engineTimingCount, 1);
     assert.equal(executionTrace.warningCount, 1);
@@ -660,6 +664,8 @@ test('streaming responses completed event includes adapter web_search call outpu
           documentCount: 1,
           chunkCount: 1,
           retrievalErrorCount: 1,
+          localIndexHitCount: 0,
+          localIndexMissCount: 1,
           retrievalErrors: [{
             source_id: 1,
             url: 'https://example.com/streaming-phase-7',
@@ -802,6 +808,8 @@ test('streaming responses completed event includes adapter web_search call outpu
     assert.equal(executionTrace.retrievalErrorCount, 1);
     assert.equal(executionTrace.retrievalCacheHitCount, 1);
     assert.equal(executionTrace.retrievalCacheMissCount, 0);
+    assert.equal(executionTrace.localIndexHitCount, 0);
+    assert.equal(executionTrace.localIndexMissCount, 1);
     assert.equal(executionTrace.unresponsiveEngineCount, 0);
     assert.equal(executionTrace.engineTimingCount, 1);
     assert.equal(executionTrace.warningCount, 0);

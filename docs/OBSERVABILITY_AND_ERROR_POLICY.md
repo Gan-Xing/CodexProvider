@@ -81,6 +81,8 @@ Cycle 7 audit added count-only `web_search.executed` trace summaries for adapter
 
 Cycle 8 audit added retrieval cache hit/miss counts to `web_search.executed` trace summaries and web-search executor metadata. The counts are derived from `documents[].from_cache` and expose only aggregate hit/miss totals.
 
+Cycle 9 audit added local-index hit/miss counts to metasearch-backed web-search metadata and `web_search.executed` trace summaries. Local-index hits count result rows returned by engines explicitly marked as local indexes; misses count local-index engine queries that completed successfully with zero results.
+
 Remaining hardening for future cycles:
 
-- Add local index hit/miss trace summaries.
+- No known structured-observability gaps remain from this recursive audit. Future cycles should re-audit as hosted-tool surfaces or telemetry requirements change.

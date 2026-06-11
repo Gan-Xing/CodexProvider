@@ -65,7 +65,7 @@ Out of scope for the latest completed phase:
 | 16 | P1 | Hosted tool execution errors need clear policy | Complete | `docs/OBSERVABILITY_AND_ERROR_POLICY.md` defines request validation, security violation, recoverable provider error, fatal hosted tool error, and loop-exceeded policy. Cycle 2 adds typed loop-exceeded error handling with structured category and retry metadata for non-streaming and streaming adapter-emulated hosted-tool loops. |
 | 17 | P1 | Provider capability presets need live behavior records | Partially done | Phase 9 records OpenRouter-compatible mixed-runtime behavior. Cycle 1 adds OpenRouter, DeepSeek, and DashScope/Qwen profile helpers plus `docs/PROVIDER_COMPATIBILITY_MATRIX.md`; Cycle 3 adds MiniMax and Moonshot/Kimi profile helpers; Cycle 5 adds SiliconFlow capability/profile helper coverage. Broader live records remain pending credentials. |
 | 18 | P2 | Deep search is currently heuristic | Partially done | `docs/DEEP_WEB_SEARCH_ROADMAP.md` documents heuristic opt-in status, planner interface, graph execution, reference merge, synthesis contract, and tests needed. |
-| 19 | P2 | Observability should be structured | Partially done | Trace events are now sanitized at the server `emitTrace` exit, `docs/OBSERVABILITY_AND_ERROR_POLICY.md` defines trace redaction policy, Cycle 4 adds hosted-tool SSE delta/output-preview trace redaction coverage, Cycle 6 adds `web_search.citations` count summaries, Cycle 7 adds `web_search.executed` execution count/duration summaries, and Cycle 8 adds retrieval cache hit/miss counts. Local-index trace summaries remain future work. |
+| 19 | P2 | Observability should be structured | Complete | Trace events are now sanitized at the server `emitTrace` exit, `docs/OBSERVABILITY_AND_ERROR_POLICY.md` defines trace redaction policy, Cycle 4 adds hosted-tool SSE delta/output-preview trace redaction coverage, Cycle 6 adds `web_search.citations` count summaries, Cycle 7 adds `web_search.executed` execution count/duration summaries, Cycle 8 adds retrieval cache hit/miss counts, and Cycle 9 adds local-index hit/miss counts. |
 | 20 | P2 | CI and release automation | Complete | Phase 8 CI runs test, typecheck, build, consumer harness, boundary, package-surface, and pack dry-run checks. Publishing remains manual and `private: true` is unchanged. |
 
 ## Phase 1 Binding Contract
@@ -599,4 +599,24 @@ Additional focused and optional validation:
 pnpm exec tsx --test test/web_search_executor.test.ts test/web_search_responses_output.test.ts  # passed: 25 tests
 credential presence check                                                                       # upstream and API-backed search credentials missing; live smokes skipped
 git diff --check                                                                                # passed
+```
+
+Recursive quality Cycle 9 validation run on 2026-06-11:
+
+```bash
+node scripts/recursive-quality-cycle.mjs scan  # passed: 0 findings
+pnpm test                                      # passed: 284 passing, 1 credential-gated integration skipped
+pnpm typecheck                                 # passed
+pnpm build                                     # passed
+pnpm consumer:harness                          # passed
+pnpm check-boundary                            # passed
+pnpm check-package-surface                     # passed
+pnpm pack:dry-run                              # passed: 593 files, 352.8 kB package size, 1.6 MB unpacked
+```
+
+Additional focused and optional validation:
+
+```bash
+pnpm exec tsx --test test/web_search_local_index.test.ts test/web_search_executor.test.ts test/web_search_responses_output.test.ts  # passed: 30 tests
+credential presence check                                                                                                            # upstream and API-backed search credentials missing; live smokes skipped
 ```

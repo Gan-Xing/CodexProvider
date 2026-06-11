@@ -167,6 +167,29 @@ test('web_search executor uses local index and cached retrieval when external we
   assert.equal(content.results[0].source, 'local-cache');
   assert.equal(content.documents[0].from_cache, true);
   assert.match(content.chunks[0].text, /Executor local index cache entry/u);
+  assert.equal(result.metadata?.localIndexHitCount, 1);
+  assert.equal(result.metadata?.localIndexMissCount, 0);
+});
+
+test('web_search executor metadata records local index misses', async () => {
+  const localIndex = createCodexProviderMemoryWebSearchLocalIndex();
+  const executor = createCodexProviderWebSearchExecutor({
+    engines: [createCodexProviderLocalIndexSearchEngine({
+      index: localIndex,
+      name: 'local-cache',
+    })],
+    fetchPages: false,
+    mode: 'any',
+  });
+  const result = await executor(baseRequest({
+    query: 'missing local index document',
+    external_web_access: false,
+  }));
+  const content = result.content as CodexProviderOpenAiWebSearchExecutorContent;
+
+  assert.equal(content.results.length, 0);
+  assert.equal(result.metadata?.localIndexHitCount, 0);
+  assert.equal(result.metadata?.localIndexMissCount, 1);
 });
 
 test('sqlite fts local index contract delegates to supplied adapter', () => {

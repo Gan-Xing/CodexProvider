@@ -107,6 +107,12 @@ class DefaultCodexProviderMetaSearchService implements CodexProviderMetaSearchSe
       this.recordOutcome(outcome);
       container.addOutcome(outcome);
     }
+    const localIndex = summarizeLocalIndexOutcomes(
+      outcomes,
+      new Set(selectedEngines
+        .filter((engine) => engine.localIndex === true)
+        .map((engine) => engine.name)),
+    );
 
     return {
       query: normalizedRequest.query,
@@ -114,6 +120,7 @@ class DefaultCodexProviderMetaSearchService implements CodexProviderMetaSearchSe
       results: container.mergedResults(normalizedRequest.maxResults),
       unresponsiveEngines: container.unresponsiveEngines(),
       timings: container.engineTimings(),
+      ...(localIndex ? { localIndex } : {}),
       searchedAt: now.toISOString(),
     };
   }
@@ -387,6 +394,31 @@ function normalizeDomainList(value: unknown): string[] {
       .replace(/\/.*$/u, '')
       .toLowerCase())
     .filter(Boolean))];
+}
+
+function summarizeLocalIndexOutcomes(
+  outcomes: CodexProviderEngineSearchOutcome[],
+  localIndexEngineNames: Set<string>,
+): { hitCount: number; missCount: number } | null {
+  if (localIndexEngineNames.size === 0) {
+    return null;
+  }
+  let hitCount = 0;
+  let missCount = 0;
+  for (const outcome of outcomes) {
+    if (!localIndexEngineNames.has(outcome.engine) || !outcome.ok) {
+      continue;
+    }
+    if (outcome.results.length > 0) {
+      hitCount += outcome.results.length;
+    } else {
+      missCount += 1;
+    }
+  }
+  return {
+    hitCount,
+    missCount,
+  };
 }
 
 function normalizeString(value: unknown): string {

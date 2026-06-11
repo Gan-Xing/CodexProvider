@@ -158,6 +158,8 @@ export type CodexProviderTraceEvent =
     retrievalErrorCount: number;
     retrievalCacheHitCount: number;
     retrievalCacheMissCount: number;
+    localIndexHitCount: number;
+    localIndexMissCount: number;
     unresponsiveEngineCount: number;
     engineTimingCount: number;
     warningCount: number;

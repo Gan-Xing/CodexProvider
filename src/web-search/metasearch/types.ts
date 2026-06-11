@@ -89,6 +89,7 @@ export interface CodexProviderSearchEngine {
   priority?: number;
   timeoutMs?: number;
   live?: boolean;
+  localIndex?: boolean;
   buildRequest?(
     request: CodexProviderSearchEngineRequest,
   ): Promise<CodexProviderEngineHttpRequest> | CodexProviderEngineHttpRequest;
@@ -161,6 +162,10 @@ export interface CodexProviderSearchResponse {
   results: CodexProviderMergedSearchResult[];
   unresponsiveEngines: CodexProviderUnresponsiveEngine[];
   timings: Record<string, number>;
+  localIndex?: {
+    hitCount: number;
+    missCount: number;
+  };
   searchedAt: string;
 }
 

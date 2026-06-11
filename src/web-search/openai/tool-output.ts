@@ -135,6 +135,8 @@ export function buildCodexProviderOpenAiWebSearchToolOutput({
     }));
   const retrievalCacheHitCount = documents.filter((document) => document.from_cache).length;
   const retrievalCacheMissCount = documents.filter((document) => !document.from_cache).length;
+  const localIndexHitCount = normalizeCount(searchResponse.localIndex?.hitCount);
+  const localIndexMissCount = normalizeCount(searchResponse.localIndex?.missCount);
   const content: CodexProviderOpenAiWebSearchExecutorContent = {
     query: request.query,
     provider: 'metasearch',
@@ -166,6 +168,8 @@ export function buildCodexProviderOpenAiWebSearchToolOutput({
       retrievalErrorCount: retrievalErrors.length,
       retrievalCacheHitCount,
       retrievalCacheMissCount,
+      localIndexHitCount,
+      localIndexMissCount,
       retrievalErrors,
       externalWebAccess: request.externalWebAccess,
       searchContextSize: request.searchContextSize,
@@ -197,4 +201,8 @@ function buildCitationInstructions(sourceCount: number, chunkCount: number): str
     ? `Prefer the provided ${chunkCount} retrieved chunks when grounding detailed claims.`
     : 'Use search snippets only; full page chunks were not retrieved.';
   return `Cite web evidence with [[source:N]] placeholders where N is a source id from 1 to ${sourceCount}. ${chunkClause}`;
+}
+
+function normalizeCount(value: unknown): number {
+  return Number.isFinite(value) ? Math.max(0, Math.trunc(value as number)) : 0;
 }

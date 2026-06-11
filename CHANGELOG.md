@@ -12,6 +12,7 @@
 - Added count-only `web_search.citations` trace summaries for adapter-emulated web search output annotations.
 - Added count-only `web_search.executed` trace summaries for adapter-emulated web search execution results.
 - Added retrieval cache hit/miss counts to web-search executor metadata and `web_search.executed` traces.
+- Added local-index hit/miss counts to metasearch-backed web-search metadata and `web_search.executed` traces.
 
 ### Changed
 

@@ -39,6 +39,7 @@ export function createCodexProviderLocalIndexSearchEngine(
     categories: normalizeCategories(options.categories),
     priority: normalizeNumber(options.priority, 80),
     live: false,
+    localIndex: true,
     search(request) {
       return options.index.search({
         query: request.query,

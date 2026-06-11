@@ -97,7 +97,7 @@ Recorded on 2026-06-11 with `npm pack --dry-run --json`:
 - Package: `@codex-provider/core@0.1.0-alpha.0`
 - Tarball: `codex-provider-core-0.1.0-alpha.0.tgz`
 - Total files: 593
-- Package size: 352.2 kB
+- Package size: 352.8 kB
 - Unpacked size: 1.6 MB
 - Top-level shipped entries: `dist`, `README.md`, `CHANGELOG.md`, `LICENSE`, `docs`, `examples`, `package.json`
 - Examples are intentionally shipped for alpha host integration reference.
