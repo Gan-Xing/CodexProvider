@@ -43,6 +43,7 @@ Current graph support:
 - Produces topological execution levels.
 - Runs search nodes in parallel within each level.
 - Cycle 10 adds regression coverage for missing dependency and cycle rejection.
+- Cycle 11 adds regression coverage for partial search-node failures continuing with successful branches.
 
 Roadmap:
 
@@ -72,6 +73,7 @@ Current synthesis support:
 
 - Returns instructions for a downstream model to cite merged sources with `[[source:N]]` placeholders.
 - Does not synthesize final prose inside the executor.
+- Cycle 11 adds response and hosted-tool metadata diagnostics for failed subqueries, unresponsive engines, selected/discarded planner counts, and source counts.
 
 Roadmap:
 
@@ -85,8 +87,7 @@ Roadmap:
 Required before recommending deep search as productized:
 
 - Done: planner decomposition tests for comparison, multi-part, current-evidence, and CJK comparison queries.
-- Done: graph tests for topological levels, cycles, and missing dependencies.
+- Done: graph tests for topological levels, cycles, missing dependencies, and partial failure handling.
 - Done: reference merge tests for URL canonicalization, repeated source boosts, and citation id stability.
-- Remaining: graph partial-failure handling tests.
-- Executor tests for budget limits, external web access false, domain filters, and unresponsive engines.
+- Done: executor tests for budget limits, external web access false, domain filters, and unresponsive engines.
 - Documentation examples that keep `custom:deep_web_search` separate from default `web_search`.

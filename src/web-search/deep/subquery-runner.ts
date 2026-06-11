@@ -84,6 +84,15 @@ export interface CodexProviderDeepSearchResponse {
     source_count: number;
     subquery_count: number;
   };
+  diagnostics: {
+    planner_strategy: string | null;
+    candidate_count: number | null;
+    selected_subquery_count: number;
+    discarded_subquery_count: number;
+    failed_subquery_count: number;
+    unresponsive_engine_count: number;
+    source_count: number;
+  };
   retrieved_at: string;
   external_web_access: boolean;
   unresponsive_engines: CodexProviderUnresponsiveEngine[];
@@ -150,6 +159,12 @@ export function createCodexProviderDeepWebSearchExecutor(
         subqueryCount: content.subqueries.length,
         sourceCount: content.sources.length,
         resultCount: content.results.length,
+        plannerStrategy: content.diagnostics.planner_strategy,
+        plannerCandidateCount: content.diagnostics.candidate_count,
+        selectedSubqueryCount: content.diagnostics.selected_subquery_count,
+        discardedSubqueryCount: content.diagnostics.discarded_subquery_count,
+        failedSubqueryCount: content.diagnostics.failed_subquery_count,
+        unresponsiveEngineCount: content.diagnostics.unresponsive_engine_count,
         externalWebAccess: content.external_web_access,
       },
     };
@@ -220,6 +235,9 @@ function deepSearchResponseFromReferences({
   references: CodexProviderDeepSearchReference[];
   now: Date;
 }): CodexProviderDeepSearchResponse {
+  const searchNodeCount = graph.nodes.filter((node) => node.type === 'search').length;
+  const unresponsiveEngines = subqueries.flatMap((subquery) => subquery.response?.unresponsiveEngines ?? []);
+  const failedSubqueryCount = subqueries.filter((subquery) => subquery.error).length;
   return {
     query: request.query,
     provider: 'deep-search',
@@ -260,9 +278,18 @@ function deepSearchResponseFromReferences({
       source_count: references.length,
       subquery_count: subqueries.length,
     },
+    diagnostics: {
+      planner_strategy: plan.diagnostics?.strategy ?? null,
+      candidate_count: plan.diagnostics?.candidateCount ?? null,
+      selected_subquery_count: plan.diagnostics?.selectedCount ?? searchNodeCount,
+      discarded_subquery_count: plan.diagnostics?.discardedCount ?? 0,
+      failed_subquery_count: failedSubqueryCount,
+      unresponsive_engine_count: unresponsiveEngines.length,
+      source_count: references.length,
+    },
     retrieved_at: now.toISOString(),
     external_web_access: request.externalWebAccess,
-    unresponsive_engines: subqueries.flatMap((subquery) => subquery.response?.unresponsiveEngines ?? []),
+    unresponsive_engines: unresponsiveEngines,
   };
 }
 

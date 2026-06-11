@@ -390,22 +390,32 @@ Cycle semantics:
 <!-- cycle:11:start -->
 ## Cycle 11 Backlog
 
-### Audit
+### C11-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+- [x] Identify Cycle 11 implementation scope: add deep-search partial-failure and executor diagnostics.
+
+### C11-B Deep Search Failure Diagnostics
+
+- [x] Add deep-search response diagnostics for planner strategy, planner candidate counts, selected/discarded subqueries, failed subqueries, unresponsive engines, and source counts.
+- [x] Mirror the same operational counts in hosted-tool executor metadata for host observability.
+- [x] Cover partial search-node failures continuing with successful branches.
+- [x] Cover executor budget limits, unresponsive engines, and metadata counts.
+- [x] Keep deep search opt-in and separate from the default `web_search` executor.
+- [x] Update roadmap, tracker, changelog, and recursive backlog.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
 - [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 11.
 - [ ] Commit and push.
 - [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
