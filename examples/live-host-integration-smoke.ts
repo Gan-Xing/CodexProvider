@@ -508,15 +508,9 @@ function resolveHostSmokeEnv(): HostSmokeEnv | null {
   if (!upstream) {
     return null;
   }
-  const upstreamBaseUrl = normalizeString(process.env.CODEX_PROVIDER_BASE_URL)
+  const upstreamBaseUrl = configuredBaseUrlForKey(upstream.name)
     || inferredBaseUrlForKey(upstream.name);
-  const model = normalizeString(process.env.CODEX_PROVIDER_MODEL)
-    || normalizeString(process.env.OPENROUTER_MODEL)
-    || normalizeString(process.env.DEEPSEEK_MODEL)
-    || normalizeString(process.env.DASHSCOPE_MODEL)
-    || normalizeString(process.env.QWEN_MODEL)
-    || normalizeString(process.env.MINIMAX_MODEL)
-    || normalizeString(process.env.KIMI_MODEL)
+  const model = configuredModelForKey(upstream.name)
     || inferredModelForKey(upstream.name);
   if (!upstreamBaseUrl || !model) {
     return null;
@@ -565,6 +559,58 @@ function searchProviderForKey(name: string): HostSmokeEnv['searchProvider'] {
     return 'serper';
   }
   return 'tavily';
+}
+
+function configuredBaseUrlForKey(name: string): string {
+  switch (name) {
+    case 'CODEX_PROVIDER_API_KEY':
+      return normalizeString(process.env.CODEX_PROVIDER_BASE_URL);
+    case 'OPENAI_COMPATIBLE_API_KEY':
+      return normalizeString(process.env.OPENAI_COMPATIBLE_BASE_URL)
+        || normalizeString(process.env.CODEX_PROVIDER_BASE_URL);
+    case 'OPENROUTER_API_KEY':
+      return normalizeString(process.env.OPENROUTER_BASE_URL);
+    case 'DASHSCOPE_API_KEY':
+      return normalizeString(process.env.DASHSCOPE_BASE_URL)
+        || normalizeString(process.env.QWEN_BASE_URL);
+    case 'QWEN_API_KEY':
+      return normalizeString(process.env.QWEN_BASE_URL)
+        || normalizeString(process.env.DASHSCOPE_BASE_URL);
+    case 'DEEPSEEK_API_KEY':
+      return normalizeString(process.env.DEEPSEEK_BASE_URL);
+    case 'MINIMAX_API_KEY':
+      return normalizeString(process.env.MINIMAX_BASE_URL);
+    case 'KIMI_API_KEY':
+      return normalizeString(process.env.KIMI_BASE_URL);
+    default:
+      return '';
+  }
+}
+
+function configuredModelForKey(name: string): string {
+  switch (name) {
+    case 'CODEX_PROVIDER_API_KEY':
+      return normalizeString(process.env.CODEX_PROVIDER_MODEL);
+    case 'OPENAI_COMPATIBLE_API_KEY':
+      return normalizeString(process.env.OPENAI_COMPATIBLE_MODEL)
+        || normalizeString(process.env.CODEX_PROVIDER_MODEL);
+    case 'OPENROUTER_API_KEY':
+      return normalizeString(process.env.OPENROUTER_MODEL);
+    case 'DASHSCOPE_API_KEY':
+      return normalizeString(process.env.DASHSCOPE_MODEL)
+        || normalizeString(process.env.QWEN_MODEL);
+    case 'QWEN_API_KEY':
+      return normalizeString(process.env.QWEN_MODEL)
+        || normalizeString(process.env.DASHSCOPE_MODEL);
+    case 'DEEPSEEK_API_KEY':
+      return normalizeString(process.env.DEEPSEEK_MODEL);
+    case 'MINIMAX_API_KEY':
+      return normalizeString(process.env.MINIMAX_MODEL);
+    case 'KIMI_API_KEY':
+      return normalizeString(process.env.KIMI_MODEL);
+    default:
+      return '';
+  }
 }
 
 function inferredBaseUrlForKey(name: string): string {

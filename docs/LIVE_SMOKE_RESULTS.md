@@ -253,3 +253,38 @@ This file records redacted live smoke evidence for `@codex-provider/core`.
 | Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 1597 ms. |
 | Adapter-emulated web_search | Passed | Sources: 5; results: 5; annotations: 1; latency: 6262 ms. |
 | Streaming adapter-emulated web_search | Passed | SSE events: 14; sources: 5; results: 5; annotations: 1; latency: 5870 ms. |
+
+## 2026-06-11T14:55:03.866Z Adapter-emulated web_search live smoke
+
+- Provider base URL host: `dashscope-us.aliyuncs.com`
+- Model: `qwen3.6-plus`
+- Search provider: `builtin-metasearch`
+- Upstream key env: `QWEN_API_KEY=<redacted>`
+- Search credential: `not set; built-in no-key metasearch`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Offline local-index path | Passed | Direct executor request used `external_web_access=false` and returned the seeded local-cache result. |
+| Non-streaming adapter web_search | Passed | web_search_call sources: 1; results: 1; annotations: 1; latency: 12736 ms. |
+| Streaming adapter web_search | Passed | SSE events: 26; web_search_call sources: 1; results: 1; annotations: 1; latency: 8396 ms. |
+
+## 2026-06-11T14:55:53.145Z CodexProviderRuntime live host integration smoke
+
+- Provider base URL host: `dashscope-us.aliyuncs.com`
+- Model: `qwen3.6-plus`
+- Runtime mode: `mixed`
+- Tool strategy: `adapter-emulated`
+- Upstream key env: `QWEN_API_KEY=<redacted>`
+- Search provider: `builtin-metasearch`
+- Search key env: `<not set; built-in no-key metasearch>`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Mixed runtime local adapter | Passed | Adapter base URL host: 127.0.0.1:43071. |
+| Normal response | Passed | Latency: 10736 ms. |
+| Custom tool loop | Passed | First turn produced echo_probe; second turn returned final text. Latency: 11621 ms. |
+| Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 3892 ms. |
+| Adapter-emulated web_search | Passed | Sources: 1; results: 1; annotations: 1; latency: 7183 ms. |
+| Streaming adapter-emulated web_search | Passed | SSE events: 25; sources: 1; results: 1; annotations: 1; latency: 5668 ms. |

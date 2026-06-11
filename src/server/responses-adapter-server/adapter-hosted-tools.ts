@@ -14,6 +14,7 @@ import type {
 } from './adapter-hosted-tool-config.js';
 import {
   asyncIteratorToIterable,
+  chatStreamChunkHasFinishReason,
   chatStreamChunkFinishedToolCalls,
   chatStreamChunkHasAssistantText,
   collectStreamingToolCallDeltas,
@@ -87,7 +88,10 @@ export async function inspectAdapterHostedStreamingTurn(
           remaining: asyncIteratorToIterable(iterator),
         };
       }
-      if (accumulator.sawToolCallDelta && chatStreamChunkFinishedToolCalls(chunk)) {
+      if (
+        accumulator.sawToolCallDelta
+        && (chatStreamChunkFinishedToolCalls(chunk) || chatStreamChunkHasFinishReason(chunk))
+      ) {
         await drainAsyncIterator(iterator);
         return streamingDecisionFromBufferedChunks(bufferedChunks, accumulator, hostedTools, registry, requestConfigs);
       }

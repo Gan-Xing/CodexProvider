@@ -46,7 +46,7 @@ export type ProviderRetryHint =
 
 export type CodexProviderRequestAdjustment =
   | {
-    kind: 'field_filtered' | 'tool_choice_dropped' | 'model_overridden';
+    kind: 'field_filtered' | 'tool_choice_dropped' | 'model_overridden' | 'thinking_disabled';
     path: string;
     reason: string;
     before: unknown;

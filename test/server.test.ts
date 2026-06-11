@@ -2006,7 +2006,7 @@ test('adapter server returns structured error metadata when streaming adapter-em
           model: 'adapter-search-model',
           choices: [{
             index: 0,
-            finish_reason: 'tool_calls',
+            finish_reason: 'stop',
           }],
         },
       ]);
@@ -2479,7 +2479,7 @@ test('adapter server emits opt-in hosted tool SSE lifecycle events', async () =>
           model: 'adapter-search-model',
           choices: [{
             index: 0,
-            finish_reason: 'tool_calls',
+            finish_reason: 'stop',
           }],
         },
       ]);
@@ -3034,6 +3034,88 @@ test('adapter server retries forced tool_choice as auto when upstream thinking m
       && event.adjustments?.some((adjustment: any) => adjustment.reason === 'upstream_rejected_forced_tool_choice')
     )), true);
     assert.equal(traceEvents.some((event) => event.type === 'upstream.retry' && event.status === 400), true);
+  } finally {
+    await server.stop();
+  }
+});
+
+test('adapter server disables inferred thinking before dropping forced tool_choice', async () => {
+  const upstreamRequests: any[] = [];
+  const traceEvents: any[] = [];
+  const server = new OpenAICompatibleResponsesAdapterServer({
+    apiKey: 'test-key',
+    traceSink: (event) => {
+      traceEvents.push(JSON.parse(JSON.stringify(event)));
+    },
+    fetchImpl: (async (_url, init) => {
+      const requestBody = JSON.parse(String(init?.body ?? '{}'));
+      upstreamRequests.push(requestBody);
+      if (upstreamRequests.length === 1) {
+        return new Response(JSON.stringify({
+          error: {
+            message: 'The tool_choice parameter does not support being set to required or object in thinking mode',
+            type: 'invalid_request_error',
+          },
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({
+        id: 'chatcmpl_tool_choice_thinking_disabled',
+        created: 1_700_000_404,
+        model: 'qwen3.6-plus',
+        choices: [{
+          message: {
+            tool_calls: [{
+              id: 'call_exec_thinking_disabled',
+              type: 'function',
+              function: {
+                name: 'exec',
+                arguments: '{"input":"pwd"}',
+              },
+            }],
+          },
+          finish_reason: 'tool_calls',
+        }],
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as typeof fetch,
+  });
+
+  await server.start();
+  try {
+    const response = await fetch(`${server.baseUrl}/v1/responses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'qwen3.6-plus',
+        input: 'run pwd',
+        tools: [{
+          type: 'custom',
+          name: 'exec',
+          description: 'Run a local command.',
+        }],
+        tool_choice: {
+          type: 'custom',
+          name: 'exec',
+        },
+      }),
+    });
+    const body = await response.json() as any;
+    assert.equal(response.status, 200);
+    assert.equal(upstreamRequests.length, 2);
+    assert.ok(upstreamRequests[0].tool_choice);
+    assert.ok(upstreamRequests[1].tool_choice);
+    assert.equal(upstreamRequests[1].enable_thinking, false);
+    assert.equal(body.output[0].type, 'custom_tool_call');
+    assert.equal(body.output[0].name, 'exec');
+    assert.equal(traceEvents.some((event) => (
+      event.type === 'request.adjusted'
+      && event.adjustments?.some((adjustment: any) => adjustment.kind === 'thinking_disabled')
+    )), true);
   } finally {
     await server.stop();
   }

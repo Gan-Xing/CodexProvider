@@ -90,6 +90,10 @@ export function chatStreamChunkFinishedToolCalls(chunk: JsonRecord): boolean {
   return normalizeArray(chunk?.choices).some((choice) => normalizeString(choice?.finish_reason) === 'tool_calls');
 }
 
+export function chatStreamChunkHasFinishReason(chunk: JsonRecord): boolean {
+  return normalizeArray(chunk?.choices).some((choice) => Boolean(normalizeString(choice?.finish_reason)));
+}
+
 function normalizeStreamIndex(value: unknown, fallback: number): number {
   const number = Number(value);
   return Number.isInteger(number) && number >= 0 ? number : fallback;

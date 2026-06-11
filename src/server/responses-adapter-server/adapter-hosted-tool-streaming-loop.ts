@@ -31,7 +31,7 @@ import {
   normalizeUpstreamError,
 } from './errors.js';
 import {
-  shouldRetryWithoutForcedToolChoice,
+  buildForcedToolChoiceRetryPlan,
 } from './retry.js';
 import {
   ensureSseResponseHeaders,
@@ -119,7 +119,7 @@ export async function writeAdapterHostedToolStreamingResponse({
   writeStreamingDataLinesResponseWithHostedToolResults: WriteStreamingDataLinesResponseWithHostedToolResults;
   emitTrace: EmitTrace;
 }): Promise<void> {
-  const loopChatBody = cloneJson(chatBody);
+  let loopChatBody = cloneJson(chatBody);
   loopChatBody.stream = true;
   loopChatBody.stream_options = {
     ...(loopChatBody.stream_options && typeof loopChatBody.stream_options === 'object' ? loopChatBody.stream_options : {}),
@@ -134,20 +134,18 @@ export async function writeAdapterHostedToolStreamingResponse({
       'responses',
       providerCapabilities,
     );
-    if (shouldRetryWithoutForcedToolChoice(loopChatBody, upstream)) {
-      const before = loopChatBody.tool_choice;
-      delete loopChatBody.tool_choice;
+    const forcedToolChoiceRetry = buildForcedToolChoiceRetryPlan(loopChatBody, upstream, {
+      providerKind,
+      providerCapabilities,
+    });
+    if (forcedToolChoiceRetry) {
+      loopChatBody = forcedToolChoiceRetry.body;
       emitTrace({
         type: 'request.adjusted',
         route: 'responses',
         model: requestedModel,
         stream: true,
-        adjustments: [{
-          kind: 'tool_choice_dropped',
-          path: 'tool_choice',
-          reason: 'upstream_rejected_forced_tool_choice',
-          before,
-        }],
+        adjustments: [forcedToolChoiceRetry.adjustment],
       });
       emitTrace({
         type: 'upstream.retry',

@@ -1,11 +1,17 @@
 import type {
+  OpenAICompatibleProviderCapabilities,
   OpenAICompatibleRetryCapabilities,
 } from '../../capabilities/thinking_policy.js';
+import {
+  applyThinkingPolicyToOpenAIChatRequest,
+} from '../../capabilities/thinking_policy.js';
 import type {
+  CodexProviderRequestAdjustment,
   JsonRecord,
 } from './types.js';
 import {
   clampInteger,
+  cloneJson,
   normalizeArray,
   normalizeString,
 } from './utils.js';
@@ -95,6 +101,63 @@ export function shouldRetryWithoutForcedToolChoice(
     || errorText.includes('invalid parameter');
 }
 
+export function buildForcedToolChoiceRetryPlan(
+  chatBody: JsonRecord,
+  upstream: {
+    response: Response;
+    errorText: string | null;
+  },
+  {
+    providerKind,
+    providerCapabilities,
+  }: {
+    providerKind: string;
+    providerCapabilities: OpenAICompatibleProviderCapabilities | null;
+  },
+): {
+  body: JsonRecord;
+  adjustment: CodexProviderRequestAdjustment;
+} | null {
+  if (!shouldRetryWithoutForcedToolChoice(chatBody, upstream)) {
+    return null;
+  }
+
+  const thinkingDisabledBody = cloneJson(chatBody);
+  applyThinkingPolicyToOpenAIChatRequest(thinkingDisabledBody, {
+    providerKind,
+    requestedEffort: 'none',
+    capabilities: providerCapabilities,
+  });
+  if (!hasDisabledThinkingSignal(thinkingDisabledBody)) {
+    applyInferredDisabledThinkingControl(thinkingDisabledBody);
+  }
+  if (hasDisabledThinkingSignal(thinkingDisabledBody)) {
+    return {
+      body: thinkingDisabledBody,
+      adjustment: {
+        kind: 'thinking_disabled',
+        path: 'thinking',
+        reason: 'upstream_rejected_forced_tool_choice',
+        before: summarizeThinkingControls(chatBody),
+        after: summarizeThinkingControls(thinkingDisabledBody),
+      },
+    };
+  }
+
+  const downgradedChatBody = cloneJson(chatBody);
+  const before = downgradedChatBody.tool_choice;
+  delete downgradedChatBody.tool_choice;
+  return {
+    body: downgradedChatBody,
+    adjustment: {
+      kind: 'tool_choice_dropped',
+      path: 'tool_choice',
+      reason: 'upstream_rejected_forced_tool_choice',
+      before,
+    },
+  };
+}
+
 function isForcedChatToolChoice(value: unknown): boolean {
   if (value && typeof value === 'object') {
     return true;
@@ -104,6 +167,68 @@ function isForcedChatToolChoice(value: unknown): boolean {
     return false;
   }
   return true;
+}
+
+function hasDisabledThinkingSignal(body: JsonRecord): boolean {
+  if (body.enable_thinking === false || body.reasoning_split === false) {
+    return true;
+  }
+  if (body.thinking && typeof body.thinking === 'object' && (body.thinking as JsonRecord).type === 'disabled') {
+    return true;
+  }
+  const chatTemplateKwargs = body.chat_template_kwargs;
+  return Boolean(
+    chatTemplateKwargs
+    && typeof chatTemplateKwargs === 'object'
+    && (chatTemplateKwargs as JsonRecord).enable_thinking === false,
+  );
+}
+
+function applyInferredDisabledThinkingControl(body: JsonRecord): void {
+  const model = normalizeString(body.model).toLowerCase();
+  if (
+    model.includes('qwen')
+    || model.includes('dashscope')
+    || model.includes('bailian')
+    || model.includes('siliconflow')
+  ) {
+    body.enable_thinking = false;
+    return;
+  }
+  if (
+    model.includes('kimi')
+    || model.includes('moonshot')
+    || model.includes('glm')
+    || model.includes('zhipu')
+    || model.includes('z.ai')
+    || model.includes('mimo')
+  ) {
+    body.thinking = { type: 'disabled' };
+    return;
+  }
+  if (model.includes('minimax')) {
+    body.reasoning_split = false;
+  }
+}
+
+function summarizeThinkingControls(body: JsonRecord): JsonRecord {
+  const summary: JsonRecord = {};
+  if (body.reasoning_effort !== undefined) {
+    summary.reasoning_effort = body.reasoning_effort;
+  }
+  if (body.enable_thinking !== undefined) {
+    summary.enable_thinking = body.enable_thinking;
+  }
+  if (body.reasoning_split !== undefined) {
+    summary.reasoning_split = body.reasoning_split;
+  }
+  if (body.thinking !== undefined) {
+    summary.thinking = body.thinking;
+  }
+  if (body.chat_template_kwargs !== undefined) {
+    summary.chat_template_kwargs = body.chat_template_kwargs;
+  }
+  return summary;
 }
 
 export function resolveRetryDelayMs(

@@ -51,7 +51,7 @@ import {
   buildChatCompletionsUrl,
 } from './urls.js';
 import {
-  shouldRetryWithoutForcedToolChoice,
+  buildForcedToolChoiceRetryPlan,
 } from './retry.js';
 import {
   summarizeRequestAdjustments,
@@ -303,23 +303,17 @@ export async function handleResponsesAdapterRequest({
     'responses',
     effectiveCapabilities,
   );
-  if (shouldRetryWithoutForcedToolChoice(chatBody, upstream)) {
-    const downgradedChatBody = {
-      ...chatBody,
-    };
-    const before = downgradedChatBody.tool_choice;
-    delete downgradedChatBody.tool_choice;
+  const forcedToolChoiceRetry = buildForcedToolChoiceRetryPlan(chatBody, upstream, {
+    providerKind,
+    providerCapabilities: effectiveCapabilities,
+  });
+  if (forcedToolChoiceRetry) {
     emitTrace({
       type: 'request.adjusted',
       route: 'responses',
       model: requestedModel,
       stream,
-      adjustments: [{
-        kind: 'tool_choice_dropped',
-        path: 'tool_choice',
-        reason: 'upstream_rejected_forced_tool_choice',
-        before,
-      }],
+      adjustments: [forcedToolChoiceRetry.adjustment],
     });
     emitTrace({
       type: 'upstream.retry',
@@ -332,7 +326,7 @@ export async function handleResponsesAdapterRequest({
     });
     upstream = await fetchUpstreamWithRetry(
       upstreamUrl,
-      buildUpstreamInit(downgradedChatBody),
+      buildUpstreamInit(forcedToolChoiceRetry.body),
       'responses',
       effectiveCapabilities,
     );
