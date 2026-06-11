@@ -284,10 +284,38 @@ test('web_search citation annotations apply independently to multiple output tex
   assert.equal(secondPart.text.slice(secondPart.annotations[0].start_index, secondPart.annotations[0].end_index), '[2]');
 });
 
+test('web_search citation annotation summary counts missing sources', () => {
+  const response = {
+    output: [{
+      type: 'message',
+      content: [
+        { type: 'output_text', text: 'Known[[source:1]] Missing[[source:99]]' },
+      ],
+    }],
+  };
+
+  const summary = applyWebSearchCitationAnnotationsToResponsesOutput(response, [
+    { id: 1, title: 'Known Source', url: 'https://example.com/known' },
+  ]);
+
+  assert.equal(response.output[0].content[0].text, 'Known [1] Missing');
+  assert.deepEqual(summary, {
+    sourceCount: 1,
+    outputTextPartCount: 1,
+    placeholderCount: 2,
+    annotationCount: 1,
+    missingSourceCount: 1,
+  });
+});
+
 test('responses output exposes adapter web_search call with sources, results, and citation annotations', async () => {
   const upstreamRequests: any[] = [];
+  const traceEvents: any[] = [];
   const server = new OpenAICompatibleResponsesAdapterServer({
     apiKey: 'test-key',
+    traceSink: (event) => {
+      traceEvents.push(JSON.parse(JSON.stringify(event)));
+    },
     providerCapabilities: {
       supportsBuiltinWebSearchTool: false,
     },
@@ -414,6 +442,19 @@ test('responses output exposes adapter web_search call with sources, results, an
     assert.equal(webSearchCall.action.sources[0].url, 'https://example.com/phase-7-source');
     assert.deepEqual(webSearchCalls.map((item: any) => item.action.type), ['search']);
     assert.equal(webSearchCall.results[0].url, 'https://example.com/phase-7-result');
+    assert.deepEqual(
+      traceEvents.find((event) => event.type === 'web_search.citations'),
+      {
+        type: 'web_search.citations',
+        route: 'responses',
+        stream: false,
+        sourceCount: 1,
+        outputTextPartCount: 1,
+        placeholderCount: 1,
+        annotationCount: 1,
+        missingSourceCount: 0,
+      },
+    );
   } finally {
     await server.stop();
   }
@@ -510,8 +551,12 @@ test('responses output does not fabricate citation annotations without placehold
 
 test('streaming responses completed event includes adapter web_search call output', async () => {
   const upstreamRequests: any[] = [];
+  const traceEvents: any[] = [];
   const server = new OpenAICompatibleResponsesAdapterServer({
     apiKey: 'test-key',
+    traceSink: (event) => {
+      traceEvents.push(JSON.parse(JSON.stringify(event)));
+    },
     providerCapabilities: {
       supportsBuiltinWebSearchTool: false,
     },
@@ -654,6 +699,19 @@ test('streaming responses completed event includes adapter web_search call outpu
     assert.equal(webSearchCall.action.sources[0].url, 'https://example.com/streaming-phase-7');
     assert.deepEqual(webSearchCalls.map((item: any) => item.action.type), ['search']);
     assert.equal(webSearchCall.results[0].url, 'https://example.com/streaming-phase-7-result');
+    assert.deepEqual(
+      traceEvents.find((event) => event.type === 'web_search.citations'),
+      {
+        type: 'web_search.citations',
+        route: 'responses',
+        stream: true,
+        sourceCount: 1,
+        outputTextPartCount: 1,
+        placeholderCount: 1,
+        annotationCount: 1,
+        missingSourceCount: 0,
+      },
+    );
   } finally {
     await server.stop();
   }

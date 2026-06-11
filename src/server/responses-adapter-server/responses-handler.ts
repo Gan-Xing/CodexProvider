@@ -44,6 +44,9 @@ import {
 import {
   appendHostedToolResultsToResponsesOutput,
 } from './hosted-tool-output.js';
+import type {
+  CodexProviderWebSearchCitationSummary,
+} from '../../web-search/openai/annotations.js';
 import {
   buildChatCompletionsUrl,
 } from './urls.js';
@@ -406,13 +409,14 @@ export async function handleResponsesAdapterRequest({
       providerCapabilities: effectiveCapabilities,
       modelMetadata,
     });
-    appendHostedToolResultsToResponsesOutput({
+    const hostedToolOutput = appendHostedToolResultsToResponsesOutput({
       response: adaptedResponse,
       request: effectiveRequestBody,
       executions: hostedToolLoop.executions,
       exposeByDefault: exposeHostedToolResultsInResponsesOutput,
       exposeWebSearchDetailedActions,
     });
+    emitWebSearchCitationSummaryTrace(hostedToolOutput.webSearchCitationSummary, false, emitTrace);
     emitTrace({
       type: 'response.translated',
       route: 'responses',
@@ -438,4 +442,20 @@ export async function handleResponsesAdapterRequest({
     });
     writeJson(response, 502, { error: malformedError });
   }
+}
+
+function emitWebSearchCitationSummaryTrace(
+  summary: CodexProviderWebSearchCitationSummary | null,
+  stream: boolean,
+  emitTrace: (event: CodexProviderTraceEvent) => void,
+): void {
+  if (!summary) {
+    return;
+  }
+  emitTrace({
+    type: 'web_search.citations',
+    route: 'responses',
+    stream,
+    ...summary,
+  });
 }

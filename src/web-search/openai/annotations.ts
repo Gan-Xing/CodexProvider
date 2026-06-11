@@ -7,12 +7,27 @@ import {
   type CodexProviderWebSearchCitationSource,
 } from './placeholders.js';
 
+export interface CodexProviderWebSearchCitationSummary {
+  sourceCount: number;
+  outputTextPartCount: number;
+  placeholderCount: number;
+  annotationCount: number;
+  missingSourceCount: number;
+}
+
 export function applyWebSearchCitationAnnotationsToResponsesOutput(
   response: JsonRecord,
   sources: CodexProviderWebSearchCitationSource[],
-): void {
+): CodexProviderWebSearchCitationSummary {
+  const summary: CodexProviderWebSearchCitationSummary = {
+    sourceCount: sources.length,
+    outputTextPartCount: 0,
+    placeholderCount: 0,
+    annotationCount: 0,
+    missingSourceCount: 0,
+  };
   if (sources.length === 0 || !Array.isArray(response.output)) {
-    return;
+    return summary;
   }
   for (const item of response.output) {
     if (!item || typeof item !== 'object' || item.type !== 'message' || !Array.isArray(item.content)) {
@@ -22,7 +37,12 @@ export function applyWebSearchCitationAnnotationsToResponsesOutput(
       if (!part || typeof part !== 'object' || part.type !== 'output_text' || typeof part.text !== 'string') {
         continue;
       }
+      summary.outputTextPartCount += 1;
+      const placeholderCount = countWebSearchSourcePlaceholders(part.text);
       const replaced = replaceWebSearchSourcePlaceholders(part.text, sources);
+      summary.placeholderCount += placeholderCount;
+      summary.annotationCount += replaced.annotations.length;
+      summary.missingSourceCount += Math.max(0, placeholderCount - replaced.annotations.length);
       part.text = replaced.text;
       part.annotations = [
         ...normalizeArray(part.annotations),
@@ -36,6 +56,7 @@ export function applyWebSearchCitationAnnotationsToResponsesOutput(
       ];
     }
   }
+  return summary;
 }
 
 export function collectWebSearchCitationSourcesFromPayloads(payloads: unknown[]): CodexProviderWebSearchCitationSource[] {
@@ -59,4 +80,8 @@ export function collectWebSearchCitationSourcesFromPayloads(payloads: unknown[])
 
 function normalizeArray(value: unknown): any[] {
   return Array.isArray(value) ? value : [];
+}
+
+function countWebSearchSourcePlaceholders(text: string): number {
+  return [...text.matchAll(/\[\[source:(\d+)\]\]/giu)].length;
 }

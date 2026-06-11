@@ -131,6 +131,16 @@ export type CodexProviderTraceEvent =
     eventCount: number;
   }
   | {
+    type: 'web_search.citations';
+    route: 'responses';
+    stream: boolean;
+    sourceCount: number;
+    outputTextPartCount: number;
+    placeholderCount: number;
+    annotationCount: number;
+    missingSourceCount: number;
+  }
+  | {
     type: 'hosted_tool.config_bound';
     route: 'responses';
     toolName: string;

@@ -3,6 +3,7 @@ import {
 } from '../../builtin-tools/index.js';
 import {
   applyWebSearchCitationAnnotationsToResponsesOutput,
+  type CodexProviderWebSearchCitationSummary,
 } from '../../web-search/openai/annotations.js';
 import {
   buildCodexProviderWebSearchCallOutputItem,
@@ -32,9 +33,13 @@ export function appendHostedToolResultsToResponsesOutput({
   executions: AdapterHostedToolExecutionRecord[];
   exposeByDefault: boolean;
   exposeWebSearchDetailedActions?: boolean;
-}): void {
+}): {
+  webSearchCitationSummary: CodexProviderWebSearchCitationSummary | null;
+} {
   if (executions.length === 0) {
-    return;
+    return {
+      webSearchCitationSummary: null,
+    };
   }
   const output = Array.isArray(response.output) ? response.output : [];
   const webSearchCitationSources: CodexProviderWebSearchCitationSource[] = [];
@@ -91,7 +96,12 @@ export function appendHostedToolResultsToResponsesOutput({
     }
   }
   response.output = output;
-  applyWebSearchCitationAnnotationsToResponsesOutput(response, webSearchCitationSources);
+  const webSearchCitationSummary = webSearchCitationSources.length > 0
+    ? applyWebSearchCitationAnnotationsToResponsesOutput(response, webSearchCitationSources)
+    : null;
+  return {
+    webSearchCitationSummary,
+  };
 }
 
 function shouldExposeFileSearchResults(request: JsonRecord, exposeByDefault: boolean): boolean {

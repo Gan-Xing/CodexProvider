@@ -23,6 +23,7 @@ Current event families:
 - `upstream.error`
 - `stream.event`
 - `stream.completed`
+- `web_search.citations`
 - `hosted_tool.config_bound`
 - `hosted_tool.executed`
 
@@ -73,8 +74,9 @@ Cycle 2 audit closed the plain-object hosted-tool loop-exceeded gap. Non-streami
 
 Cycle 4 audit added regression coverage for hosted-tool SSE trace redaction. Client SSE lifecycle events still carry executor output, while mirrored `stream.event` traces are sanitized before `traceSink` receives deltas, metadata, and output previews.
 
+Cycle 6 audit added count-only `web_search.citations` trace summaries for adapter-emulated web search output annotation. The event records source, output text part, placeholder, annotation, and missing-source counts without copying answer text or source documents into a dedicated observability event.
+
 Remaining hardening for future cycles:
 
 - Add structured trace events for search engine latency/failure stats.
 - Add retrieval cache hit/miss and local index hit/miss trace summaries.
-- Add citation placeholder count summaries.

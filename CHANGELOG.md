@@ -9,6 +9,7 @@
 - Added MiniMax and Moonshot/Kimi provider profile helpers with env and capability metadata.
 - Added SiliconFlow provider capability and profile helper coverage with env metadata.
 - Added hosted-tool SSE trace redaction regression coverage.
+- Added count-only `web_search.citations` trace summaries for adapter-emulated web search output annotations.
 
 ### Changed
 

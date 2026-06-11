@@ -10,6 +10,9 @@ import type {
 import {
   appendHostedToolResultsToResponsesOutput,
 } from './hosted-tool-output.js';
+import type {
+  CodexProviderWebSearchCitationSummary,
+} from '../../web-search/openai/annotations.js';
 import {
   resolveModelMetadata,
 } from './models.js';
@@ -138,13 +141,14 @@ export async function writeStreamingDataLinesResponseWithHostedToolResults({
       const previousOutputLength = Array.isArray(event.response.output)
         ? event.response.output.length
         : 0;
-      appendHostedToolResultsToResponsesOutput({
+      const hostedToolOutput = appendHostedToolResultsToResponsesOutput({
         response: event.response,
         request: requestBody,
         executions,
         exposeByDefault: exposeHostedToolResultsInResponsesOutput,
         exposeWebSearchDetailedActions,
       });
+      emitWebSearchCitationSummaryTrace(hostedToolOutput.webSearchCitationSummary, true, emitTrace);
       const appendedOutputEvents = buildAppendedOutputItemSseEvents(event.response, previousOutputLength);
       resequenceInsertedStreamEvents(appendedOutputEvents, event);
       eventsToWrite = [
@@ -168,6 +172,22 @@ export async function writeStreamingDataLinesResponseWithHostedToolResults({
     eventCount,
   });
   response.end();
+}
+
+function emitWebSearchCitationSummaryTrace(
+  summary: CodexProviderWebSearchCitationSummary | null,
+  stream: boolean,
+  emitTrace: EmitTrace,
+): void {
+  if (!summary) {
+    return;
+  }
+  emitTrace({
+    type: 'web_search.citations',
+    route: 'responses',
+    stream,
+    ...summary,
+  });
 }
 
 export async function writeSyntheticStreamingResponse({
