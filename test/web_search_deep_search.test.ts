@@ -391,6 +391,9 @@ test('deep search runner records partial failures and unresponsive diagnostics',
     selected_subquery_count: 3,
     discarded_subquery_count: 0,
     failed_subquery_count: 1,
+    timed_out_subquery_count: 1,
+    retried_subquery_count: 0,
+    subquery_attempt_count: 3,
     unresponsive_engine_count: 1,
     source_count: 1,
     search_node_count: 3,
@@ -399,6 +402,8 @@ test('deep search runner records partial failures and unresponsive diagnostics',
     max_subqueries: 4,
     max_results_per_subquery: 5,
     max_sources: 5,
+    max_subquery_attempts: 1,
+    subquery_timeout_ms: null,
     duration_ms: 0,
     minimum_source_count: null,
     below_minimum_sources: false,
@@ -621,6 +626,67 @@ test('deep web search executor marks no supporting evidence when all branches ar
   assert.equal(result.metadata?.noSupportingEvidence, true);
 });
 
+test('deep web search executor records opt-in subquery timeout and retry metadata', async () => {
+  const seenRequests: CodexProviderSearchRequest[] = [];
+  const search: CodexProviderMetaSearchService = {
+    async search(request) {
+      seenRequests.push(JSON.parse(JSON.stringify(request)));
+      if (seenRequests.length === 1) {
+        return searchResponse(request, [], {
+          unresponsiveEngines: [{
+            engine: 'timeout-engine',
+            code: 'timeout',
+            message: 'subquery timed out',
+            durationMs: 75,
+          }],
+        });
+      }
+      return searchResponse(request, [{
+        title: 'Retry Evidence',
+        url: 'https://docs.example.com/retry-evidence',
+        snippet: 'Evidence returned after a retry.',
+        engines: ['fake'],
+        engineRanks: { fake: 1 },
+        score: 10,
+      }]);
+    },
+  };
+  const executor = createCodexProviderDeepWebSearchExecutor({
+    search,
+    maxSubqueries: 1,
+    maxResultsPerSubquery: 1,
+    now: () => new Date('2026-06-08T00:00:00.000Z'),
+  });
+
+  const result = await executor(baseRequest({
+    query: 'retryable timeout topic',
+    subquery_timeout_ms: 75,
+    max_subquery_attempts: 2,
+  }));
+  const content = result.content as any;
+
+  assert.equal(seenRequests.length, 2);
+  assert.equal(seenRequests[0].overallTimeoutMs, 75);
+  assert.equal(seenRequests[1].overallTimeoutMs, 75);
+  assert.equal(content.sources.length, 1);
+  assert.equal(content.subqueries.length, 1);
+  assert.equal(content.subqueries[0].attempt_count, 2);
+  assert.equal(content.subqueries[0].timed_out, true);
+  assert.equal(content.subqueries[0].error, null);
+  assert.ok(content.subqueries[0].duration_ms >= 0);
+  assert.equal(content.unresponsive_engines.length, 1);
+  assert.equal(content.diagnostics.timed_out_subquery_count, 1);
+  assert.equal(content.diagnostics.retried_subquery_count, 1);
+  assert.equal(content.diagnostics.subquery_attempt_count, 2);
+  assert.equal(content.diagnostics.max_subquery_attempts, 2);
+  assert.equal(content.diagnostics.subquery_timeout_ms, 75);
+  assert.equal(result.metadata?.timedOutSubqueryCount, 1);
+  assert.equal(result.metadata?.retriedSubqueryCount, 1);
+  assert.equal(result.metadata?.subqueryAttemptCount, 2);
+  assert.equal(result.metadata?.maxSubqueryAttempts, 2);
+  assert.equal(result.metadata?.subqueryTimeoutMs, 75);
+});
+
 test('deep web search executor exposes deep-search content for custom hosted tools', async () => {
   const seenRequests: CodexProviderSearchRequest[] = [];
   const search: CodexProviderMetaSearchService = {
@@ -710,6 +776,9 @@ test('deep web search executor metadata records planner budgets and unresponsive
   assert.equal(content.diagnostics.planner_strategy, 'heuristic');
   assert.equal(content.diagnostics.selected_subquery_count, 2);
   assert.ok(content.diagnostics.discarded_subquery_count > 0);
+  assert.equal(content.diagnostics.timed_out_subquery_count, 1);
+  assert.equal(content.diagnostics.retried_subquery_count, 0);
+  assert.equal(content.diagnostics.subquery_attempt_count, 2);
   assert.equal(content.diagnostics.unresponsive_engine_count, 1);
   assert.equal(content.diagnostics.search_node_count, 2);
   assert.equal(content.diagnostics.executed_subquery_count, 2);
@@ -717,10 +786,15 @@ test('deep web search executor metadata records planner budgets and unresponsive
   assert.equal(content.diagnostics.max_subqueries, 2);
   assert.equal(content.diagnostics.max_results_per_subquery, 1);
   assert.equal(content.diagnostics.max_sources, 1);
+  assert.equal(content.diagnostics.max_subquery_attempts, 1);
+  assert.equal(content.diagnostics.subquery_timeout_ms, null);
   assert.equal(content.diagnostics.duration_ms, 1250);
   assert.equal(result.metadata?.plannerStrategy, 'heuristic');
   assert.equal(result.metadata?.selectedSubqueryCount, 2);
   assert.equal(result.metadata?.discardedSubqueryCount, content.diagnostics.discarded_subquery_count);
+  assert.equal(result.metadata?.timedOutSubqueryCount, 1);
+  assert.equal(result.metadata?.retriedSubqueryCount, 0);
+  assert.equal(result.metadata?.subqueryAttemptCount, 2);
   assert.equal(result.metadata?.unresponsiveEngineCount, 1);
   assert.equal(result.metadata?.searchNodeCount, 2);
   assert.equal(result.metadata?.executedSubqueryCount, 2);
@@ -728,6 +802,8 @@ test('deep web search executor metadata records planner budgets and unresponsive
   assert.equal(result.metadata?.maxSubqueries, 2);
   assert.equal(result.metadata?.maxResultsPerSubquery, 1);
   assert.equal(result.metadata?.maxSources, 1);
+  assert.equal(result.metadata?.maxSubqueryAttempts, 1);
+  assert.equal(result.metadata?.subqueryTimeoutMs, null);
   assert.equal(result.metadata?.durationMs, 1250);
   assert.equal(result.metadata?.sourceCount, 1);
 });

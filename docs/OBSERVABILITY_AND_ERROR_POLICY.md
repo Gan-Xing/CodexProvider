@@ -93,6 +93,8 @@ Cycle 16 audit added deep-search `answer_shape` response diagnostics and hosted-
 
 Cycle 17 audit added deep-search graph budget diagnostics and hosted-tool metadata for search-node count, executed subquery count, raw result count, configured budgets, and duration. These fields are aggregate counts and timing only.
 
+Cycle 18 audit added deep-search subquery timeout and retry metadata. Per-node response fields include attempt count, timeout status, and duration; hosted-tool metadata includes aggregate timeout, retry, attempt, timeout-budget, and max-attempt counts. These fields are operational counters and timings only, and do not copy source contents or model output.
+
 Remaining hardening for future cycles:
 
 - No known structured-observability gaps remain from this recursive audit. Future cycles should re-audit as hosted-tool surfaces or telemetry requirements change.

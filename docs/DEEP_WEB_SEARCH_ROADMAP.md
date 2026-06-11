@@ -45,10 +45,10 @@ Current graph support:
 - Cycle 10 adds regression coverage for missing dependency and cycle rejection.
 - Cycle 11 adds regression coverage for partial search-node failures continuing with successful branches.
 - Cycle 17 adds graph-level budget accounting for search-node count, executed subqueries, total raw results, configured budgets, and wall-clock duration.
+- Cycle 18 adds opt-in per-node timeout budgets, retry attempts for failed or timeout-empty subqueries, and response metadata for attempts, timeouts, retries, and per-node duration.
 
 Roadmap:
 
-- Add per-node timeout and retry metadata.
 - Add optional dependency types, such as "expand after source found" or "compare evidence".
 - Add tests for multi-level graphs, partial failures, and cycle rejection.
 
@@ -98,3 +98,4 @@ Required before recommending deep search as productized:
 - Done: citation-budget tests for capped citation output, zero-citation mode, and hosted-tool metadata.
 - Done: answer-shape tests for hosted-tool argument normalization, synthesis guidance, and hosted-tool metadata.
 - Done: graph-budget tests for configured query/source/result budgets, executed subqueries, raw result counts, unresponsive engines, and duration metadata.
+- Done: subquery timeout/retry tests for opt-in timeout forwarding, retry attempts, per-node metadata, aggregate diagnostics, and hosted-tool metadata.

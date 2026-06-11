@@ -639,23 +639,36 @@ Cycle semantics:
 <!-- cycle:18:start -->
 ## Cycle 18 Backlog
 
-### Audit
+### C18-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan and inspect the report.
+- [x] Identify Cycle 18 implementation scope: add opt-in per-node deep-search timeout and retry metadata.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+
+### C18-B Deep Search Per-Node Timeout And Retry Metadata
+
+- [x] Add normalized deep-search request and hosted-tool arguments for `subquery_timeout_ms` and `max_subquery_attempts`.
+- [x] Forward the per-subquery timeout budget to the metasearch request as `overallTimeoutMs` without changing defaults.
+- [x] Retry failed or timeout-empty subqueries only when `max_subquery_attempts` is greater than 1.
+- [x] Record per-subquery `attempt_count`, `timed_out`, and `duration_ms` response metadata.
+- [x] Record aggregate timeout/retry diagnostics and hosted-tool metadata.
+- [x] Preserve existing partial-failure, no-evidence, citation-budget, and answer-shape behavior.
+- [x] Add focused regression coverage for opt-in timeout/retry metadata.
+- [x] Update roadmap, tracker, changelog, observability policy, and recursive backlog.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
-- [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 18.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
+- [x] Update this backlog so no unchecked `- [ ]` remains in Cycle 18, except the commit/push and complete-cycle steps that must happen after the feature commit.
 - [ ] Commit and push.
 - [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
 <!-- cycle:18:end -->

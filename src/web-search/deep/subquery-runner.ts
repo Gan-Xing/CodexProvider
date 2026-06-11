@@ -9,6 +9,7 @@ import type {
   CodexProviderSafeSearchMode,
   CodexProviderSearchCategory,
   CodexProviderSearchMode,
+  CodexProviderSearchResponse,
   CodexProviderSearchTimeRange,
   CodexProviderUnresponsiveEngine,
 } from '../metasearch/index.js';
@@ -19,6 +20,7 @@ import {
 import {
   createCodexProviderHeuristicDeepSearchPlanner,
   type CodexProviderDeepSearchPlan,
+  type CodexProviderDeepSearchPlanNode,
   type CodexProviderDeepSearchPlanner,
 } from './planner.js';
 import {
@@ -43,6 +45,8 @@ export interface CodexProviderDeepSearchRequest {
   minSources?: number | null;
   citationBudget?: number | null;
   answerShape?: CodexProviderDeepSearchAnswerShape | null;
+  subqueryTimeoutMs?: number | null;
+  maxSubqueryAttempts?: number | null;
   allowedDomains?: string[] | null;
   blockedDomains?: string[] | null;
   externalWebAccess?: boolean | null;
@@ -78,6 +82,9 @@ export interface CodexProviderDeepSearchResponse {
     node_id: string;
     query: string;
     result_count: number;
+    attempt_count: number;
+    timed_out: boolean;
+    duration_ms: number;
     error?: string | null;
   }>;
   results: CodexProviderDeepSearchResult[];
@@ -100,6 +107,9 @@ export interface CodexProviderDeepSearchResponse {
     selected_subquery_count: number;
     discarded_subquery_count: number;
     failed_subquery_count: number;
+    timed_out_subquery_count: number;
+    retried_subquery_count: number;
+    subquery_attempt_count: number;
     unresponsive_engine_count: number;
     source_count: number;
     search_node_count: number;
@@ -108,6 +118,8 @@ export interface CodexProviderDeepSearchResponse {
     max_subqueries: number;
     max_results_per_subquery: number;
     max_sources: number;
+    max_subquery_attempts: number;
+    subquery_timeout_ms: number | null;
     duration_ms: number;
     minimum_source_count: number | null;
     below_minimum_sources: boolean;
@@ -127,6 +139,8 @@ export interface CodexProviderDeepSearchRunnerOptions {
   maxSubqueries?: number | null;
   maxResultsPerSubquery?: number | null;
   maxSources?: number | null;
+  subqueryTimeoutMs?: number | null;
+  maxSubqueryAttempts?: number | null;
   mode?: CodexProviderSearchMode | null;
   now?: (() => Date) | null;
 }
@@ -190,6 +204,9 @@ export function createCodexProviderDeepWebSearchExecutor(
         selectedSubqueryCount: content.diagnostics.selected_subquery_count,
         discardedSubqueryCount: content.diagnostics.discarded_subquery_count,
         failedSubqueryCount: content.diagnostics.failed_subquery_count,
+        timedOutSubqueryCount: content.diagnostics.timed_out_subquery_count,
+        retriedSubqueryCount: content.diagnostics.retried_subquery_count,
+        subqueryAttemptCount: content.diagnostics.subquery_attempt_count,
         unresponsiveEngineCount: content.diagnostics.unresponsive_engine_count,
         searchNodeCount: content.diagnostics.search_node_count,
         executedSubqueryCount: content.diagnostics.executed_subquery_count,
@@ -197,6 +214,8 @@ export function createCodexProviderDeepWebSearchExecutor(
         maxSubqueries: content.diagnostics.max_subqueries,
         maxResultsPerSubquery: content.diagnostics.max_results_per_subquery,
         maxSources: content.diagnostics.max_sources,
+        maxSubqueryAttempts: content.diagnostics.max_subquery_attempts,
+        subqueryTimeoutMs: content.diagnostics.subquery_timeout_ms,
         durationMs: content.diagnostics.duration_ms,
         minimumSourceCount: content.diagnostics.minimum_source_count,
         belowMinimumSources: content.diagnostics.below_minimum_sources,
@@ -223,40 +242,123 @@ async function runDeepSearchGraph({
   for (const level of graph.levels) {
     const searchable = level.filter((node) => node.type === 'search');
     const levelResults = await Promise.all(searchable.map(async (node): Promise<CodexProviderDeepSearchSubqueryResult> => {
-      try {
-        const response = await search.search({
-          query: node.query,
-          mode: request.mode,
-          category: request.category,
-          language: request.language,
-          region: request.region,
-          safeSearch: request.safeSearch,
-          timeRange: request.timeRange,
-          maxResults: request.maxResultsPerSubquery,
-          allowedDomains: request.allowedDomains,
-          blockedDomains: request.blockedDomains,
-          externalWebAccess: request.externalWebAccess,
-        });
-        return {
-          nodeId: node.id,
-          question: node.question,
-          query: node.query,
-          response,
-          error: null,
-        };
-      } catch (error) {
-        return {
-          nodeId: node.id,
-          question: node.question,
-          query: node.query,
-          response: null,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
+      return await runDeepSearchSubquery({ search, node, request });
     }));
     results.push(...levelResults);
   }
   return results;
+}
+
+async function runDeepSearchSubquery({
+  search,
+  node,
+  request,
+}: {
+  search: CodexProviderMetaSearchService;
+  node: CodexProviderDeepSearchPlanNode;
+  request: RequiredDeepSearchRequest;
+}): Promise<CodexProviderDeepSearchSubqueryResult> {
+  const startedAtMs = Date.now();
+  const unresponsiveEngines: CodexProviderUnresponsiveEngine[] = [];
+  let attempts = 0;
+  let lastResponse: CodexProviderSearchResponse | null = null;
+  let lastError: string | null = null;
+  let timedOut = false;
+
+  while (attempts < request.maxSubqueryAttempts) {
+    attempts += 1;
+    try {
+      const response = await search.search({
+        query: node.query,
+        mode: request.mode,
+        category: request.category,
+        language: request.language,
+        region: request.region,
+        safeSearch: request.safeSearch,
+        timeRange: request.timeRange,
+        maxResults: request.maxResultsPerSubquery,
+        allowedDomains: request.allowedDomains,
+        blockedDomains: request.blockedDomains,
+        externalWebAccess: request.externalWebAccess,
+        ...(request.subqueryTimeoutMs === null ? {} : { overallTimeoutMs: request.subqueryTimeoutMs }),
+      });
+      const responseUnresponsiveEngines = response.unresponsiveEngines ?? [];
+      const responseTimedOut = hasTimeoutUnresponsiveEngine(responseUnresponsiveEngines);
+      unresponsiveEngines.push(...responseUnresponsiveEngines);
+      lastResponse = response;
+      lastError = null;
+      timedOut = timedOut || responseTimedOut;
+      if (shouldRetrySubqueryResponse(response, responseTimedOut, request, attempts)) {
+        continue;
+      }
+      return buildDeepSearchSubqueryResult({
+        node,
+        response,
+        error: null,
+        unresponsiveEngines,
+        attempts,
+        timedOut,
+        startedAtMs,
+      });
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+      timedOut = timedOut || isTimeoutErrorMessage(lastError);
+      if (attempts < request.maxSubqueryAttempts) {
+        continue;
+      }
+    }
+  }
+
+  return buildDeepSearchSubqueryResult({
+    node,
+    response: lastResponse,
+    error: lastError,
+    unresponsiveEngines,
+    attempts,
+    timedOut,
+    startedAtMs,
+  });
+}
+
+function buildDeepSearchSubqueryResult({
+  node,
+  response,
+  error,
+  unresponsiveEngines,
+  attempts,
+  timedOut,
+  startedAtMs,
+}: {
+  node: CodexProviderDeepSearchPlanNode;
+  response: CodexProviderSearchResponse | null;
+  error: string | null;
+  unresponsiveEngines: CodexProviderUnresponsiveEngine[];
+  attempts: number;
+  timedOut: boolean;
+  startedAtMs: number;
+}): CodexProviderDeepSearchSubqueryResult {
+  return {
+    nodeId: node.id,
+    question: node.question,
+    query: node.query,
+    response,
+    error,
+    unresponsiveEngines,
+    attempts,
+    timedOut,
+    durationMs: Math.max(0, Date.now() - startedAtMs),
+  };
+}
+
+function shouldRetrySubqueryResponse(
+  response: CodexProviderSearchResponse,
+  responseTimedOut: boolean,
+  request: RequiredDeepSearchRequest,
+  attempts: number,
+): boolean {
+  return attempts < request.maxSubqueryAttempts
+    && responseTimedOut
+    && response.results.length === 0;
 }
 
 function deepSearchResponseFromReferences({
@@ -277,8 +379,11 @@ function deepSearchResponseFromReferences({
   completedAt: Date;
 }): CodexProviderDeepSearchResponse {
   const searchNodeCount = graph.nodes.filter((node) => node.type === 'search').length;
-  const unresponsiveEngines = subqueries.flatMap((subquery) => subquery.response?.unresponsiveEngines ?? []);
+  const unresponsiveEngines = subqueries.flatMap((subquery) => subqueryUnresponsiveEngines(subquery));
   const failedSubqueryCount = subqueries.filter((subquery) => subquery.error).length;
+  const timedOutSubqueryCount = subqueries.filter((subquery) => subqueryTimedOut(subquery)).length;
+  const retriedSubqueryCount = subqueries.filter((subquery) => subqueryAttempts(subquery) > 1).length;
+  const subqueryAttemptCount = subqueries.reduce((sum, subquery) => sum + subqueryAttempts(subquery), 0);
   const totalResultCount = subqueries.reduce((sum, subquery) => sum + (subquery.response?.results.length ?? 0), 0);
   const durationMs = Math.max(0, completedAt.getTime() - startedAt.getTime());
   const noSupportingEvidence = references.length === 0;
@@ -298,6 +403,9 @@ function deepSearchResponseFromReferences({
       node_id: subquery.nodeId,
       query: subquery.query,
       result_count: subquery.response?.results.length ?? 0,
+      attempt_count: subqueryAttempts(subquery),
+      timed_out: subqueryTimedOut(subquery),
+      duration_ms: subqueryDurationMs(subquery),
       error: subquery.error ?? null,
     })),
     results: references.map((reference) => ({
@@ -342,6 +450,9 @@ function deepSearchResponseFromReferences({
       selected_subquery_count: plan.diagnostics?.selectedCount ?? searchNodeCount,
       discarded_subquery_count: plan.diagnostics?.discardedCount ?? 0,
       failed_subquery_count: failedSubqueryCount,
+      timed_out_subquery_count: timedOutSubqueryCount,
+      retried_subquery_count: retriedSubqueryCount,
+      subquery_attempt_count: subqueryAttemptCount,
       unresponsive_engine_count: unresponsiveEngines.length,
       source_count: references.length,
       search_node_count: searchNodeCount,
@@ -350,6 +461,8 @@ function deepSearchResponseFromReferences({
       max_subqueries: request.maxSubqueries,
       max_results_per_subquery: request.maxResultsPerSubquery,
       max_sources: request.maxSources,
+      max_subquery_attempts: request.maxSubqueryAttempts,
+      subquery_timeout_ms: request.subqueryTimeoutMs,
       duration_ms: durationMs,
       minimum_source_count: request.minSources,
       below_minimum_sources: belowMinimumSources,
@@ -362,6 +475,30 @@ function deepSearchResponseFromReferences({
     external_web_access: request.externalWebAccess,
     unresponsive_engines: unresponsiveEngines,
   };
+}
+
+function subqueryUnresponsiveEngines(subquery: CodexProviderDeepSearchSubqueryResult): CodexProviderUnresponsiveEngine[] {
+  return subquery.unresponsiveEngines ?? subquery.response?.unresponsiveEngines ?? [];
+}
+
+function subqueryAttempts(subquery: CodexProviderDeepSearchSubqueryResult): number {
+  return Math.max(1, subquery.attempts ?? 1);
+}
+
+function subqueryTimedOut(subquery: CodexProviderDeepSearchSubqueryResult): boolean {
+  return subquery.timedOut ?? hasTimeoutUnresponsiveEngine(subqueryUnresponsiveEngines(subquery));
+}
+
+function subqueryDurationMs(subquery: CodexProviderDeepSearchSubqueryResult): number {
+  return Math.max(0, subquery.durationMs ?? 0);
+}
+
+function hasTimeoutUnresponsiveEngine(entries: CodexProviderUnresponsiveEngine[]): boolean {
+  return entries.some((entry) => normalizeString(entry.code).toLowerCase() === 'timeout');
+}
+
+function isTimeoutErrorMessage(message: string): boolean {
+  return /\btimeout\b|timed out|aborted/iu.test(message);
 }
 
 interface RequiredDeepSearchRequest {
@@ -378,6 +515,8 @@ interface RequiredDeepSearchRequest {
   minSources: number | null;
   citationBudget: number | null;
   answerShape: CodexProviderDeepSearchAnswerShape | null;
+  subqueryTimeoutMs: number | null;
+  maxSubqueryAttempts: number;
   allowedDomains: string[];
   blockedDomains: string[];
   externalWebAccess: boolean;
@@ -405,6 +544,8 @@ function normalizeDeepSearchRequest(
     minSources: optionalClampInteger(request.minSources, 1, 100),
     citationBudget: optionalClampInteger(request.citationBudget, 0, 100),
     answerShape: normalizeAnswerShape(request.answerShape),
+    subqueryTimeoutMs: optionalClampInteger(request.subqueryTimeoutMs ?? options.subqueryTimeoutMs, 50, 120_000),
+    maxSubqueryAttempts: clampInteger(request.maxSubqueryAttempts ?? options.maxSubqueryAttempts, 1, 3, 1),
     allowedDomains: normalizeDomainList(request.allowedDomains),
     blockedDomains: normalizeDomainList(request.blockedDomains),
     externalWebAccess: request.externalWebAccess !== false,
@@ -431,6 +572,8 @@ function deepSearchRequestFromHostedTool(
     minSources: args.min_sources ?? args.minSources,
     citationBudget: args.citation_budget ?? args.citationBudget ?? args.max_citations ?? args.maxCitations,
     answerShape: args.answer_shape ?? args.answerShape ?? args.shape,
+    subqueryTimeoutMs: args.subquery_timeout_ms ?? args.subqueryTimeoutMs ?? args.timeout_ms ?? args.timeoutMs,
+    maxSubqueryAttempts: args.max_subquery_attempts ?? args.maxSubqueryAttempts ?? args.max_attempts ?? args.maxAttempts,
     allowedDomains: filters.allowedDomains,
     blockedDomains: filters.blockedDomains,
     externalWebAccess: args.external_web_access !== false,

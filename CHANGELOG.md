@@ -21,6 +21,7 @@
 - Added optional deep-search citation budget controls with response diagnostics and hosted-tool metadata.
 - Added optional deep-search answer-shape guidance with response diagnostics and hosted-tool metadata.
 - Added deep-search graph budget and duration diagnostics with hosted-tool metadata.
+- Added opt-in deep-search subquery timeout and retry controls with per-node and hosted-tool metadata.
 
 ### Changed
 

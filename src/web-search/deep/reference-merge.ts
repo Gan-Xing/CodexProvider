@@ -4,6 +4,7 @@ import {
 import type {
   CodexProviderMergedSearchResult,
   CodexProviderSearchResponse,
+  CodexProviderUnresponsiveEngine,
 } from '../metasearch/index.js';
 
 export interface CodexProviderDeepSearchSubqueryResult {
@@ -12,6 +13,10 @@ export interface CodexProviderDeepSearchSubqueryResult {
   query: string;
   response: CodexProviderSearchResponse | null;
   error?: string | null;
+  unresponsiveEngines?: CodexProviderUnresponsiveEngine[] | null;
+  attempts?: number | null;
+  timedOut?: boolean | null;
+  durationMs?: number | null;
 }
 
 export interface CodexProviderDeepSearchReference {
