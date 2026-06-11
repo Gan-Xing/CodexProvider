@@ -712,22 +712,32 @@ Cycle semantics:
 <!-- cycle:20:start -->
 ## Cycle 20 Backlog
 
-### Audit
+### C20-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan and inspect the report.
+- [x] Identify Cycle 20 implementation scope: add aggregate multi-node source diagnostics for deep-search provenance.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+
+### C20-B Deep Search Multi-Node Source Diagnostics
+
+- [x] Add `multi_node_source_count` to deep-search response diagnostics.
+- [x] Add hosted-tool `multiNodeSourceCount` metadata.
+- [x] Count merged sources with more than one supporting search node without changing source ordering, limits, or citation behavior.
+- [x] Add focused regression coverage for duplicate-source provenance count.
+- [x] Update roadmap, tracker, changelog, observability policy, and recursive backlog.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
 - [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 20.
 - [ ] Commit and push.
 - [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.

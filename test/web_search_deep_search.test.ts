@@ -306,6 +306,7 @@ test('deep search runner executes subqueries and merges duplicate references', a
   ]);
   assert.deepEqual(response.sources[0].supporting_node_ids, ['q1', 'q2']);
   assert.deepEqual(response.results[0].supporting_node_ids, ['q1', 'q2']);
+  assert.equal(response.diagnostics.multi_node_source_count, 1);
   assert.match(response.synthesis.instructions, /\[\[source:N\]\]/u);
   assert.equal(response.external_web_access, false);
 });
@@ -398,6 +399,7 @@ test('deep search runner records partial failures and unresponsive diagnostics',
     subquery_attempt_count: 3,
     unresponsive_engine_count: 1,
     source_count: 1,
+    multi_node_source_count: 0,
     search_node_count: 3,
     executed_subquery_count: 3,
     total_result_count: 1,
@@ -782,6 +784,7 @@ test('deep web search executor metadata records planner budgets and unresponsive
   assert.equal(content.diagnostics.retried_subquery_count, 0);
   assert.equal(content.diagnostics.subquery_attempt_count, 2);
   assert.equal(content.diagnostics.unresponsive_engine_count, 1);
+  assert.equal(content.diagnostics.multi_node_source_count, 0);
   assert.equal(content.diagnostics.search_node_count, 2);
   assert.equal(content.diagnostics.executed_subquery_count, 2);
   assert.equal(content.diagnostics.total_result_count, 2);
@@ -808,4 +811,5 @@ test('deep web search executor metadata records planner budgets and unresponsive
   assert.equal(result.metadata?.subqueryTimeoutMs, null);
   assert.equal(result.metadata?.durationMs, 1250);
   assert.equal(result.metadata?.sourceCount, 1);
+  assert.equal(result.metadata?.multiNodeSourceCount, 0);
 });

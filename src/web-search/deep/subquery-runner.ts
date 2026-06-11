@@ -114,6 +114,7 @@ export interface CodexProviderDeepSearchResponse {
     subquery_attempt_count: number;
     unresponsive_engine_count: number;
     source_count: number;
+    multi_node_source_count: number;
     search_node_count: number;
     executed_subquery_count: number;
     total_result_count: number;
@@ -211,6 +212,7 @@ export function createCodexProviderDeepWebSearchExecutor(
         subqueryAttemptCount: content.diagnostics.subquery_attempt_count,
         unresponsiveEngineCount: content.diagnostics.unresponsive_engine_count,
         searchNodeCount: content.diagnostics.search_node_count,
+        multiNodeSourceCount: content.diagnostics.multi_node_source_count,
         executedSubqueryCount: content.diagnostics.executed_subquery_count,
         totalResultCount: content.diagnostics.total_result_count,
         maxSubqueries: content.diagnostics.max_subqueries,
@@ -387,6 +389,7 @@ function deepSearchResponseFromReferences({
   const retriedSubqueryCount = subqueries.filter((subquery) => subqueryAttempts(subquery) > 1).length;
   const subqueryAttemptCount = subqueries.reduce((sum, subquery) => sum + subqueryAttempts(subquery), 0);
   const totalResultCount = subqueries.reduce((sum, subquery) => sum + (subquery.response?.results.length ?? 0), 0);
+  const multiNodeSourceCount = references.filter((reference) => reference.node_ids.length > 1).length;
   const durationMs = Math.max(0, completedAt.getTime() - startedAt.getTime());
   const noSupportingEvidence = references.length === 0;
   const belowMinimumSources = request.minSources !== null && references.length < request.minSources;
@@ -459,6 +462,7 @@ function deepSearchResponseFromReferences({
       subquery_attempt_count: subqueryAttemptCount,
       unresponsive_engine_count: unresponsiveEngines.length,
       source_count: references.length,
+      multi_node_source_count: multiNodeSourceCount,
       search_node_count: searchNodeCount,
       executed_subquery_count: subqueries.length,
       total_result_count: totalResultCount,

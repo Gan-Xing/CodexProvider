@@ -97,6 +97,8 @@ Cycle 18 audit added deep-search subquery timeout and retry metadata. Per-node r
 
 Cycle 19 audit added deep-search `supporting_node_ids` on returned results and sources. These ids are graph provenance labels that let hosts trace merged sources back to the search nodes that found them; they do not expose source content beyond the already returned result/source entries.
 
+Cycle 20 audit added deep-search `multi_node_source_count` response diagnostics and hosted-tool `multiNodeSourceCount` metadata. These fields expose only aggregate provenance counts for merged sources supported by more than one search node.
+
 Remaining hardening for future cycles:
 
 - No known structured-observability gaps remain from this recursive audit. Future cycles should re-audit as hosted-tool surfaces or telemetry requirements change.
