@@ -355,22 +355,32 @@ Cycle semantics:
 <!-- cycle:10:start -->
 ## Cycle 10 Backlog
 
-### Audit
+### C10-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+- [x] Identify Cycle 10 implementation scope: add deep-search planner diagnostics and fixture coverage.
+
+### C10-B Deep Search Diagnostics
+
+- [x] Add heuristic planner diagnostics for selected subqueries, discarded candidates, and subquery budget usage.
+- [x] Keep deep search opt-in and separate from the default `web_search` executor.
+- [x] Cover comparison, multi-part, current-evidence, and CJK comparison planner fixtures.
+- [x] Cover missing dependency and cycle rejection for deep-search graphs.
+- [x] Cover reference merge canonicalization and stable source ids.
+- [x] Update roadmap, tracker, changelog, and recursive backlog.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
 - [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 10.
 - [ ] Commit and push.
 - [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.

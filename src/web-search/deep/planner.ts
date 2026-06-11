@@ -9,6 +9,17 @@ export interface CodexProviderDeepSearchPlanNode {
 export interface CodexProviderDeepSearchPlan {
   query: string;
   nodes: CodexProviderDeepSearchPlanNode[];
+  diagnostics?: CodexProviderDeepSearchPlanDiagnostics;
+}
+
+export interface CodexProviderDeepSearchPlanDiagnostics {
+  strategy: 'heuristic';
+  candidateCount: number;
+  selectedCount: number;
+  discardedCount: number;
+  maxSubqueries: number;
+  selectedQueries: string[];
+  discardedQueries: string[];
 }
 
 export interface CodexProviderDeepSearchPlannerOptions {
@@ -43,8 +54,9 @@ export function planCodexProviderDeepSearchQuery(
     throw new Error('Deep search requires a non-empty query.');
   }
   const maxSubqueries = clampInteger(options.maxSubqueries, 1, 12, 4);
-  const candidates = buildSubqueryCandidates(normalizedQuery);
-  const selected = dedupeStrings(candidates).slice(0, maxSubqueries);
+  const candidates = dedupeStrings(buildSubqueryCandidates(normalizedQuery));
+  const selected = candidates.slice(0, maxSubqueries);
+  const discarded = candidates.slice(maxSubqueries);
   const root: CodexProviderDeepSearchPlanNode = {
     id: 'root',
     type: 'root',
@@ -65,50 +77,59 @@ export function planCodexProviderDeepSearchQuery(
       root,
       ...searchNodes,
     ],
+    diagnostics: {
+      strategy: 'heuristic',
+      candidateCount: candidates.length,
+      selectedCount: selected.length,
+      discardedCount: discarded.length,
+      maxSubqueries,
+      selectedQueries: [...selected],
+      discardedQueries: [...discarded],
+    },
   };
 }
 
 function buildSubqueryCandidates(query: string): string[] {
+  if (isComparisonQuery(query)) {
+    const compared = query
+      .split(/\b(?:vs\.?|versus|and)\b|(?:与|和|及|对比|相比)/iu)
+      .map(normalizeComparisonPart)
+      .filter((entry) => entry.length > 2);
+    return [
+      query,
+      ...compared,
+      suffixQuery(query, 'comparison evidence', '对比证据'),
+      suffixQuery(query, 'tradeoffs', '取舍'),
+    ];
+  }
   const parts = splitQueryParts(query);
   if (parts.length > 1) {
     return [
       query,
       ...parts,
-      `${query} overview`,
-      `${query} evidence sources`,
+      suffixQuery(query, 'overview', '概览'),
+      suffixQuery(query, 'evidence sources', '证据来源'),
     ];
   }
-  if (/\b(vs\.?|versus|compare|comparison|difference|tradeoffs?)\b/iu.test(query)) {
-    const compared = query
-      .split(/\b(?:vs\.?|versus|and)\b/iu)
-      .map(normalizeWhitespace)
-      .filter((entry) => entry.length > 2);
+  if (isQuestionQuery(query)) {
     return [
       query,
-      ...compared,
-      `${query} comparison evidence`,
-      `${query} tradeoffs`,
-    ];
-  }
-  if (/\b(how|why|what|when|where|which)\b/iu.test(query)) {
-    return [
-      query,
-      `${query} background`,
-      `${query} current evidence`,
-      `${query} limitations`,
+      suffixQuery(query, 'background', '背景'),
+      suffixQuery(query, 'current evidence', '当前证据'),
+      suffixQuery(query, 'limitations', '限制'),
     ];
   }
   return [
     query,
-    `${query} overview`,
-    `${query} evidence`,
-    `${query} recent updates`,
+    suffixQuery(query, 'overview', '概览'),
+    suffixQuery(query, 'evidence', '证据'),
+    suffixQuery(query, 'recent updates', '最新进展'),
   ];
 }
 
 function splitQueryParts(query: string): string[] {
   return query
-    .split(/\s*(?:,|;|\band\b|\bor\b)\s*/iu)
+    .split(/\s*(?:,|;|，|；|\band\b|\bor\b|和|与|及|或)\s*/iu)
     .map(normalizeWhitespace)
     .filter((entry) => entry.length >= 4 && entry.toLowerCase() !== query.toLowerCase());
 }
@@ -130,6 +151,31 @@ function dedupeStrings(values: string[]): string[] {
 
 function normalizeWhitespace(value: string): string {
   return String(value ?? '').replace(/\s+/gu, ' ').trim();
+}
+
+function normalizeComparisonPart(value: string): string {
+  return normalizeWhitespace(value)
+    .replace(/^(?:compare|comparison|比较|对比)\s*/iu, '')
+    .replace(/\s*(?:difference|differences|tradeoffs?|(?:的)?(?:差异|区别))$/iu, '')
+    .trim();
+}
+
+function isComparisonQuery(query: string): boolean {
+  return /\b(vs\.?|versus|compare|comparison|difference|tradeoffs?)\b/iu.test(query)
+    || /(?:比较|对比|差异|区别|取舍)/u.test(query);
+}
+
+function isQuestionQuery(query: string): boolean {
+  return /\b(how|why|what|when|where|which)\b/iu.test(query)
+    || /(?:如何|为什么|为何|什么|哪些|哪个|是否|何时|哪里)/u.test(query);
+}
+
+function suffixQuery(query: string, englishSuffix: string, cjkSuffix: string): string {
+  return `${query} ${containsCjk(query) ? cjkSuffix : englishSuffix}`;
+}
+
+function containsCjk(value: string): boolean {
+  return /[\u3400-\u9fff]/u.test(value);
 }
 
 function clampInteger(value: unknown, min: number, max: number, fallback: number): number {

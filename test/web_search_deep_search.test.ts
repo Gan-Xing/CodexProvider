@@ -4,6 +4,7 @@ import {
   createCodexProviderDeepSearchGraph,
   createCodexProviderDeepSearchRunner,
   createCodexProviderDeepWebSearchExecutor,
+  mergeCodexProviderDeepSearchReferences,
   planCodexProviderDeepSearchQuery,
   type CodexProviderHostedToolExecutionRequest,
   type CodexProviderMetaSearchService,
@@ -54,6 +55,156 @@ test('deep search planner builds a sub-question graph from a broad query', () =>
     ['q1', 'q2', 'q3', 'q4'],
   ]);
   assert.equal(plan.nodes.some((node) => /comparison evidence|tradeoffs/u.test(node.query)), true);
+});
+
+test('deep search planner exposes diagnostics for heuristic decomposition fixtures', () => {
+  const fixtures = [
+    {
+      query: 'Compare local index vs hosted web search',
+      maxSubqueries: 4,
+      expectedQueryPattern: /comparison evidence|tradeoffs/u,
+      minDiscarded: 1,
+    },
+    {
+      query: 'local index caching, retrieval safety, citation annotations',
+      maxSubqueries: 4,
+      expectedQueryPattern: /retrieval safety/u,
+      minDiscarded: 1,
+    },
+    {
+      query: 'What evidence supports local web retrieval safety',
+      maxSubqueries: 4,
+      expectedQueryPattern: /current evidence/u,
+      minDiscarded: 0,
+    },
+    {
+      query: '比较 本地索引 与 托管搜索 的差异',
+      maxSubqueries: 4,
+      expectedQueryPattern: /对比证据|取舍/u,
+      minDiscarded: 0,
+    },
+  ];
+
+  for (const fixture of fixtures) {
+    const plan = planCodexProviderDeepSearchQuery(fixture.query, {
+      maxSubqueries: fixture.maxSubqueries,
+    });
+    const searchQueries = plan.nodes
+      .filter((node) => node.type === 'search')
+      .map((node) => node.query);
+
+    assert.equal(plan.diagnostics?.strategy, 'heuristic');
+    assert.equal(plan.diagnostics?.maxSubqueries, fixture.maxSubqueries);
+    assert.equal(plan.diagnostics?.selectedCount, searchQueries.length);
+    assert.equal(plan.diagnostics?.candidateCount, searchQueries.length + (plan.diagnostics?.discardedCount ?? 0));
+    assert.deepEqual(plan.diagnostics?.selectedQueries, searchQueries);
+    assert.ok((plan.diagnostics?.discardedCount ?? 0) >= fixture.minDiscarded);
+    assert.equal(searchQueries.some((query) => fixture.expectedQueryPattern.test(query)), true);
+  }
+});
+
+test('deep search graph rejects missing dependencies and cycles', () => {
+  assert.throws(
+    () => createCodexProviderDeepSearchGraph({
+      query: 'missing dependency',
+      nodes: [
+        {
+          id: 'q1',
+          type: 'search',
+          question: 'missing dependency',
+          query: 'missing dependency',
+          dependsOn: ['root'],
+        },
+      ],
+    }),
+    /depends on unknown node: root/u,
+  );
+
+  assert.throws(
+    () => createCodexProviderDeepSearchGraph({
+      query: 'cycle',
+      nodes: [
+        {
+          id: 'root',
+          type: 'root',
+          question: 'cycle',
+          query: 'cycle',
+          dependsOn: ['q1'],
+        },
+        {
+          id: 'q1',
+          type: 'search',
+          question: 'cycle evidence',
+          query: 'cycle evidence',
+          dependsOn: ['root'],
+        },
+      ],
+    }),
+    /dependency cycle/u,
+  );
+});
+
+test('deep search reference merge canonicalizes URLs and keeps stable source ids', () => {
+  const references = mergeCodexProviderDeepSearchReferences([
+    {
+      nodeId: 'q1',
+      question: 'local index reliability',
+      query: 'local index reliability',
+      response: searchResponse({
+        query: 'local index reliability',
+      }, [
+        {
+          title: 'Shared Evidence',
+          url: 'https://docs.example.com/shared',
+          snippet: 'Shared evidence for local index reliability.',
+          engines: ['local-index'],
+          engineRanks: { 'local-index': 1 },
+          score: 20,
+        },
+      ]),
+      error: null,
+    },
+    {
+      nodeId: 'q2',
+      question: 'cache retrieval reliability',
+      query: 'cache retrieval reliability',
+      response: searchResponse({
+        query: 'cache retrieval reliability',
+      }, [
+        {
+          title: 'Shared Evidence Expanded',
+          url: 'https://docs.example.com/shared?utm_source=test',
+          snippet: 'Shared evidence for cache-backed retrieval with a longer snippet.',
+          engines: ['html'],
+          engineRanks: { html: 1 },
+          score: 18,
+        },
+        {
+          title: 'Secondary Evidence',
+          url: 'https://docs.example.com/secondary',
+          snippet: 'Secondary evidence.',
+          engines: ['html'],
+          engineRanks: { html: 2 },
+          score: 9,
+        },
+      ]),
+      error: null,
+    },
+  ], {
+    maxSources: 2,
+  });
+
+  assert.equal(references.length, 2);
+  assert.equal(references[0].id, 1);
+  assert.equal(references[0].url, 'https://docs.example.com/shared');
+  assert.equal(references[0].source, 'html,local-index');
+  assert.deepEqual(references[0].node_ids, ['q1', 'q2']);
+  assert.deepEqual(references[0].supporting_queries.sort(), [
+    'cache retrieval reliability',
+    'local index reliability',
+  ]);
+  assert.equal(references[1].id, 2);
+  assert.equal(references[1].url, 'https://docs.example.com/secondary');
 });
 
 test('deep search runner executes subqueries and merges duplicate references', async () => {

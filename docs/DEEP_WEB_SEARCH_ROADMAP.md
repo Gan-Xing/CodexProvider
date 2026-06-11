@@ -25,13 +25,13 @@ The current planner is heuristic. It decomposes a query into bounded subqueries,
 Current planner contract:
 
 - Input: user query and optional `maxSubqueries`.
-- Output: `CodexProviderDeepSearchPlan` with `root` and `search` nodes.
+- Output: `CodexProviderDeepSearchPlan` with `root` and `search` nodes plus heuristic diagnostics.
 - Current planner: `createCodexProviderHeuristicDeepSearchPlanner`.
+- Cycle 10 adds diagnostics for selected subqueries, discarded candidates, and subquery budget usage. It also adds fixture coverage for comparison, multi-part, current-evidence, and CJK comparison queries.
 
 Roadmap:
 
 - Add a host-injected model planner interface for query decomposition.
-- Add planner diagnostics: chosen subqueries, discarded candidates, and budget usage.
 - Add domain-aware planning so allowed/blocked domains affect subquery generation.
 - Add language/region-aware planning for non-English research.
 
@@ -42,6 +42,7 @@ Current graph support:
 - Validates duplicate and missing node dependencies.
 - Produces topological execution levels.
 - Runs search nodes in parallel within each level.
+- Cycle 10 adds regression coverage for missing dependency and cycle rejection.
 
 Roadmap:
 
@@ -57,6 +58,7 @@ Current merge support:
 - Groups search results by canonical URL.
 - Scores sources higher when they support multiple subqueries or engines.
 - Preserves supporting queries and node ids.
+- Cycle 10 adds regression coverage for URL tracking-parameter canonicalization and stable citation ids.
 
 Roadmap:
 
@@ -82,9 +84,9 @@ Roadmap:
 
 Required before recommending deep search as productized:
 
-- Planner decomposition tests for comparison, multi-part, current-evidence, and non-English queries.
-- Graph tests for topological levels, cycles, missing dependencies, and partial failure handling.
-- Reference merge tests for URL canonicalization, repeated source boosts, and citation id stability.
+- Done: planner decomposition tests for comparison, multi-part, current-evidence, and CJK comparison queries.
+- Done: graph tests for topological levels, cycles, and missing dependencies.
+- Done: reference merge tests for URL canonicalization, repeated source boosts, and citation id stability.
+- Remaining: graph partial-failure handling tests.
 - Executor tests for budget limits, external web access false, domain filters, and unresponsive engines.
 - Documentation examples that keep `custom:deep_web_search` separate from default `web_search`.
-
