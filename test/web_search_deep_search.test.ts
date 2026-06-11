@@ -393,6 +393,13 @@ test('deep search runner records partial failures and unresponsive diagnostics',
     failed_subquery_count: 1,
     unresponsive_engine_count: 1,
     source_count: 1,
+    search_node_count: 3,
+    executed_subquery_count: 3,
+    total_result_count: 1,
+    max_subqueries: 4,
+    max_results_per_subquery: 5,
+    max_sources: 5,
+    duration_ms: 0,
     minimum_source_count: null,
     below_minimum_sources: false,
     citation_budget: null,
@@ -680,9 +687,13 @@ test('deep web search executor metadata records planner budgets and unresponsive
         : {});
     },
   };
+  const timestamps = [
+    new Date('2026-06-08T00:00:00.000Z'),
+    new Date('2026-06-08T00:00:01.250Z'),
+  ];
   const executor = createCodexProviderDeepWebSearchExecutor({
     search,
-    now: () => new Date('2026-06-08T00:00:00.000Z'),
+    now: () => timestamps.shift() ?? new Date('2026-06-08T00:00:01.250Z'),
   });
 
   const result = await executor(baseRequest({
@@ -700,9 +711,23 @@ test('deep web search executor metadata records planner budgets and unresponsive
   assert.equal(content.diagnostics.selected_subquery_count, 2);
   assert.ok(content.diagnostics.discarded_subquery_count > 0);
   assert.equal(content.diagnostics.unresponsive_engine_count, 1);
+  assert.equal(content.diagnostics.search_node_count, 2);
+  assert.equal(content.diagnostics.executed_subquery_count, 2);
+  assert.equal(content.diagnostics.total_result_count, 2);
+  assert.equal(content.diagnostics.max_subqueries, 2);
+  assert.equal(content.diagnostics.max_results_per_subquery, 1);
+  assert.equal(content.diagnostics.max_sources, 1);
+  assert.equal(content.diagnostics.duration_ms, 1250);
   assert.equal(result.metadata?.plannerStrategy, 'heuristic');
   assert.equal(result.metadata?.selectedSubqueryCount, 2);
   assert.equal(result.metadata?.discardedSubqueryCount, content.diagnostics.discarded_subquery_count);
   assert.equal(result.metadata?.unresponsiveEngineCount, 1);
+  assert.equal(result.metadata?.searchNodeCount, 2);
+  assert.equal(result.metadata?.executedSubqueryCount, 2);
+  assert.equal(result.metadata?.totalResultCount, 2);
+  assert.equal(result.metadata?.maxSubqueries, 2);
+  assert.equal(result.metadata?.maxResultsPerSubquery, 1);
+  assert.equal(result.metadata?.maxSources, 1);
+  assert.equal(result.metadata?.durationMs, 1250);
   assert.equal(result.metadata?.sourceCount, 1);
 });

@@ -91,6 +91,8 @@ Cycle 15 audit added deep-search `citation_budget` / `citation_count` response d
 
 Cycle 16 audit added deep-search `answer_shape` response diagnostics and hosted-tool `answerShape` metadata. The field records only the normalized requested synthesis shape and does not copy source contents or model output.
 
+Cycle 17 audit added deep-search graph budget diagnostics and hosted-tool metadata for search-node count, executed subquery count, raw result count, configured budgets, and duration. These fields are aggregate counts and timing only.
+
 Remaining hardening for future cycles:
 
 - No known structured-observability gaps remain from this recursive audit. Future cycles should re-audit as hosted-tool surfaces or telemetry requirements change.

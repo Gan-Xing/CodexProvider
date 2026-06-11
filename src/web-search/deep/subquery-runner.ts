@@ -102,6 +102,13 @@ export interface CodexProviderDeepSearchResponse {
     failed_subquery_count: number;
     unresponsive_engine_count: number;
     source_count: number;
+    search_node_count: number;
+    executed_subquery_count: number;
+    total_result_count: number;
+    max_subqueries: number;
+    max_results_per_subquery: number;
+    max_sources: number;
+    duration_ms: number;
     minimum_source_count: number | null;
     below_minimum_sources: boolean;
     citation_budget: number | null;
@@ -138,6 +145,7 @@ export function createCodexProviderDeepSearchRunner(
   return {
     async run(request) {
       const normalized = normalizeDeepSearchRequest(request, options);
+      const startedAt = now();
       const plan = await planner.plan(normalized.query, {
         maxSubqueries: normalized.maxSubqueries,
       });
@@ -150,13 +158,15 @@ export function createCodexProviderDeepSearchRunner(
       const references = mergeCodexProviderDeepSearchReferences(subqueries, {
         maxSources: normalized.maxSources,
       });
+      const completedAt = now();
       return deepSearchResponseFromReferences({
         request: normalized,
         plan,
         graph,
         subqueries,
         references,
-        now: now(),
+        startedAt,
+        completedAt,
       });
     },
   };
@@ -181,6 +191,13 @@ export function createCodexProviderDeepWebSearchExecutor(
         discardedSubqueryCount: content.diagnostics.discarded_subquery_count,
         failedSubqueryCount: content.diagnostics.failed_subquery_count,
         unresponsiveEngineCount: content.diagnostics.unresponsive_engine_count,
+        searchNodeCount: content.diagnostics.search_node_count,
+        executedSubqueryCount: content.diagnostics.executed_subquery_count,
+        totalResultCount: content.diagnostics.total_result_count,
+        maxSubqueries: content.diagnostics.max_subqueries,
+        maxResultsPerSubquery: content.diagnostics.max_results_per_subquery,
+        maxSources: content.diagnostics.max_sources,
+        durationMs: content.diagnostics.duration_ms,
         minimumSourceCount: content.diagnostics.minimum_source_count,
         belowMinimumSources: content.diagnostics.below_minimum_sources,
         citationBudget: content.diagnostics.citation_budget,
@@ -248,18 +265,22 @@ function deepSearchResponseFromReferences({
   graph,
   subqueries,
   references,
-  now,
+  startedAt,
+  completedAt,
 }: {
   request: RequiredDeepSearchRequest;
   plan: CodexProviderDeepSearchPlan;
   graph: CodexProviderDeepSearchGraph;
   subqueries: CodexProviderDeepSearchSubqueryResult[];
   references: CodexProviderDeepSearchReference[];
-  now: Date;
+  startedAt: Date;
+  completedAt: Date;
 }): CodexProviderDeepSearchResponse {
   const searchNodeCount = graph.nodes.filter((node) => node.type === 'search').length;
   const unresponsiveEngines = subqueries.flatMap((subquery) => subquery.response?.unresponsiveEngines ?? []);
   const failedSubqueryCount = subqueries.filter((subquery) => subquery.error).length;
+  const totalResultCount = subqueries.reduce((sum, subquery) => sum + (subquery.response?.results.length ?? 0), 0);
+  const durationMs = Math.max(0, completedAt.getTime() - startedAt.getTime());
   const noSupportingEvidence = references.length === 0;
   const belowMinimumSources = request.minSources !== null && references.length < request.minSources;
   const citationReferences = request.citationBudget === null
@@ -323,6 +344,13 @@ function deepSearchResponseFromReferences({
       failed_subquery_count: failedSubqueryCount,
       unresponsive_engine_count: unresponsiveEngines.length,
       source_count: references.length,
+      search_node_count: searchNodeCount,
+      executed_subquery_count: subqueries.length,
+      total_result_count: totalResultCount,
+      max_subqueries: request.maxSubqueries,
+      max_results_per_subquery: request.maxResultsPerSubquery,
+      max_sources: request.maxSources,
+      duration_ms: durationMs,
       minimum_source_count: request.minSources,
       below_minimum_sources: belowMinimumSources,
       citation_budget: request.citationBudget,
@@ -330,7 +358,7 @@ function deepSearchResponseFromReferences({
       answer_shape: request.answerShape,
       no_supporting_evidence: noSupportingEvidence,
     },
-    retrieved_at: now.toISOString(),
+    retrieved_at: completedAt.toISOString(),
     external_web_access: request.externalWebAccess,
     unresponsive_engines: unresponsiveEngines,
   };

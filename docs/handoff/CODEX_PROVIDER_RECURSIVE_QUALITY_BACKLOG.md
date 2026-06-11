@@ -602,23 +602,35 @@ Cycle semantics:
 <!-- cycle:17:start -->
 ## Cycle 17 Backlog
 
-### Audit
+### C17-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+- [x] Identify Cycle 17 implementation scope: add graph-level deep-search budget and duration diagnostics.
+
+### C17-B Deep Search Graph Budget Accounting
+
+- [x] Record graph-level `search_node_count` and `executed_subquery_count` response diagnostics.
+- [x] Record `total_result_count` before reference merging and source limiting.
+- [x] Record configured `max_subqueries`, `max_results_per_subquery`, and `max_sources` budgets.
+- [x] Record wall-clock `duration_ms` using the runner clock.
+- [x] Add hosted-tool executor metadata for graph counts, configured budgets, total raw results, and duration.
+- [x] Preserve existing partial-failure and unresponsive-engine behavior.
+- [x] Add regression coverage for response diagnostics and hosted-tool metadata.
+- [x] Update roadmap, tracker, changelog, observability policy, and recursive backlog.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
-- [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 17.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
+- [x] Update this backlog so no unchecked `- [ ]` remains in Cycle 17, except the commit/push and complete-cycle steps that must happen after the feature commit.
 - [ ] Commit and push.
 - [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
 <!-- cycle:17:end -->
