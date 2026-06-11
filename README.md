@@ -72,7 +72,7 @@ The profile surface exposes the safe presets app-servers should use:
 | `mixed` | `codex-auth-compatible` | `chat-completions` | Yes | Codex++ style adapter: Codex sees Responses, the provider adapter owns upstream API calls. |
 | `pure-api` | `api-key-compatible` | `chat-completions` | Yes | API-key-only fallback for OpenAI-compatible providers. |
 
-Provider profile helpers such as `createCodexProviderOpenRouterProfile()`, `createCodexProviderDeepSeekProfile()`, `createCodexProviderDashScopeQwenProfile()`, `createCodexProviderMiniMaxProfile()`, and `createCodexProviderMoonshotKimiProfile()` provide stable base URLs, env naming, recommended profile modes, and capability metadata for common OpenAI-compatible providers.
+Provider profile helpers such as `createCodexProviderOpenRouterProfile()`, `createCodexProviderDeepSeekProfile()`, `createCodexProviderDashScopeQwenProfile()`, `createCodexProviderSiliconFlowProfile()`, `createCodexProviderMiniMaxProfile()`, and `createCodexProviderMoonshotKimiProfile()` provide stable base URLs, env naming, recommended profile modes, and capability metadata for common OpenAI-compatible providers.
 
 The low-level adapter converter is split into request, response, and SSE modules under `src/converters/responses-adapter/`; new code should use the canonical root package surface instead of underscore-era module paths.
 

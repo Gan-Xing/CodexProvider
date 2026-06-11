@@ -9,6 +9,7 @@ import {
   createCodexProviderMiniMaxProfile,
   createCodexProviderMoonshotKimiProfile,
   createCodexProviderOpenRouterProfile,
+  createCodexProviderSiliconFlowProfile,
   defaultProtocolForProfileMode,
 } from '../src/index.js';
 
@@ -191,8 +192,20 @@ test('provider profile presets expose recommended mode, env names, and capabilit
   assert.equal(qwen.providerPreset.capabilities?.supportsBuiltinWebSearchTool, true);
   assert.ok(qwen.codexCliArgs.includes('model_providers.dashscope_qwen.env_key="DASHSCOPE_API_KEY"'));
 
-  const minimax = createCodexProviderMiniMaxProfile({
+  const siliconflow = createCodexProviderSiliconFlowProfile({
     protocolProxyPort: 58017,
+  });
+  assert.equal(siliconflow.mode, 'mixed');
+  assert.equal(siliconflow.providerLabel, 'siliconflow');
+  assert.equal(siliconflow.upstreamBaseUrl, 'https://api.siliconflow.cn/v1');
+  assert.equal(siliconflow.configInput.apiKeyEnv, 'SILICONFLOW_API_KEY');
+  assert.equal(siliconflow.providerPreset.env.baseUrlEnv, 'SILICONFLOW_BASE_URL');
+  assert.equal(siliconflow.providerPreset.env.modelEnv, 'SILICONFLOW_MODEL');
+  assert.equal(siliconflow.providerPreset.capabilityPresetId, 'siliconflow');
+  assert.equal(siliconflow.providerPreset.capabilities?.multimodal?.supportsFileInput, false);
+
+  const minimax = createCodexProviderMiniMaxProfile({
+    protocolProxyPort: 58018,
   });
   assert.equal(minimax.mode, 'mixed');
   assert.equal(minimax.providerLabel, 'minimax');
@@ -203,7 +216,7 @@ test('provider profile presets expose recommended mode, env names, and capabilit
   assert.equal(minimax.providerPreset.capabilities?.multimodal?.supportsImageInput, false);
 
   const kimi = createCodexProviderMoonshotKimiProfile({
-    protocolProxyPort: 58018,
+    protocolProxyPort: 58019,
   });
   assert.equal(kimi.mode, 'mixed');
   assert.equal(kimi.providerLabel, 'kimi');

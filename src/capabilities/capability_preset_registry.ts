@@ -78,6 +78,18 @@ const PRESETS: Record<OpenAICompatibleCapabilityPresetId, OpenAICompatibleProvid
       multimodal: TEXT_ONLY_MULTIMODAL,
     },
   }),
+  siliconflow: buildPreset({
+    id: 'siliconflow',
+    displayName: 'SiliconFlow',
+    apiKeyEnv: 'SILICONFLOW_API_KEY',
+    baseUrl: 'https://api.siliconflow.cn/v1',
+    defaultModel: 'Qwen/Qwen3-32B',
+    ownedBy: 'siliconflow',
+    categories: ['siliconflow'],
+    extraCapabilities: {
+      multimodal: TEXT_ONLY_MULTIMODAL,
+    },
+  }),
   openrouter: buildPreset({
     id: 'openrouter',
     displayName: 'OpenRouter',
@@ -231,6 +243,10 @@ export const OPENAI_COMPATIBLE_PROFILE_PRESET_REGISTRATIONS: readonly OpenAIComp
     alternativeModelEnv: 'DASHSCOPE_MODEL',
   },
   {
+    presetId: 'siliconflow',
+    envPrefix: 'SILICONFLOW',
+  },
+  {
     presetId: 'openrouter',
     envPrefix: 'OPENROUTER',
   },
@@ -299,6 +315,7 @@ function normalizePresetId(id: string | null | undefined): OpenAICompatibleCapab
     case 'deepseek':
     case 'minimax':
     case 'qwen':
+    case 'siliconflow':
     case 'openrouter':
     case 'iflow':
     case 'kimi':

@@ -133,7 +133,7 @@ Cycle semantics:
 - [x] Update README and recipes with the expanded helper surface.
 - [x] Update provider compatibility matrix to mark MiniMax and Moonshot/Kimi profile helpers as available while live evidence remains `[!] Pending credentials`.
 - [x] Update the recursive loop handoff planned-helper list to match the actual helper names.
-- [!] SiliconFlow profile helper remains blocked because no package capability preset or live behavior record exists yet.
+- [!] Cycle 3 left SiliconFlow profile helper blocked because no package capability preset or live behavior record existed yet; Cycle 5 adds package coverage while live evidence remains pending credentials.
 - [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
@@ -187,23 +187,32 @@ Cycle semantics:
 <!-- cycle:5:start -->
 ## Cycle 5 Backlog
 
-### Audit
+### C5-A Audit
 
-- [ ] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
-- [ ] Generate a concrete backlog for this cycle based on current repository state.
-- [ ] Complete all generated backlog items or mark external blockers with `- [!]`.
+- [x] Re-audit the five target streams: release readiness, provider matrix/presets, web_search productization, deep search, observability/error policy.
+- [x] Generate a concrete backlog for this cycle based on current repository state.
+- [x] Identify Cycle 5 implementation scope: add conservative SiliconFlow capability/profile helper coverage.
+
+### C5-B SiliconFlow Provider Coverage
+
+- [x] Add a SiliconFlow OpenAI-compatible capability preset with base URL, default model, env prefix, and conservative text-only multimodal metadata.
+- [x] Add `createCodexProviderSiliconFlowProfile()` with stable `SILICONFLOW_*` env metadata and root export coverage.
+- [x] Add focused tests for SiliconFlow capability metadata, provider profile metadata, and the audited public surface.
+- [x] Update README, recipes, provider matrix, tracker, changelog, and recursive handoff notes.
+- [!] Live SiliconFlow forced-tool and streaming behavior remains pending credentials; do not mark provider evidence as passed without a live smoke.
+- [x] Complete all generated backlog items or mark external blockers with `- [!]`.
 
 ### Validation
 
-- [ ] Run node scripts/recursive-quality-cycle.mjs scan.
-- [ ] Run pnpm test.
-- [ ] Run pnpm typecheck.
-- [ ] Run pnpm build.
-- [ ] Run pnpm consumer:harness.
-- [ ] Run pnpm check-boundary.
-- [ ] Run pnpm check-package-surface.
-- [ ] Run pnpm pack:dry-run.
-- [ ] Update this backlog so no unchecked `- [ ]` remains in Cycle 5.
-- [ ] Commit and push.
-- [ ] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
+- [x] Run node scripts/recursive-quality-cycle.mjs scan.
+- [x] Run pnpm test.
+- [x] Run pnpm typecheck.
+- [x] Run pnpm build.
+- [x] Run pnpm consumer:harness.
+- [x] Run pnpm check-boundary.
+- [x] Run pnpm check-package-surface.
+- [x] Run pnpm pack:dry-run.
+- [x] Update this backlog so no unchecked `- [ ]` remains in Cycle 5.
+- [x] Commit and push.
+- [x] Run node scripts/recursive-quality-cycle.mjs complete-cycle.
 <!-- cycle:5:end -->

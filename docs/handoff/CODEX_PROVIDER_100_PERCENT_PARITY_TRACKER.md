@@ -1,6 +1,6 @@
 # CodexProvider 100 Percent Parity Tracker
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
 
 Scope source: `docs/handoff/CODEX_PROVIDER_DEEP_AUDIT_100_PERCENT_PARITY_HANDOFF.md`
 
@@ -63,7 +63,7 @@ Out of scope for the latest completed phase:
 | 14 | P1 | Metasearch engine parser snapshots need maintenance workflow | Complete | Phase 7 documents parser fixture policy in `docs/SEARCH_QUALITY_SCORING.md`; existing HTML engine fixtures continue to cover no-results, blocked/captcha, and tracking cleanup. |
 | 15 | P1 | Package hygiene checker should scan shipped docs/examples | Complete | Phase 8 hardens `pnpm check-package-surface` to scan README, CHANGELOG, LICENSE, docs, examples, package.json, and the actual `npm pack --dry-run --json` tarball file list for secrets, private paths, generated artifacts, large files, binary artifacts, and host-app imports. |
 | 16 | P1 | Hosted tool execution errors need clear policy | Complete | `docs/OBSERVABILITY_AND_ERROR_POLICY.md` defines request validation, security violation, recoverable provider error, fatal hosted tool error, and loop-exceeded policy. Cycle 2 adds typed loop-exceeded error handling with structured category and retry metadata for non-streaming and streaming adapter-emulated hosted-tool loops. |
-| 17 | P1 | Provider capability presets need live behavior records | Partially done | Phase 9 records OpenRouter-compatible mixed-runtime behavior. Cycle 1 adds OpenRouter, DeepSeek, and DashScope/Qwen profile helpers plus `docs/PROVIDER_COMPATIBILITY_MATRIX.md`; Cycle 3 adds MiniMax and Moonshot/Kimi profile helpers. Broader live records remain pending credentials. |
+| 17 | P1 | Provider capability presets need live behavior records | Partially done | Phase 9 records OpenRouter-compatible mixed-runtime behavior. Cycle 1 adds OpenRouter, DeepSeek, and DashScope/Qwen profile helpers plus `docs/PROVIDER_COMPATIBILITY_MATRIX.md`; Cycle 3 adds MiniMax and Moonshot/Kimi profile helpers; Cycle 5 adds SiliconFlow capability/profile helper coverage. Broader live records remain pending credentials. |
 | 18 | P2 | Deep search is currently heuristic | Partially done | `docs/DEEP_WEB_SEARCH_ROADMAP.md` documents heuristic opt-in status, planner interface, graph execution, reference merge, synthesis contract, and tests needed. |
 | 19 | P2 | Observability should be structured | Partially done | Trace events are now sanitized at the server `emitTrace` exit, `docs/OBSERVABILITY_AND_ERROR_POLICY.md` defines trace redaction policy, and Cycle 4 adds hosted-tool SSE delta/output-preview trace redaction coverage. Search latency/cache/citation trace summaries remain future work. |
 | 20 | P2 | CI and release automation | Complete | Phase 8 CI runs test, typecheck, build, consumer harness, boundary, package-surface, and pack dry-run checks. Publishing remains manual and `private: true` is unchanged. |
@@ -516,4 +516,24 @@ Additional focused validation:
 ```bash
 pnpm exec tsx --test test/server.test.ts  # passed: 41 tests
 git diff --check                          # passed
+```
+
+Recursive quality Cycle 5 validation run on 2026-06-11:
+
+```bash
+node scripts/recursive-quality-cycle.mjs scan  # passed: 0 findings
+pnpm test                                      # passed: 282 passing, 1 credential-gated integration skipped
+pnpm typecheck                                 # passed
+pnpm build                                     # passed
+pnpm consumer:harness                          # passed
+pnpm check-boundary                            # passed
+pnpm check-package-surface                     # passed
+pnpm pack:dry-run                              # passed: 593 files, 349.3 kB package size, 1.6 MB unpacked
+```
+
+Additional focused validation:
+
+```bash
+pnpm exec tsx --test test/capabilities.test.ts test/profiles.test.ts test/public_surface.test.ts  # passed: 25 tests
+git diff --check                                                                               # passed
 ```

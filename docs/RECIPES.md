@@ -36,6 +36,7 @@ The current profile helper surface exposes:
 - `createCodexProviderOpenRouterProfile()`
 - `createCodexProviderDeepSeekProfile()`
 - `createCodexProviderDashScopeQwenProfile()`
+- `createCodexProviderSiliconFlowProfile()`
 - `createCodexProviderMiniMaxProfile()`
 - `createCodexProviderMoonshotKimiProfile()`
 

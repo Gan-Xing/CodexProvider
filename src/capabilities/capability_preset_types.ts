@@ -8,6 +8,7 @@ export type OpenAICompatibleCapabilityPresetId =
   | 'deepseek'
   | 'minimax'
   | 'qwen'
+  | 'siliconflow'
   | 'openrouter'
   | 'iflow'
   | 'kimi'

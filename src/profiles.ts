@@ -65,6 +65,7 @@ export type CodexProviderProviderProfilePresetId =
   | 'openrouter'
   | 'deepseek'
   | 'dashscope-qwen'
+  | 'siliconflow'
   | 'minimax'
   | 'moonshot-kimi';
 
@@ -148,6 +149,15 @@ const PROVIDER_PROFILE_PRESETS: Record<CodexProviderProviderProfilePresetId, Pro
     alternativeApiKeyEnv: 'QWEN_API_KEY',
     alternativeBaseUrlEnv: 'QWEN_BASE_URL',
     alternativeModelEnv: 'QWEN_MODEL',
+    recommendedProfileMode: 'mixed',
+  },
+  siliconflow: {
+    id: 'siliconflow',
+    capabilityPresetId: 'siliconflow',
+    providerLabel: 'siliconflow',
+    apiKeyEnv: 'SILICONFLOW_API_KEY',
+    baseUrlEnv: 'SILICONFLOW_BASE_URL',
+    modelEnv: 'SILICONFLOW_MODEL',
     recommendedProfileMode: 'mixed',
   },
   minimax: {
@@ -236,6 +246,12 @@ export function createCodexProviderDashScopeQwenProfile(
   input: BuildCodexProviderPresetProfileInput = {},
 ): CodexProviderPresetProfile {
   return buildPresetProfile('dashscope-qwen', input);
+}
+
+export function createCodexProviderSiliconFlowProfile(
+  input: BuildCodexProviderPresetProfileInput = {},
+): CodexProviderPresetProfile {
+  return buildPresetProfile('siliconflow', input);
 }
 
 export function createCodexProviderMiniMaxProfile(

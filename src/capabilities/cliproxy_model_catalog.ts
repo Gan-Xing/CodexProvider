@@ -14,6 +14,7 @@ export type CliproxyModelCategory =
   | 'codex-plus'
   | 'codex-pro'
   | 'qwen'
+  | 'siliconflow'
   | 'iflow'
   | 'kimi'
   | 'antigravity'
@@ -132,6 +133,15 @@ const QWEN_MODELS: CliproxyModelCatalogEntry[] = [
   }),
 ];
 
+const SILICONFLOW_MODELS: CliproxyModelCatalogEntry[] = [
+  model('siliconflow', 'Qwen/Qwen3-32B', 'siliconflow', 'Qwen3 32B', null, {
+    maxOutputTokens: 65536,
+  }),
+  model('siliconflow', 'Qwen/Qwen2.5-72B-Instruct', 'siliconflow', 'Qwen2.5 72B Instruct', null, {
+    maxOutputTokens: 32768,
+  }),
+];
+
 const ANTIGRAVITY_MODELS: CliproxyModelCatalogEntry[] = [
   model('antigravity', 'claude-opus-4-6-thinking', 'antigravity', 'Claude Opus 4.6 (Thinking)', ['low', 'medium', 'high'], { maxOutputTokens: 64000 }),
   model('antigravity', 'claude-sonnet-4-6', 'antigravity', 'Claude Sonnet 4.6 (Thinking)', ['low', 'medium', 'high'], { maxOutputTokens: 64000 }),
@@ -159,6 +169,7 @@ export const CLIPROXY_COMPAT_MODEL_CATALOG: CliproxyModelCatalogEntry[] = [
   ...GEMINI_MODELS,
   ...CODEX_MODELS,
   ...QWEN_MODELS,
+  ...SILICONFLOW_MODELS,
   ...IFLOW_MODELS,
   ...KIMI_MODELS,
   ...ANTIGRAVITY_MODELS,

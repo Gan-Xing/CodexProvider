@@ -18,6 +18,13 @@ test('capability presets are exported from the package boundary', () => {
   const qwenRegistration = OPENAI_COMPATIBLE_PROFILE_PRESET_REGISTRATIONS.find((entry) => entry.presetId === 'qwen');
   assert.equal(qwenRegistration?.envPrefix, 'QWEN');
   assert.equal(qwenRegistration?.alternativeApiKeyEnv, 'DASHSCOPE_API_KEY');
+  const siliconflow = getOpenAICompatibleProviderPreset('siliconflow');
+  assert.equal(siliconflow.id, 'siliconflow');
+  assert.equal(siliconflow.defaultModel, 'Qwen/Qwen3-32B');
+  assert.equal(siliconflow.baseUrl, 'https://api.siliconflow.cn/v1');
+  assert.equal(siliconflow.capabilities?.modelCapabilities?.['Qwen/Qwen3-32B']?.tools, true);
+  const siliconflowRegistration = OPENAI_COMPATIBLE_PROFILE_PRESET_REGISTRATIONS.find((entry) => entry.presetId === 'siliconflow');
+  assert.equal(siliconflowRegistration?.envPrefix, 'SILICONFLOW');
 });
 
 test('external model catalogs merge model-level capabilities', () => {
