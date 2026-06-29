@@ -18,13 +18,26 @@ test('capability presets are exported from the package boundary', () => {
   const qwenRegistration = OPENAI_COMPATIBLE_PROFILE_PRESET_REGISTRATIONS.find((entry) => entry.presetId === 'qwen');
   assert.equal(qwenRegistration?.envPrefix, 'QWEN');
   assert.equal(qwenRegistration?.alternativeApiKeyEnv, 'DASHSCOPE_API_KEY');
+  const qwen = getOpenAICompatibleProviderPreset('qwen');
+  assert.equal(qwen.modelIds.includes('qwen3.7-max'), true);
+  assert.equal(qwen.modelIds.includes('kimi-k2.7-code'), true);
+  assert.equal(qwen.modelIds.length >= 12, true);
   const siliconflow = getOpenAICompatibleProviderPreset('siliconflow');
   assert.equal(siliconflow.id, 'siliconflow');
   assert.equal(siliconflow.defaultModel, 'Qwen/Qwen3-32B');
   assert.equal(siliconflow.baseUrl, 'https://api.siliconflow.cn/v1');
   assert.equal(siliconflow.capabilities?.modelCapabilities?.['Qwen/Qwen3-32B']?.tools, true);
+  assert.equal(siliconflow.modelIds.includes('deepseek-ai/DeepSeek-V4-Pro'), true);
+  assert.equal(siliconflow.modelIds.length >= 25, true);
   const siliconflowRegistration = OPENAI_COMPATIBLE_PROFILE_PRESET_REGISTRATIONS.find((entry) => entry.presetId === 'siliconflow');
   assert.equal(siliconflowRegistration?.envPrefix, 'SILICONFLOW');
+  const deepseek = getOpenAICompatibleProviderPreset('deepseek');
+  assert.equal(deepseek.modelIds.includes('deepseek-chat'), true);
+  assert.equal(deepseek.modelIds.includes('deepseek-reasoner'), true);
+  const kimi = getOpenAICompatibleProviderPreset('kimi');
+  assert.equal(kimi.defaultModel, 'kimi-k2.7-code');
+  assert.equal(kimi.baseUrl, 'https://api.moonshot.cn/v1');
+  assert.equal(kimi.modelIds.includes('kimi-k2.7-code-highspeed'), true);
 });
 
 test('external model catalogs merge model-level capabilities', () => {
@@ -91,6 +104,7 @@ test('package model catalogs expose normalized capability catalog metadata', () 
     },
     quirks: [
       'parallel_tool_calls_filtered',
+      'provider_specific_thinking_toggle',
       'text_placeholder_for_unsupported_input_parts',
     ],
   });

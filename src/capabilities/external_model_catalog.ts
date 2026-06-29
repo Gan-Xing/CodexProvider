@@ -65,6 +65,7 @@ export function buildOpenAICompatibleExternalModelCatalog({
       displayName: normalizeString(rawEntry.displayName)
         || normalizeString(rawEntry.display_name)
         || cliproxyEntry?.displayName
+        || normalizeString(rawEntry.name)
         || id,
       description: normalizeString(rawEntry.description)
         || cliproxyEntry?.description
@@ -131,7 +132,11 @@ function buildCapabilitiesFromExternalModelEntry(entry: Record<string, any>): Op
   const maxOutputTokens = normalizePositiveNumber(entry.maxOutputTokens)
     ?? normalizePositiveNumber(entry.max_completion_tokens)
     ?? normalizePositiveNumber(entry.outputTokenLimit);
-  const reasoningLevels = inferExternalReasoningLevels(entry.thinking);
+  const reasoning = entry.reasoning && typeof entry.reasoning === 'object' ? entry.reasoning : null;
+  const reasoningLevels = inferExternalReasoningLevels(entry.thinking ?? reasoning, supportedParameters);
+  const defaultReasoningEffort = normalizeString(reasoning?.default_effort)
+    || normalizeString(reasoning?.defaultEffort)
+    || null;
   return {
     tools: hasSupportedParameters ? supportedParameters.includes('tools') : !isExternalNonChatModel(id),
     vision: inferExternalVisionSupport(id, category, entry),
@@ -141,14 +146,14 @@ function buildCapabilitiesFromExternalModelEntry(entry: Record<string, any>): Op
     reasoning: reasoningLevels.length > 0
       ? {
         supportedReasoningEfforts: reasoningLevels,
-        defaultReasoningEffort: null,
+        defaultReasoningEffort,
       }
       : false,
     thinking: reasoningLevels.length > 0
       ? {
         supportsReasoningEffortSelection: true,
         supportedReasoningEfforts: reasoningLevels,
-        defaultReasoningEffort: null,
+        defaultReasoningEffort,
         stripFields: ['thinking'],
         mode: 'reasoning_effort',
       }
@@ -166,11 +171,20 @@ function buildCapabilitiesFromExternalModelEntry(entry: Record<string, any>): Op
   };
 }
 
-function inferExternalReasoningLevels(thinking: unknown): string[] {
+function inferExternalReasoningLevels(thinking: unknown, supportedParameters: unknown): string[] {
+  const parameters = Array.isArray(supportedParameters)
+    ? supportedParameters.map((entry) => normalizeString(entry)).filter(Boolean)
+    : [];
   if (!thinking || typeof thinking !== 'object') {
-    return [];
+    return parameters.includes('reasoning') ? ['low', 'medium', 'high'] : [];
   }
   const record = thinking as Record<string, unknown>;
+  if (Array.isArray(record.supported_efforts)) {
+    return [...new Set(record.supported_efforts.map((entry) => normalizeString(entry)).filter(Boolean))];
+  }
+  if (Array.isArray(record.supportedEfforts)) {
+    return [...new Set(record.supportedEfforts.map((entry) => normalizeString(entry)).filter(Boolean))];
+  }
   if (Array.isArray(record.levels)) {
     return [...new Set(record.levels.map((entry) => normalizeString(entry)).filter(Boolean))];
   }

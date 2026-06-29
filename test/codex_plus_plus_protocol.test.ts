@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   chatCompletionsResponseToResponses,
   responsesRequestToChatCompletions,
+  resolveCodexProviderProviderPreset,
   translateChatCompletionsSseToResponsesEvents,
 } from '../src/index.js';
 import {
@@ -173,6 +174,71 @@ test('codex++ port: request applies CCSwitch reasoning dialect fallback by model
     input: 'hi',
   });
   assert.equal(minimaxOff.reasoning_split, false);
+});
+
+test('codex++ port: OpenRouter preset maps DeepSeek reasoning to provider reasoning object', () => {
+  const preset = resolveCodexProviderProviderPreset('openrouter');
+  const chat = responsesRequestToChatCompletions({
+    model: 'deepseek/deepseek-v4-pro',
+    reasoning: { effort: 'xhigh' },
+    input: 'hi',
+  }, {
+    providerKind: 'openrouter',
+    providerCapabilities: preset.capabilities,
+  });
+
+  assert.deepEqual(chat.reasoning, { effort: 'xhigh' });
+  assert.equal(chat.reasoning_effort, undefined);
+});
+
+test('codex++ port: provider preset thinking policies use provider dialect fields', () => {
+  const qwen = resolveCodexProviderProviderPreset('dashscope-qwen');
+  const qwenChat = responsesRequestToChatCompletions({
+    model: 'qwen3.7-max',
+    reasoning: { effort: 'high' },
+    input: 'hi',
+  }, {
+    providerKind: 'qwen',
+    providerCapabilities: qwen.capabilities,
+  });
+  assert.equal(qwenChat.enable_thinking, true);
+  assert.equal(qwenChat.reasoning_effort, undefined);
+
+  const siliconflow = resolveCodexProviderProviderPreset('siliconflow');
+  const siliconflowChat = responsesRequestToChatCompletions({
+    model: 'deepseek-ai/DeepSeek-V4-Pro',
+    reasoning: { effort: 'xhigh' },
+    input: 'hi',
+  }, {
+    providerKind: 'siliconflow',
+    providerCapabilities: siliconflow.capabilities,
+  });
+  assert.equal(siliconflowChat.enable_thinking, true);
+  assert.equal(siliconflowChat.reasoning_effort, undefined);
+
+  const minimax = resolveCodexProviderProviderPreset('minimax');
+  const minimaxChat = responsesRequestToChatCompletions({
+    model: 'MiniMax-M2.7',
+    reasoning: { effort: 'none' },
+    input: 'hi',
+  }, {
+    providerKind: 'minimax',
+    providerCapabilities: minimax.capabilities,
+  });
+  assert.equal(minimaxChat.reasoning_split, false);
+  assert.equal(minimaxChat.reasoning_effort, undefined);
+
+  const kimi = resolveCodexProviderProviderPreset('moonshot-kimi');
+  const kimiChat = responsesRequestToChatCompletions({
+    model: 'kimi-k2.7-code',
+    reasoning: { effort: 'high' },
+    input: 'hi',
+  }, {
+    providerKind: 'kimi',
+    providerCapabilities: kimi.capabilities,
+  });
+  assert.deepEqual(kimiChat.thinking, { type: 'enabled' });
+  assert.equal(kimiChat.reasoning_effort, undefined);
 });
 
 test('codex++ port: request replays custom apply_patch history as proxy tool call', () => {

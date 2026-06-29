@@ -275,6 +275,17 @@ export function applyThinkingPolicyToOpenAIChatRequest(
   stripThinkingConfig(chat, policy.stripFields);
   const effort = normalizeReasoningEffort(requestedEffort);
 
+  if (normalizeString(providerKind).toLowerCase() === 'openrouter') {
+    const mapped = mapOpenRouterReasoningEffort(effort);
+    if (mapped) {
+      chat.reasoning = { effort: mapped };
+    } else {
+      delete chat.reasoning;
+    }
+    delete chat.reasoning_effort;
+    return omitUndefined(chat);
+  }
+
   if (!capabilities?.thinking && policy.mode === 'reasoning_effort') {
     return applyInferredCodexPlusThinkingPolicy(chat, effort);
   }
@@ -287,9 +298,11 @@ export function applyThinkingPolicyToOpenAIChatRequest(
 
   if (policy.mode === 'boolean') {
     delete chat.reasoning_effort;
-    if (policy.booleanField && effort) {
+    if (effort) {
       const enabled = !(policy.booleanFalseEfforts ?? ['none']).includes(effort);
-      setNestedPath(chat, policy.booleanField, enabled);
+      if (policy.booleanField) {
+        setNestedPath(chat, policy.booleanField, enabled);
+      }
       applyPayloadParams(chat, enabled ? policy.booleanTrueParams : policy.booleanFalseParams);
     }
     return omitUndefined(chat);
@@ -299,6 +312,18 @@ export function applyThinkingPolicyToOpenAIChatRequest(
     chat.reasoning_effort = effort;
   }
   return omitUndefined(chat);
+}
+
+function mapOpenRouterReasoningEffort(effort: string | null): string | null {
+  if (!effort) {
+    return null;
+  }
+  if (effort === 'max') {
+    return 'xhigh';
+  }
+  return ['xhigh', 'high', 'medium', 'low', 'minimal', 'none'].includes(effort)
+    ? effort
+    : null;
 }
 
 function resolveBaseThinkingPolicy(providerKind: string | null | undefined): OpenAICompatibleThinkingPolicy {

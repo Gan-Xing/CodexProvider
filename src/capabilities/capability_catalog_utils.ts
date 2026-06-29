@@ -32,6 +32,7 @@ export function buildNormalizedModelCatalogMetadata(entry: Record<string, any> |
   }
   const contextWindow = normalizePositiveNumber(entry.contextWindow)
     ?? normalizePositiveNumber(entry.context_window)
+    ?? normalizePositiveNumber(entry.context_length)
     ?? normalizePositiveNumber(entry.maxInputTokens)
     ?? normalizePositiveNumber(entry.max_input_tokens);
   const pricing = normalizePricingMetadata(entry);

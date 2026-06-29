@@ -117,27 +117,195 @@ const IFLOW_MODELS: CliproxyModelCatalogEntry[] = [
 ];
 
 const KIMI_MODELS: CliproxyModelCatalogEntry[] = [
-  model('kimi', 'kimi-k2', 'moonshot', 'Kimi K2', null, { maxOutputTokens: 32768 }),
-  model('kimi', 'kimi-k2-thinking', 'moonshot', 'Kimi K2 Thinking', ['low', 'medium', 'high'], { maxOutputTokens: 32768 }),
-  model('kimi', 'kimi-k2.5', 'moonshot', 'Kimi K2.5', ['low', 'medium', 'high'], { maxOutputTokens: 32768 }),
+  model('kimi', 'kimi-k2.7-code', 'moonshot', 'Kimi K2.7 Code', ['high'], { maxOutputTokens: 32768 }),
+  model('kimi', 'kimi-k2.7-code-highspeed', 'moonshot', 'Kimi K2.7 Code HighSpeed', ['high'], { maxOutputTokens: 32768 }),
+  model('kimi', 'kimi-k2.6', 'moonshot', 'Kimi K2.6', ['none', 'high'], { maxOutputTokens: 32768 }),
+  model('kimi', 'kimi-k2.5', 'moonshot', 'Kimi K2.5', ['none', 'high'], { maxOutputTokens: 32768 }),
+  model('kimi', 'moonshot-v1-128k', 'moonshot', 'Moonshot V1 128K', null, { maxOutputTokens: 32768 }),
+  model('kimi', 'moonshot-v1-32k', 'moonshot', 'Moonshot V1 32K', null, { maxOutputTokens: 32768 }),
+  model('kimi', 'moonshot-v1-8k', 'moonshot', 'Moonshot V1 8K', null, { maxOutputTokens: 8192 }),
+  model('kimi', 'moonshot-v1-128k-vision-preview', 'moonshot', 'Moonshot V1 128K Vision Preview', null, { maxOutputTokens: 32768 }),
+  model('kimi', 'moonshot-v1-32k-vision-preview', 'moonshot', 'Moonshot V1 32K Vision Preview', null, { maxOutputTokens: 32768 }),
+  model('kimi', 'moonshot-v1-8k-vision-preview', 'moonshot', 'Moonshot V1 8K Vision Preview', null, { maxOutputTokens: 8192 }),
 ];
 
 const QWEN_MODELS: CliproxyModelCatalogEntry[] = [
+  model('qwen', 'qwen3.7-max', 'qwen', 'Qwen3.7 Max', ['none', 'high'], {
+    maxOutputTokens: 65536,
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+    webSearch: true,
+  }),
+  model('qwen', 'qwen3.7-plus', 'qwen', 'Qwen3.7 Plus', ['none', 'high'], {
+    maxOutputTokens: 65536,
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+    webSearch: true,
+  }),
+  model('qwen', 'qwen3.6-flash', 'qwen', 'Qwen3.6 Flash', ['none', 'high'], {
+    maxOutputTokens: 65536,
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+    webSearch: true,
+  }),
   model('qwen', 'qwen-plus', 'qwen', 'Qwen Plus', null, {
     maxOutputTokens: 65536,
     supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
     webSearch: true,
   }),
+  model('qwen', 'qwen-max', 'qwen', 'Qwen Max', null, {
+    maxOutputTokens: 65536,
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+    webSearch: true,
+  }),
+  model('qwen', 'qwen-turbo', 'qwen', 'Qwen Turbo', null, {
+    maxOutputTokens: 65536,
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+    webSearch: true,
+  }),
+  model('qwen', 'qwen-long', 'qwen', 'Qwen Long', null, {
+    maxOutputTokens: 65536,
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+    webSearch: true,
+  }),
+  model('qwen', 'qwen3-max', 'qwen', 'Qwen3 Max', ['none', 'high'], {
+    maxOutputTokens: 65536,
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+  }),
+  model('qwen', 'qwen3-max-preview', 'qwen', 'Qwen3 Max Preview', ['none', 'high'], {
+    maxOutputTokens: 65536,
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+  }),
   model('qwen', 'qwen3-coder-plus', 'qwen', 'Qwen3 Coder Plus', null, {
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+  }),
+  model('qwen', 'qwen3-coder-flash', 'qwen', 'Qwen3 Coder Flash', null, {
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+  }),
+  model('qwen', 'qwen3.5-omni-plus', 'qwen', 'Qwen3.5 Omni Plus', ['none', 'high'], {
+    maxOutputTokens: 65536,
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+  }),
+  model('qwen', 'deepseek-v4-pro', 'qwen', 'DeepSeek V4 Pro', ['high', 'xhigh'], {
+    maxOutputTokens: 65536,
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+  }),
+  model('qwen', 'deepseek-v4-flash', 'qwen', 'DeepSeek V4 Flash', ['high', 'xhigh'], {
+    maxOutputTokens: 65536,
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+  }),
+  model('qwen', 'kimi-k2.7-code', 'qwen', 'Kimi K2.7 Code', ['high'], {
+    maxOutputTokens: 32768,
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+  }),
+  model('qwen', 'glm-5.2', 'qwen', 'GLM 5.2', ['none', 'high'], {
+    maxOutputTokens: 65536,
+    supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
+  }),
+  model('qwen', 'MiniMax-M2.5', 'qwen', 'MiniMax M2.5', ['low', 'medium', 'high'], {
+    maxOutputTokens: 65536,
     supportedParameters: ['temperature', 'top_p', 'max_tokens', 'stream', 'stop', 'tools', 'response_format'],
   }),
 ];
 
 const SILICONFLOW_MODELS: CliproxyModelCatalogEntry[] = [
+  model('siliconflow', 'deepseek-ai/DeepSeek-R1', 'siliconflow', 'DeepSeek R1', ['high', 'xhigh'], {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'deepseek-ai/DeepSeek-V3', 'siliconflow', 'DeepSeek V3', null, {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'deepseek-ai/DeepSeek-V3.1', 'siliconflow', 'DeepSeek V3.1', ['none', 'high'], {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'deepseek-ai/DeepSeek-V3.1-Terminus', 'siliconflow', 'DeepSeek V3.1 Terminus', ['none', 'high'], {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'deepseek-ai/DeepSeek-V3.2-Exp', 'siliconflow', 'DeepSeek V3.2 Exp', ['none', 'high'], {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'deepseek-ai/DeepSeek-V3.2', 'siliconflow', 'DeepSeek V3.2', ['none', 'high'], {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'deepseek-ai/deepseek-vl2', 'siliconflow', 'DeepSeek VL2', null, {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'deepseek-ai/DeepSeek-V4-Flash', 'siliconflow', 'DeepSeek V4 Flash', ['none', 'high', 'xhigh'], {
+    maxOutputTokens: 393216,
+  }),
+  model('siliconflow', 'deepseek-ai/DeepSeek-V4-Pro', 'siliconflow', 'DeepSeek V4 Pro', ['none', 'high', 'xhigh'], {
+    maxOutputTokens: 262144,
+  }),
+  model('siliconflow', 'zai-org/GLM-5', 'siliconflow', 'GLM 5', ['none', 'high'], {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'zai-org/GLM-5.1', 'siliconflow', 'GLM 5.1', ['none', 'high'], {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'zai-org/GLM-4.7', 'siliconflow', 'GLM 4.7', ['none', 'high'], {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'zai-org/GLM-4.6', 'siliconflow', 'GLM 4.6', ['none', 'high'], {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'moonshotai/Kimi-K2.6', 'siliconflow', 'Kimi K2.6', ['none', 'high'], {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'moonshotai/Kimi-K2.5', 'siliconflow', 'Kimi K2.5', ['none', 'high'], {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'moonshotai/Kimi-K2-Thinking', 'siliconflow', 'Kimi K2 Thinking', ['high'], {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'MiniMaxAI/MiniMax-M2.5', 'siliconflow', 'MiniMax M2.5', ['low', 'medium', 'high'], {
+    maxOutputTokens: 65536,
+  }),
+  model('siliconflow', 'MiniMaxAI/MiniMax-M2.1', 'siliconflow', 'MiniMax M2.1', ['low', 'medium', 'high'], {
+    maxOutputTokens: 65536,
+  }),
   model('siliconflow', 'Qwen/Qwen3-32B', 'siliconflow', 'Qwen3 32B', null, {
     maxOutputTokens: 65536,
   }),
+  model('siliconflow', 'Qwen/Qwen3-235B-A22B', 'siliconflow', 'Qwen3 235B A22B', ['none', 'high'], {
+    maxOutputTokens: 65536,
+  }),
+  model('siliconflow', 'Qwen/Qwen3-235B-A22B-Instruct-2507', 'siliconflow', 'Qwen3 235B A22B Instruct', null, {
+    maxOutputTokens: 65536,
+  }),
+  model('siliconflow', 'Qwen/Qwen3-235B-A22B-Thinking-2507', 'siliconflow', 'Qwen3 235B A22B Thinking', ['high'], {
+    maxOutputTokens: 65536,
+  }),
+  model('siliconflow', 'Qwen/Qwen3-Coder-480B-A35B-Instruct', 'siliconflow', 'Qwen3 Coder 480B A35B Instruct', null, {
+    maxOutputTokens: 65536,
+  }),
+  model('siliconflow', 'Qwen/Qwen3-Coder-30B-A3B-Instruct', 'siliconflow', 'Qwen3 Coder 30B A3B Instruct', null, {
+    maxOutputTokens: 65536,
+  }),
+  model('siliconflow', 'Qwen/Qwen3-Next-80B-A3B-Instruct', 'siliconflow', 'Qwen3 Next 80B A3B Instruct', null, {
+    maxOutputTokens: 65536,
+  }),
+  model('siliconflow', 'Qwen/Qwen3-Next-80B-A3B-Thinking', 'siliconflow', 'Qwen3 Next 80B A3B Thinking', ['high'], {
+    maxOutputTokens: 65536,
+  }),
+  model('siliconflow', 'Qwen/Qwen3.5-397B-A17B', 'siliconflow', 'Qwen3.5 397B A17B', ['none', 'high'], {
+    maxOutputTokens: 65536,
+  }),
+  model('siliconflow', 'Qwen/Qwen3.5-122B-A10B', 'siliconflow', 'Qwen3.5 122B A10B', ['none', 'high'], {
+    maxOutputTokens: 65536,
+  }),
+  model('siliconflow', 'Qwen/Qwen3.6-35B-A3B', 'siliconflow', 'Qwen3.6 35B A3B', ['none', 'high'], {
+    maxOutputTokens: 65536,
+  }),
+  model('siliconflow', 'Qwen/Qwen3.6-27B', 'siliconflow', 'Qwen3.6 27B', ['none', 'high'], {
+    maxOutputTokens: 65536,
+  }),
   model('siliconflow', 'Qwen/Qwen2.5-72B-Instruct', 'siliconflow', 'Qwen2.5 72B Instruct', null, {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'tencent/Hunyuan-A13B-Instruct', 'siliconflow', 'Hunyuan A13B Instruct', ['none', 'high'], {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'ByteDance-Seed/Seed-OSS-36B-Instruct', 'siliconflow', 'Seed OSS 36B Instruct', null, {
+    maxOutputTokens: 32768,
+  }),
+  model('siliconflow', 'openai/gpt-oss-120b', 'siliconflow', 'GPT OSS 120B', null, {
     maxOutputTokens: 32768,
   }),
 ];
@@ -159,8 +327,19 @@ const ANTIGRAVITY_MODELS: CliproxyModelCatalogEntry[] = [
 const DIRECT_COMPAT_MODELS: CliproxyModelCatalogEntry[] = [
   model('minimax-codex', 'MiniMax-M2.7', 'minimax', 'MiniMax-M2.7', ['low', 'medium', 'high'], { maxOutputTokens: 65536 }),
   model('minimax-codex', 'MiniMax-M2.5', 'minimax', 'MiniMax-M2.5', ['low', 'medium', 'high'], { maxOutputTokens: 65536 }),
-  model('deepseek-codex', 'deepseek-v4-flash', 'deepseek', 'DeepSeek V4 Flash', null, { maxOutputTokens: 65536 }),
-  model('deepseek-codex', 'deepseek-v4-pro', 'deepseek', 'DeepSeek V4 Pro', null, { maxOutputTokens: 65536 }),
+  model('deepseek-codex', 'deepseek-v4-flash', 'deepseek', 'DeepSeek V4 Flash', ['high', 'xhigh'], { maxOutputTokens: 65536 }),
+  model('deepseek-codex', 'deepseek-v4-pro', 'deepseek', 'DeepSeek V4 Pro', ['high', 'xhigh'], { maxOutputTokens: 65536 }),
+  model('deepseek-codex', 'deepseek-chat', 'deepseek', 'DeepSeek Chat', null, {
+    description: 'Legacy DeepSeek non-thinking alias for DeepSeek V4 Flash.',
+    maxOutputTokens: 65536,
+  }),
+  model('deepseek-codex', 'deepseek-reasoner', 'deepseek', 'DeepSeek Reasoner', ['high', 'xhigh'], {
+    description: 'Legacy DeepSeek thinking alias for DeepSeek V4 Flash.',
+    maxOutputTokens: 65536,
+  }),
+  model('openrouter', 'deepseek/deepseek-v4-pro', 'openrouter', 'DeepSeek V4 Pro', ['high', 'xhigh'], { maxOutputTokens: 65536 }),
+  model('openrouter', 'deepseek/deepseek-v4-flash', 'openrouter', 'DeepSeek V4 Flash', ['high', 'xhigh'], { maxOutputTokens: 65536 }),
+  model('openrouter', 'deepseek/deepseek-chat', 'openrouter', 'DeepSeek Chat', null, { maxOutputTokens: 65536 }),
   model('openrouter', 'openai/gpt-4o-mini', 'openrouter', 'OpenAI GPT-4o Mini', null, { maxOutputTokens: 16384 }),
 ];
 
@@ -274,17 +453,8 @@ function buildModelCapabilities(entry: CliproxyModelCatalogEntry): OpenAICompati
 }
 
 function buildModelPayloadCompatibility(
-  entry: CliproxyModelCatalogEntry,
+  _entry: CliproxyModelCatalogEntry,
 ): OpenAICompatibleModelCapabilities['payload'] {
-  if (entry.category === 'kimi' && entry.id.toLowerCase().startsWith('kimi-')) {
-    return {
-      override: [{
-        params: {
-          model: entry.id.slice('kimi-'.length),
-        },
-      }],
-    };
-  }
   return null;
 }
 
@@ -330,6 +500,49 @@ function buildThinkingPolicy(
         booleanFalseEfforts: ['none'],
       };
     }
+  }
+  if (entry.category === 'qwen' || entry.category === 'siliconflow') {
+    if (levels.length > 0) {
+      return {
+        supportsReasoningEffortSelection: true,
+        supportedReasoningEfforts: levels,
+        defaultReasoningEffort: null,
+        stripFields: ['reasoning_effort', 'thinking'],
+        mode: 'boolean',
+        booleanField: 'enable_thinking',
+        booleanFalseEfforts: ['none'],
+      };
+    }
+  }
+  if (entry.category === 'kimi') {
+    if (levels.length > 0) {
+      return {
+        supportsReasoningEffortSelection: true,
+        supportedReasoningEfforts: levels,
+        defaultReasoningEffort: null,
+        stripFields: ['reasoning_effort'],
+        mode: 'boolean',
+        booleanField: null,
+        booleanFalseEfforts: ['none'],
+        booleanTrueParams: {
+          thinking: { type: 'enabled' },
+        },
+        booleanFalseParams: {
+          thinking: { type: 'disabled' },
+        },
+      };
+    }
+  }
+  if (entry.category === 'minimax-codex' && isMiniMaxModel(id)) {
+    return {
+      supportsReasoningEffortSelection: true,
+      supportedReasoningEfforts: levels.length > 0 ? levels : ['none', 'low', 'medium', 'high'],
+      defaultReasoningEffort: null,
+      stripFields: ['reasoning_effort', 'thinking'],
+      mode: 'boolean',
+      booleanField: 'reasoning_split',
+      booleanFalseEfforts: ['none'],
+    };
   }
   if (levels.length > 0) {
     return {

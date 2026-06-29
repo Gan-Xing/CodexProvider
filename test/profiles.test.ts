@@ -11,6 +11,8 @@ import {
   createCodexProviderOpenRouterProfile,
   createCodexProviderSiliconFlowProfile,
   defaultProtocolForProfileMode,
+  resolveCodexProviderProviderPresetCatalog,
+  resolveCodexProviderProviderPreset,
 } from '../src/index.js';
 
 test('official profile points Codex directly at a Responses-compatible upstream', () => {
@@ -171,6 +173,14 @@ test('provider profile presets expose recommended mode, env names, and capabilit
   assert.equal(openrouter.providerPreset.capabilityPresetId, 'openrouter');
   assert.equal(openrouter.providerPreset.capabilities?.supportsBuiltinWebSearchTool, false);
 
+  const openrouterPreset = resolveCodexProviderProviderPreset('openrouter');
+  assert.equal(openrouterPreset.defaultModel, 'deepseek/deepseek-v4-pro');
+  assert.equal(openrouterPreset.env.apiKeyEnv, 'OPENROUTER_API_KEY');
+  assert.deepEqual(
+    openrouterPreset.models.find((model: any) => model.id === 'deepseek/deepseek-v4-pro')?.supportedReasoningEfforts,
+    ['high', 'xhigh'],
+  );
+
   const deepseek = createCodexProviderDeepSeekProfile({
     protocolProxyPort: 58015,
   });
@@ -220,9 +230,104 @@ test('provider profile presets expose recommended mode, env names, and capabilit
   });
   assert.equal(kimi.mode, 'mixed');
   assert.equal(kimi.providerLabel, 'kimi');
-  assert.equal(kimi.upstreamBaseUrl, 'https://api.kimi.com/coding');
+  assert.equal(kimi.upstreamBaseUrl, 'https://api.moonshot.cn/v1');
   assert.equal(kimi.configInput.apiKeyEnv, 'KIMI_API_KEY');
   assert.equal(kimi.providerPreset.env.alternativeApiKeyEnv, 'MOONSHOT_API_KEY');
   assert.equal(kimi.providerPreset.capabilityPresetId, 'kimi');
   assert.equal(kimi.providerPreset.capabilities?.multimodal?.supportsFileInput, false);
+});
+
+test('provider preset catalog can hydrate OpenRouter models from provider /models', async () => {
+  const preset = await resolveCodexProviderProviderPresetCatalog('openrouter', {
+    apiKey: 'test-key',
+    fetchImpl: async (url, init) => {
+      assert.equal(String(url), 'https://openrouter.ai/api/v1/models');
+      assert.equal((init?.headers as Record<string, string>).Authorization, 'Bearer test-key');
+      return new Response(JSON.stringify({
+        data: [
+          {
+            id: 'deepseek/deepseek-v4-pro',
+            name: 'DeepSeek: DeepSeek V4 Pro',
+            context_length: 1048576,
+            supported_parameters: ['tools', 'reasoning', 'response_format'],
+            reasoning: {
+              supported_efforts: ['xhigh', 'high'],
+              default_effort: 'high',
+            },
+          },
+          {
+            id: 'anthropic/claude-sonnet-4.5',
+            name: 'Anthropic: Claude Sonnet 4.5',
+            supported_parameters: ['tools'],
+          },
+        ],
+      }), { status: 200 });
+    },
+  });
+
+  assert.equal(preset.defaultModel, 'deepseek/deepseek-v4-pro');
+  assert.equal(preset.models.length >= 2, true);
+  assert.equal(preset.models[0].id, 'deepseek/deepseek-v4-pro');
+  assert.equal(preset.models.some((model: any) => model.id === 'anthropic/claude-sonnet-4.5'), true);
+  assert.deepEqual(
+    preset.capabilities?.modelCapabilities?.['deepseek/deepseek-v4-pro']?.reasoning,
+    { supportedReasoningEfforts: ['high', 'xhigh'], defaultReasoningEffort: null },
+  );
+});
+
+test('provider preset catalog hydrates non-OpenRouter compatible providers too', async () => {
+  const preset = await resolveCodexProviderProviderPresetCatalog('deepseek', {
+    apiKey: 'deepseek-key',
+    fetchImpl: async (url, init) => {
+      assert.equal(String(url), 'https://api.deepseek.com/models');
+      assert.equal((init?.headers as Record<string, string>).Authorization, 'Bearer deepseek-key');
+      return new Response(JSON.stringify({
+        data: [
+          {
+            id: 'deepseek-v4-pro',
+            name: 'DeepSeek V4 Pro',
+            supported_parameters: ['tools', 'reasoning', 'response_format'],
+          },
+          {
+            id: 'deepseek-chat',
+            name: 'DeepSeek Chat',
+            supported_parameters: ['tools', 'response_format'],
+          },
+          {
+            id: 'deepseek-reasoner',
+            name: 'DeepSeek Reasoner',
+            supported_parameters: ['tools', 'reasoning'],
+          },
+        ],
+      }), { status: 200 });
+    },
+  });
+
+  assert.equal(preset.defaultModel, 'deepseek-v4-flash');
+  assert.equal(preset.models.length >= 3, true);
+  assert.equal(preset.models[0].id, preset.defaultModel);
+  assert.equal(preset.models.some((model: any) => model.id === 'deepseek-chat'), true);
+  assert.equal(preset.models.some((model: any) => model.id === 'deepseek-reasoner'), true);
+});
+
+test('provider preset catalog hydrates Kimi models from Moonshot /models', async () => {
+  const preset = await resolveCodexProviderProviderPresetCatalog('moonshot-kimi', {
+    apiKey: 'kimi-key',
+    fetchImpl: async (url, init) => {
+      assert.equal(String(url), 'https://api.moonshot.cn/v1/models');
+      assert.equal((init?.headers as Record<string, string>).Authorization, 'Bearer kimi-key');
+      return new Response(JSON.stringify({
+        data: [
+          { id: 'kimi-k2.7-code', owned_by: 'moonshot' },
+          { id: 'kimi-k2.7-code-highspeed', owned_by: 'moonshot' },
+          { id: 'moonshot-v1-128k', owned_by: 'moonshot' },
+        ],
+      }), { status: 200 });
+    },
+  });
+
+  assert.equal(preset.defaultModel, 'kimi-k2.7-code');
+  assert.equal(preset.baseUrl, 'https://api.moonshot.cn/v1');
+  assert.equal(preset.models[0].id, 'kimi-k2.7-code');
+  assert.equal(preset.models.some((model: any) => model.id === 'kimi-k2.7-code-highspeed'), true);
 });

@@ -12,6 +12,8 @@ import {
   type NormalizedCodexProviderHostedToolDeclaration,
 } from './hosted_tools.js';
 import {
+  buildOpenAICompatibleExternalModelCatalog,
+  buildOpenAICompatibleModelCatalog,
   getOpenAICompatibleProviderPreset,
   type OpenAICompatibleCapabilityPresetId,
   type OpenAICompatibleProviderPreset,
@@ -84,6 +86,12 @@ export interface BuildCodexProviderPresetProfileInput {
   extraProviderFields?: Record<string, CodexProviderTomlPrimitive | null | undefined> | null;
 }
 
+export interface ResolveCodexProviderProviderPresetCatalogInput extends BuildCodexProviderPresetProfileInput {
+  apiKey?: string | null;
+  fetchImpl?: typeof fetch | null;
+  timeoutMs?: number | null;
+}
+
 export interface CodexProviderProviderProfilePresetEnv {
   apiKeyEnv: string;
   baseUrlEnv: string;
@@ -106,6 +114,20 @@ export interface CodexProviderProviderProfilePresetMetadata {
 export type CodexProviderPresetProfile = CodexProviderProfile & {
   providerPreset: CodexProviderProviderProfilePresetMetadata;
 };
+
+export interface CodexProviderResolvedProviderPreset {
+  id: CodexProviderProviderProfilePresetId;
+  displayName: string;
+  providerLabel: string;
+  providerName: string;
+  baseUrl: string;
+  defaultModel: string;
+  recommendedProfileMode: CodexProviderProfileMode;
+  env: CodexProviderProviderProfilePresetEnv;
+  models: any[];
+  capabilities: OpenAICompatibleProviderPreset['capabilities'];
+  adapterOptions: Record<string, unknown>;
+}
 
 interface ProviderProfilePresetRegistration {
   id: CodexProviderProviderProfilePresetId;
@@ -264,6 +286,133 @@ export function createCodexProviderMoonshotKimiProfile(
   input: BuildCodexProviderPresetProfileInput = {},
 ): CodexProviderPresetProfile {
   return buildPresetProfile('moonshot-kimi', input);
+}
+
+export function resolveCodexProviderProviderPreset(
+  id: CodexProviderProviderProfilePresetId,
+  input: BuildCodexProviderPresetProfileInput = {},
+): CodexProviderResolvedProviderPreset {
+  const registration = PROVIDER_PROFILE_PRESETS[id];
+  const capabilityPreset = getOpenAICompatibleProviderPreset(registration.capabilityPresetId);
+  const defaultModel = normalizeString(input.defaultModel) || capabilityPreset.defaultModel;
+  const providerName = normalizeString(input.providerName) || `${capabilityPreset.displayName} CodexProvider Adapter`;
+  const models = buildOpenAICompatibleModelCatalog({
+    defaultModel,
+    modelIds: capabilityPreset.modelIds,
+    displayName: providerName,
+    capabilities: capabilityPreset.capabilities,
+  });
+  return {
+    id: registration.id,
+    displayName: capabilityPreset.displayName,
+    providerLabel: normalizeString(input.providerLabel) || registration.providerLabel,
+    providerName,
+    baseUrl: normalizeString(input.upstreamBaseUrl) || capabilityPreset.baseUrl,
+    defaultModel,
+    recommendedProfileMode: registration.recommendedProfileMode,
+    env: {
+      apiKeyEnv: normalizeString(input.apiKeyEnv) || registration.apiKeyEnv,
+      baseUrlEnv: registration.baseUrlEnv,
+      modelEnv: registration.modelEnv,
+      alternativeApiKeyEnv: registration.alternativeApiKeyEnv ?? null,
+      alternativeBaseUrlEnv: registration.alternativeBaseUrlEnv ?? null,
+      alternativeModelEnv: registration.alternativeModelEnv ?? null,
+    },
+    models,
+    capabilities: capabilityPreset.capabilities,
+    adapterOptions: {
+      models,
+      providerCapabilities: capabilityPreset.capabilities,
+      providerKind: capabilityPreset.id,
+      providerName,
+      ownedBy: capabilityPreset.ownedBy,
+      upstreamChatCompletionsPath: capabilityPreset.upstreamChatCompletionsPath,
+    },
+  };
+}
+
+export async function resolveCodexProviderProviderPresetCatalog(
+  id: CodexProviderProviderProfilePresetId,
+  input: ResolveCodexProviderProviderPresetCatalogInput = {},
+): Promise<CodexProviderResolvedProviderPreset> {
+  const resolved = resolveCodexProviderProviderPreset(id, input);
+  const raw = await fetchProviderModelsJson(resolved.baseUrl, input).catch(() => null);
+  if (!raw) {
+    return resolved;
+  }
+  const external = buildOpenAICompatibleExternalModelCatalog({
+    raw: { [id]: extractOpenAICompatibleModels(raw) },
+    defaultModel: resolved.defaultModel,
+    displayName: resolved.providerName,
+    capabilities: resolved.capabilities,
+  });
+  if (external.catalog.length === 0) {
+    return resolved;
+  }
+  const models = mergeModelCatalogs(resolved.models, external.catalog, resolved.defaultModel);
+  return {
+    ...resolved,
+    models,
+    capabilities: external.capabilities,
+    adapterOptions: {
+      ...resolved.adapterOptions,
+      models,
+      providerCapabilities: external.capabilities,
+    },
+  };
+}
+
+async function fetchProviderModelsJson(
+  baseUrl: string,
+  input: ResolveCodexProviderProviderPresetCatalogInput,
+): Promise<unknown> {
+  const fetchImpl = input.fetchImpl ?? fetch;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), input.timeoutMs ?? 3000);
+  try {
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    const apiKey = normalizeString(input.apiKey);
+    if (apiKey) {
+      headers.Authorization = `Bearer ${apiKey}`;
+    }
+    const response = await fetchImpl(buildProviderModelsUrl(baseUrl), {
+      headers,
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`Provider models request failed: ${response.status}`);
+    }
+    return response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function buildProviderModelsUrl(baseUrl: string): string {
+  const normalized = normalizeString(baseUrl).replace(/\/+$/u, '');
+  return `${normalized}/models`;
+}
+
+function extractOpenAICompatibleModels(raw: unknown): unknown[] {
+  if (raw && typeof raw === 'object' && Array.isArray((raw as Record<string, unknown>).data)) {
+    return (raw as { data: unknown[] }).data;
+  }
+  return Array.isArray(raw) ? raw : [];
+}
+
+function mergeModelCatalogs(localModels: any[], remoteModels: any[], defaultModel: string): any[] {
+  const byId = new Map<string, any>();
+  for (const model of [...localModels, ...remoteModels]) {
+    const id = normalizeString(model?.id) || normalizeString(model?.model);
+    if (id && !byId.has(id)) {
+      byId.set(id, { ...model, id, isDefault: id === defaultModel || model?.isDefault === true });
+    }
+  }
+  return [...byId.values()].sort((left, right) => {
+    if (left.id === defaultModel) return -1;
+    if (right.id === defaultModel) return 1;
+    return 0;
+  });
 }
 
 export function defaultProtocolForProfileMode(
