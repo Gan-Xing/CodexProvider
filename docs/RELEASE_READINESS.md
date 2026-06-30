@@ -64,8 +64,11 @@ pnpm consumer:harness
 pnpm check-boundary
 pnpm check-package-surface
 pnpm pack:dry-run
+pnpm public-alpha:audit
 git diff --check
 ```
+
+`pnpm public-alpha:audit` is expected to fail while the project remains private or externally blocked. Treat it as the final manual readiness audit after npm scope ownership, API-backed search evidence, or the search exception approval has been resolved.
 
 When credentials are available, also run:
 
@@ -101,7 +104,7 @@ Recorded on 2026-06-30 with `npm pack --dry-run --json`:
 - Package: `@codex-provider/core@0.1.0-alpha.0`
 - Tarball: `codex-provider-core-0.1.0-alpha.0.tgz`
 - Total files: 591
-- Package size: 406.4 kB
+- Package size: 406.5 kB
 - Unpacked size: 1.9 MB
 - Top-level shipped entries: `dist`, `README.md`, `CHANGELOG.md`, `LICENSE`, `docs`, `examples`, `package.json`
 - Examples are intentionally shipped for alpha host integration reference.

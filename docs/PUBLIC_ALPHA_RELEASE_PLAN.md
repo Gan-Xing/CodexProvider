@@ -88,6 +88,7 @@ pnpm consumer:harness
 pnpm check-boundary
 pnpm check-package-surface
 pnpm pack:dry-run
+pnpm public-alpha:audit
 ```
 
 If credentials are available:

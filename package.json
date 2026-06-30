@@ -28,6 +28,7 @@
     "check-package-surface": "node scripts/check-package-surface.mjs",
     "consumer:harness": "pnpm build && tsx examples/standalone-consumer-harness.ts",
     "pack:dry-run": "npm pack --dry-run",
+    "public-alpha:audit": "node scripts/check-public-alpha-readiness.mjs",
     "serve": "node ./dist/cli.js",
     "smoke:host": "pnpm build && npm pack --dry-run && tsx examples/live-host-integration-smoke.ts",
     "smoke:web-search": "pnpm build && tsx examples/live-web-search-smoke.ts",

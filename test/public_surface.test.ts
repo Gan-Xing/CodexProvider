@@ -313,6 +313,7 @@ test('codex provider root scripts expose the package commands', () => {
   assert.equal(packageJson.scripts?.['check-boundary'], 'node scripts/check-boundary.mjs');
   assert.equal(packageJson.scripts?.['check-package-surface'], 'node scripts/check-package-surface.mjs');
   assert.equal(packageJson.scripts?.['consumer:harness'], 'pnpm build && tsx examples/standalone-consumer-harness.ts');
+  assert.equal(packageJson.scripts?.['public-alpha:audit'], 'node scripts/check-public-alpha-readiness.mjs');
   assert.equal(packageJson.scripts?.check, 'pnpm test && pnpm typecheck && pnpm build && pnpm consumer:harness && pnpm check-boundary && pnpm check-package-surface');
 });
 
