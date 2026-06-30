@@ -39,6 +39,7 @@
 - Recorded current SerpApi API-backed `web_search` smoke evidence with DeepSeek official `deepseek-chat`.
 - Refreshed release, readiness, recipe, and provider-evidence docs for the current three-provider live evidence state while keeping `private: true`.
 - Recorded the 2026-06-30 public-alpha blocker audit: npm scope ownership is unconfirmed, API-backed search credentials are missing, and the preferred third-provider smoke is now satisfied by DeepSeek official evidence.
+- Recorded the server-side npm CLI login update: `npm whoami` now passes as `ganxing`, but authenticated checks still cannot prove `@codex-provider` scope ownership.
 
 ## 0.1.0-alpha.0
 

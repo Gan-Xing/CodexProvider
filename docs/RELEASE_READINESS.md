@@ -14,7 +14,7 @@ This package is still internal-only.
 
 - Keep `private: true`.
 - Current live provider evidence covers OpenRouter, DeepSeek official, DashScope/Qwen, and API-backed SerpApi web_search, but public alpha release approval and npm scope ownership are still pending.
-- Current 2026-06-30 blocker audit: local npm is not authenticated, the public registry does not show `@codex-provider/core`, and `@codex-provider` scope ownership cannot be proven. The preferred third-provider smoke is satisfied by DeepSeek official evidence, and API-backed web-search evidence is satisfied by the SerpApi smoke.
+- Current 2026-06-30 blocker audit: local npm is authenticated as `ganxing`, but authenticated registry checks still do not show `@codex-provider/core`, and `@codex-provider` scope ownership cannot be proven because `npm org ls @codex-provider --json` returns `E404 Scope not found`. The preferred third-provider smoke is satisfied by DeepSeek official evidence, and API-backed web-search evidence is satisfied by the SerpApi smoke.
 - Search release exception status: not needed for the current audit because API-backed SerpApi web_search evidence is recorded.
 - Keep root `exports` limited to `.` and `./package.json`.
 - Active consumers must use the canonical `CodexProvider*`, `OpenAICompatible*`, and `createCodexProvider*` root exports.
@@ -25,7 +25,7 @@ This package is still internal-only.
 ## Release Workflow Decision
 
 - npm package: `@codex-provider/core`.
-- npm scope: use `@codex-provider`; confirm account/scope ownership before removing `private: true`.
+- npm scope: intended scope is `@codex-provider`; create or obtain access to that npm organization/scope before removing `private: true`, or explicitly choose a different scope.
 - Versioning: stay on `0.1.0-alpha.x` while the package is private and the root API is still changing.
 - Changelog: keep `CHANGELOG.md` grouped by version with `Added`, `Changed`, `Fixed`, and `Validation` bullets.
 - Release mode: manual release only for now. Do not add automatic npm publishing; OpenRouter, DeepSeek official, and DashScope/Qwen live evidence is recorded, but it still needs release-owner review before any public alpha decision.

@@ -14,7 +14,7 @@
 
 ## Current Blockers
 
-- npm scope ownership is not confirmed. `npm whoami` fails with `ENEEDAUTH`, `npm org ls @codex-provider --json` returns `E404 Scope not found`, and `npm view @codex-provider/core --json` returns `E404 Not found`.
+- npm scope ownership is not confirmed. `npm whoami` now passes as `ganxing`, but authenticated checks still show `npm org ls @codex-provider --json` returning `E404 Scope not found`, `npm team ls @codex-provider:developers --json` returning `E404 Team not found`, and `npm view @codex-provider/core --json` returning `E404 Not found`. The next release-owner action is to create or obtain access to the `@codex-provider` npm organization/scope, or explicitly choose a different package scope before public alpha.
 
 ## Search Release Exception Request
 
@@ -46,7 +46,7 @@ As of 2026-06-30:
 - Passed: DashScope/Qwen with `qwen-plus` for normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
 - Passed: API-backed SerpApi web_search with DeepSeek official `deepseek-chat`.
 - Pending credentials: SiliconFlow, MiniMax, Moonshot/Kimi, OpenAI direct Responses, and additional API-backed Brave/Serper/Tavily search records.
-- npm registry visibility check: `@codex-provider/core` is not published publicly, and the local environment cannot prove `@codex-provider` scope ownership without npm authentication.
+- npm registry visibility check: local npm is authenticated as `ganxing`, but `@codex-provider/core` is not published publicly and authenticated registry checks cannot prove `@codex-provider` scope ownership because the org/team is not visible.
 
 ## `private:true` Exit Criteria
 
@@ -71,8 +71,8 @@ Do not set `private:false` until all items below are complete:
 
 Before changing `private:true`:
 
-1. Confirm the npm organization or user owns the `@codex-provider` scope. Current unauthenticated registry check returns `E404 Scope not found`; this is not proof of ownership.
-2. Confirm package name availability for `@codex-provider/core`. Current unauthenticated registry check returns `E404 Not found`; this only proves the package is not publicly visible.
+1. Confirm the npm organization or user owns the `@codex-provider` scope. Current authenticated registry checks as `ganxing` return `E404 Scope not found` / `E404 Team not found`; this indicates the scope is not currently proven available to the publishing account.
+2. Confirm package name availability for `@codex-provider/core`. Current authenticated registry check returns `E404 Not found`; this only proves the package is not publicly visible or not accessible to this account.
 3. Confirm two-factor requirements for the publishing account.
 4. Confirm who can publish and who can deprecate an accidental release.
 5. Record the decision in `docs/RELEASE_READINESS.md`.
