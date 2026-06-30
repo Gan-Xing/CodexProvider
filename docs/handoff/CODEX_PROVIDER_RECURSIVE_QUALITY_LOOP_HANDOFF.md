@@ -24,10 +24,10 @@
 
 从当前仓库文档看，CodexProvider 已经完成大部分基础硬化：
 
-- Phase 0-9 已完成，Phase 10 Public alpha release decision 尚未开始。
+- Phase 0-9 已完成，Phase 10 Public alpha release decision 仍未授权执行。
 - `web_search` / `file_search` 的 100% parity tracker 已经记录 request-config binding、DNS SSRF、真实 fast mode、扩展验证、web_search 输出策略、file_search cursor pagination、质量 fixture、package hygiene、live smoke evidence 等工作完成。
 - `docs/INDEPENDENT_PACKAGE_CHECKLIST.md` 已基本全部勾选，但仍建议保留 `private: true` 直到明确发布决策。
-- `docs/LIVE_SMOKE_RESULTS.md` 已有 OpenRouter-compatible + builtin no-key metasearch 的 live evidence。
+- `docs/LIVE_SMOKE_RESULTS.md` 已有 OpenRouter-compatible + DashScope/Qwen 两条 full host integration live evidence，均使用 builtin no-key metasearch；API-backed Brave/Serper/Tavily 仍待凭证。
 - 当前仍未纳入今晚目标的是真实 CodexNext / Codex app-server 产品级接入验证。
 
 下一步不是继续补同一批底层 parity，而是进入更大目标的持续审计与递归改进。
@@ -53,7 +53,7 @@
 
 ### B. Provider Compatibility Matrix & Presets
 
-目标：把项目从“OpenRouter + DeepSeek 通过 smoke”扩展成多 provider 可验证 SDK。
+目标：把项目从“OpenRouter 单点证据”扩展成多 provider 可验证 SDK。当前 OpenRouter 与 DashScope/Qwen 已有 full host smoke 证据；DeepSeek official、SiliconFlow、MiniMax、Moonshot/Kimi、OpenAI direct Responses 仍需凭证或 release-owner 例外确认。
 
 Provider matrix 建议覆盖：
 

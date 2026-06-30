@@ -74,6 +74,8 @@ The profile surface exposes the safe presets app-servers should use:
 
 Provider profile helpers such as `createCodexProviderOpenRouterProfile()`, `createCodexProviderDeepSeekProfile()`, `createCodexProviderDashScopeQwenProfile()`, `createCodexProviderSiliconFlowProfile()`, `createCodexProviderMiniMaxProfile()`, and `createCodexProviderMoonshotKimiProfile()` provide stable base URLs, env naming, recommended profile modes, and capability metadata for common OpenAI-compatible providers.
 
+Current redacted live evidence covers OpenRouter with `deepseek/deepseek-chat` and DashScope/Qwen with `qwen-plus` through the mixed local Responses adapter, including normal Responses output, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`. DeepSeek official, SiliconFlow, MiniMax, Moonshot/Kimi, and OpenAI direct Responses remain credential-gated in the provider matrix. API-backed Brave/Serper/Tavily search evidence is still pending credentials; built-in no-key metasearch is verified.
+
 The low-level adapter converter is split into request, response, and SSE modules under `src/converters/responses-adapter/`; new code should use the canonical root package surface instead of underscore-era module paths.
 
 See [docs/TARGET.md](docs/TARGET.md) for the locked target and phased migration plan.

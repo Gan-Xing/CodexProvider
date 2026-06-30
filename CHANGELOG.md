@@ -31,6 +31,12 @@
 - Sanitized trace events before invoking `traceSink` by redacting secret-looking values and truncating large payloads.
 - Returned structured category and retry metadata for non-streaming and streaming adapter-emulated hosted-tool loop exhaustion.
 
+### Validation
+
+- Recorded current DashScope/Qwen `qwen-plus` live host integration smoke evidence for mixed runtime, forced custom tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
+- Refreshed release, readiness, recipe, and provider-evidence docs for the current two-provider live evidence state while keeping `private: true`.
+- Recorded the 2026-06-30 public-alpha blocker audit: npm scope ownership is unconfirmed, API-backed search credentials are missing, and third-provider smoke credentials are unavailable.
+
 ## 0.1.0-alpha.0
 
 ### Added
@@ -41,7 +47,7 @@
 
 ### Changed
 
-- Kept `private: true` while provider live smoke evidence remains incomplete.
+- Kept `private: true` during internal alpha while provider live smoke evidence was still being gathered.
 - Kept root `exports` limited to `.` and `./package.json`; no subpath exports are published.
 - Removed historical Relay/Gateway compatibility aliases from the active package surface.
 

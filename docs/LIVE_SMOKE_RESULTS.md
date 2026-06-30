@@ -2,6 +2,23 @@
 
 This file records redacted live smoke evidence for `@codex-provider/core`.
 
+## Current Evidence Summary
+
+As of 2026-06-30, full host-integration live evidence is recorded for:
+
+- OpenRouter with `deepseek/deepseek-chat`: mixed runtime, normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
+- DashScope/Qwen with `qwen-plus`: mixed runtime, normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
+
+API-backed Brave/Serper/Tavily search evidence and additional provider-preset records remain credential-gated. Secrets are redacted; raw API keys are never recorded here.
+
+## 2026-06-30 Public Alpha Blocker Audit
+
+- npm auth: `npm whoami` failed with `ENEEDAUTH`; this environment cannot prove publishing ownership.
+- npm scope: `npm org ls @codex-provider --json` returned `E404 Scope not found`; this is not proof that the project owns the scope.
+- npm package: `npm view @codex-provider/core --json` returned `E404 Not found`; the package is not publicly visible.
+- API-backed search credentials: `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, and `TAVILY_API_KEY` were missing, so Brave/Serper/Tavily live search evidence remains a release blocker or release-owner exception.
+- Third-provider credentials: `DEEPSEEK_API_KEY`, `SILICONFLOW_API_KEY`, `MINIMAX_API_KEY`, `KIMI_API_KEY`, `MOONSHOT_API_KEY`, and `OPENAI_API_KEY` were missing, so DeepSeek official and other third-provider full-host smokes remain credential-gated.
+
 ## 2026-06-07 OpenRouter non-web smoke
 
 - Date: 2026-06-07T20:42:29.450Z
@@ -288,3 +305,23 @@ This file records redacted live smoke evidence for `@codex-provider/core`.
 | Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 3892 ms. |
 | Adapter-emulated web_search | Passed | Sources: 1; results: 1; annotations: 1; latency: 7183 ms. |
 | Streaming adapter-emulated web_search | Passed | SSE events: 25; sources: 1; results: 1; annotations: 1; latency: 5668 ms. |
+
+## 2026-06-29T23:20:33.021Z CodexProviderRuntime live host integration smoke
+
+- Provider base URL host: `dashscope-us.aliyuncs.com`
+- Model: `qwen-plus`
+- Runtime mode: `mixed`
+- Tool strategy: `adapter-emulated`
+- Upstream key env: `QWEN_API_KEY=<redacted>`
+- Search provider: `builtin-metasearch`
+- Search key env: `<not set; built-in no-key metasearch>`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Mixed runtime local adapter | Passed | Adapter base URL host: 127.0.0.1:40023. |
+| Normal response | Passed | Latency: 1434 ms. |
+| Custom tool loop | Passed | First turn produced echo_probe; second turn returned final text. Latency: 1684 ms. |
+| Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 1868 ms. |
+| Adapter-emulated web_search | Passed | Sources: 1; results: 1; annotations: 1; latency: 4865 ms. |
+| Streaming adapter-emulated web_search | Passed | SSE events: 25; sources: 6; results: 6; annotations: 1; latency: 6125 ms. |

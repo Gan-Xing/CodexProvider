@@ -8,11 +8,11 @@ The fixed target is unchanged:
 
 > Let non-OpenAI models participate in the Codex native tool-call loop.
 
-The conversion work now belongs in `packages/codex-provider`. The package exposes the reusable integration surface, Codex config/profile helpers, low-level protocol conversion, capability policy, and the local Responses adapter server as a single SDK surface for CodexBridge, CodexNext, and future app-server integrations.
+The conversion work now belongs in the standalone `@codex-provider/core` package. The package exposes the reusable integration surface, Codex config/profile helpers, low-level protocol conversion, capability policy, and the local Responses adapter server as a single SDK surface for CodexBridge, CodexNext, and future app-server integrations.
 
 ## Current Status Snapshot
 
-Last updated: 2026-06-07
+Last updated: 2026-06-30
 
 ### Completed In This Phase
 
@@ -30,7 +30,7 @@ Last updated: 2026-06-07
 - [x] Apply-patch proxy action coverage: add, delete, update, replace, batch, and invalid-JSON fallback are covered by provider adapter protocol tests.
 - [x] Gated live smoke path: `test:live-openai-compatible` now includes a real upstream custom-tool loop smoke when provider profiles and API keys are configured.
 - [x] Codex++ request-history semantics: reasoning input items, assistant/tool-call merging, orphan tool-output fallback, `latest_reminder`, late system/developer collapse, empty assistant normalization, and no-tool control filtering are covered by translated protocol tests.
-- [x] Real upstream live smoke: DeepSeek, Qwen, and OpenRouter have passed normal response plus custom-tool continuation through the provider adapter using local gitignored provider credentials; MiniMax remains skipped until a `MINIMAX_API_KEY` profile is configured.
+- [x] Real upstream live smoke: current redacted full-host evidence is recorded for OpenRouter with `deepseek/deepseek-chat` and DashScope/Qwen with `qwen-plus`, covering normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`. Historical narrower protocol smokes covered normal response plus custom-tool continuation for additional OpenAI-compatible profiles, but the provider matrix only marks a provider as passed after full evidence is recorded in `docs/LIVE_SMOKE_RESULTS.md`.
 - [x] High-level provider profile surface: `official`, `mixed`, and `pure-api` profile builders now encode the intended auth/protocol/local-adapter combinations for host apps such as CodexBridge, CodexNext, and future app-server integrations.
 - [x] Hosted tool declaration contract: `provider-native` and `adapter-emulated` strategies now require explicit hosted tool declarations instead of silently assuming upstream OpenAI hosted-tool parity.
 - [x] Codex++ CCS request edge behavior: unsupported/default reasoning models no longer receive `reasoning_effort`, tool controls are only forwarded when Chat tools survive, o-series `max_output_tokens` maps to `max_completion_tokens`, explicit `max_tokens` / `max_completion_tokens` aliases are preserved, and array instructions collapse into system text.
@@ -534,7 +534,7 @@ Create `packages/codex-provider/test/codex_plus_plus_protocol.test.ts` and port 
 - [x] HTTP adapter loop returns provider `apply_patch_*` proxy calls as Codex freeform `apply_patch` custom calls and replays patch history back to structured Chat tool calls.
 - [x] Apply-patch proxy conversion covers add, delete, update, replace, batch, and invalid JSON fallback.
 - [x] Live smoke test file includes a forced `adapter_echo` custom tool call and follow-up tool-output round trip.
-- [x] Live smoke has been executed successfully against real upstreams in this environment: DeepSeek, Qwen, and OpenRouter normal response plus custom-tool continuation pass; MiniMax remains skipped until `MINIMAX_API_KEY` is configured.
+- [x] Live smoke has been executed successfully against real upstreams in this environment: OpenRouter and DashScope/Qwen have current full-host evidence recorded in `docs/LIVE_SMOKE_RESULTS.md`. DeepSeek official, MiniMax, SiliconFlow, Moonshot/Kimi, and OpenAI direct Responses remain pending credentials for the full provider-matrix suite.
 
 ## Acceptance Criteria For The Whole Port
 

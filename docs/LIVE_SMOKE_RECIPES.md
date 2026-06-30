@@ -13,6 +13,8 @@ Run from the repository root unless noted otherwise.
 ```bash
 export OPENROUTER_API_KEY=...
 export OPENROUTER_MODEL=deepseek/deepseek-chat
+export QWEN_API_KEY=...
+export QWEN_MODEL=qwen-plus
 export TAVILY_API_KEY=...
 export BRAVE_SEARCH_API_KEY=...
 export SERPER_API_KEY=...
@@ -23,6 +25,8 @@ export EMBEDDINGS_MODEL=qwen/qwen3-embedding-8b
 ```
 
 The web-search API keys are optional unless `CODEX_PROVIDER_WEB_SEARCH_PROVIDER` explicitly selects `brave`, `serper`, or `tavily`. The embedding endpoint/model are defaults only. Any OpenAI-compatible embeddings API can be used.
+
+Current recorded full-host evidence covers OpenRouter with `deepseek/deepseek-chat` and DashScope/Qwen with `qwen-plus`. Other provider records and API-backed Brave/Serper/Tavily search remain credential-gated.
 
 ## Smoke 1: Mixed Runtime
 

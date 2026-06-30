@@ -17,6 +17,21 @@ const runtime = new CodexProviderRuntime({
 });
 ```
 
+## Mixed DashScope/Qwen Runtime
+
+DashScope/Qwen follows the same mixed-mode pattern. Current live host smoke evidence uses `qwen-plus` through the local Responses adapter.
+
+```ts
+const runtime = new CodexProviderRuntime({
+  apiKey: process.env.QWEN_API_KEY!,
+  upstreamBaseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  defaultModel: "qwen-plus",
+  providerLabel: "dashscope_qwen",
+  profileMode: "mixed",
+  toolStrategy: "codex-local-first",
+});
+```
+
 ## Provider Profile Presets
 
 Use provider profile presets when a host wants stable base URLs, env names, recommended profile mode, and capability metadata without hand-copying provider constants.

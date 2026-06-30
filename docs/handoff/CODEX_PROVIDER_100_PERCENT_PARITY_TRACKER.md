@@ -1,6 +1,6 @@
 # CodexProvider 100 Percent Parity Tracker
 
-Last updated: 2026-06-11
+Last updated: 2026-06-30
 
 Scope source: `docs/handoff/CODEX_PROVIDER_DEEP_AUDIT_100_PERCENT_PARITY_HANDOFF.md`
 
@@ -24,7 +24,7 @@ This tracker is the living audit snapshot for the 100 percent parity loop. The c
 Out of scope for the latest completed phase:
 
 - API-key-backed Brave/Serper/Tavily live search evidence; no search-provider API key was present, so the live run used built-in no-key metasearch.
-- Full provider-preset matrix live records beyond the OpenRouter-compatible mixed-runtime smoke.
+- Full provider-preset matrix live records beyond the OpenRouter-compatible and DashScope/Qwen mixed-runtime smokes.
 - Public release, npm publish automation, dependency additions, or changing `private: true`. Public alpha planning has started, but release approval remains out of scope.
 
 ## Phase Status
@@ -40,7 +40,7 @@ Out of scope for the latest completed phase:
 | Phase 6 | File search 100 percent hardening | Complete | Source-level `pageCursor` / `nextPage` contract added, signed tokens preserve per-source cursors and global offsets, filter/ranking/vector-store matrix tests added, and final local gate passed on 2026-06-10. |
 | Phase 7 | Ranking and extraction quality evaluation | Complete | Shared tokenizer, deterministic ranking/extraction fixtures, CJK ranking tests, title-complete boosts, local-index/file_search boundary tests, scoring docs, and parser fixture workflow added. Final local gate passed on 2026-06-10. |
 | Phase 8 | Package hygiene and CI | Complete | `check-package-surface` now scans actual dry-run tarball files for secrets, private paths, generated artifacts, large files, binary artifacts, and host-app imports; CI runs the package-surface gate before pack dry-run; release readiness snapshot refreshed. Final local gate passed on 2026-06-10. |
-| Phase 9 | Live smoke evidence | Complete | Redacted OpenRouter-compatible live evidence recorded in `docs/LIVE_SMOKE_RESULTS.md` for `pnpm smoke:web-search` and `pnpm smoke:host` on 2026-06-10. |
+| Phase 9 | Live smoke evidence | Complete | Redacted OpenRouter-compatible live evidence recorded in `docs/LIVE_SMOKE_RESULTS.md` for `pnpm smoke:web-search` and `pnpm smoke:host` on 2026-06-10; DashScope/Qwen `pnpm smoke:host` evidence recorded on 2026-06-29. |
 | Phase 10 | Public alpha release decision | Planning in progress | `docs/PUBLIC_ALPHA_RELEASE_PLAN.md` defines the `private:true` decision, alpha version policy, npm scope checklist, manual publish steps, and no-auto-publish policy. Publishing remains blocked on explicit release approval. |
 
 ## Audit Item Status
@@ -51,7 +51,7 @@ Out of scope for the latest completed phase:
 | 2 | P0 | SSRF protection is not DNS-complete | Complete | Phase 2 adds DNS resolver-backed safety for retrieval and metasearch HTTP requests, redirect target revalidation, fake resolver tests, and explicit `allowPrivateHosts` opt-in behavior. |
 | 3 | P0 | `fast` metasearch mode is not actually fast | Complete | Phase 3 makes `fast` return on the first sufficient completed engine result, aborts in-flight work, and adds bounded/concurrent execution tests. |
 | 4 | P0 | Search processor has no response byte limit | Complete | Phase 2 adds processor/request `maxResponseBytes` and streaming response reads that fail with `max_bytes_exceeded`. |
-| 5 | P0 | Live smoke evidence remains the real release gate | Complete | Phase 9 records redacted live evidence for `smoke:web-search` and `smoke:host` using OpenRouter-compatible upstream credentials and built-in no-key metasearch. |
+| 5 | P0 | Live smoke evidence remains the real release gate | Complete | Phase 9 records redacted live evidence for `smoke:web-search` and `smoke:host` using OpenRouter-compatible upstream credentials and built-in no-key metasearch. DashScope/Qwen `smoke:host` now also passes with `qwen-plus`, adapter-emulated hosted tools, and built-in no-key metasearch. |
 | 6 | P1 | Detailed web_search actions need a stable compatibility policy | Complete | Phase 5 verifies separate include behavior: sources expose only `action.sources`, results expose only `results`, and detailed `open_page` / `find_in_page` actions require `web_search_call.actions` or host override. |
 | 7 | P1 | Request validation should cover more hosted tool fields | Complete | Phase 4 validates hosted `web_search` and `file_search` declaration fields in `tools[]` and `tool_choice.allowed_tools`, with strict 400s by default and drop-mode adjustment traces. |
 | 8 | P1 | Source-level pagination for file_search is incomplete | Complete | Phase 6 adds `pageCursor` / `pageSize` on source requests, optional `nextPage` / `hasMore` on source results, and signed token preservation of per-source cursors. |
@@ -63,7 +63,7 @@ Out of scope for the latest completed phase:
 | 14 | P1 | Metasearch engine parser snapshots need maintenance workflow | Complete | Phase 7 documents parser fixture policy in `docs/SEARCH_QUALITY_SCORING.md`; existing HTML engine fixtures continue to cover no-results, blocked/captcha, and tracking cleanup. |
 | 15 | P1 | Package hygiene checker should scan shipped docs/examples | Complete | Phase 8 hardens `pnpm check-package-surface` to scan README, CHANGELOG, LICENSE, docs, examples, package.json, and the actual `npm pack --dry-run --json` tarball file list for secrets, private paths, generated artifacts, large files, binary artifacts, and host-app imports. |
 | 16 | P1 | Hosted tool execution errors need clear policy | Complete | `docs/OBSERVABILITY_AND_ERROR_POLICY.md` defines request validation, security violation, recoverable provider error, fatal hosted tool error, and loop-exceeded policy. Cycle 2 adds typed loop-exceeded error handling with structured category and retry metadata for non-streaming and streaming adapter-emulated hosted-tool loops. |
-| 17 | P1 | Provider capability presets need live behavior records | Partially done | Phase 9 records OpenRouter-compatible mixed-runtime behavior. Cycle 1 adds OpenRouter, DeepSeek, and DashScope/Qwen profile helpers plus `docs/PROVIDER_COMPATIBILITY_MATRIX.md`; Cycle 3 adds MiniMax and Moonshot/Kimi profile helpers; Cycle 5 adds SiliconFlow capability/profile helper coverage. Broader live records remain pending credentials. |
+| 17 | P1 | Provider capability presets need live behavior records | Partially done | Phase 9 records OpenRouter-compatible mixed-runtime behavior, and 2026-06-29 records DashScope/Qwen `qwen-plus` mixed-runtime behavior. Cycle 1 adds OpenRouter, DeepSeek, and DashScope/Qwen profile helpers plus `docs/PROVIDER_COMPATIBILITY_MATRIX.md`; Cycle 3 adds MiniMax and Moonshot/Kimi profile helpers; Cycle 5 adds SiliconFlow capability/profile helper coverage. Broader live records remain pending credentials. |
 | 18 | P2 | Deep search is currently heuristic | Partially done | `docs/DEEP_WEB_SEARCH_ROADMAP.md` documents heuristic opt-in status, planner interface, graph execution, reference merge, and synthesis contract. Cycle 10 adds heuristic planner diagnostics plus decomposition, graph-rejection, and reference-merge fixture coverage. Cycle 11 adds failed-subquery, unresponsive-engine, and planner-budget diagnostics plus partial-failure and executor-budget coverage. Cycle 12 adds recipe/example coverage that keeps `custom:deep_web_search` separate from default `web_search`. Cycle 13 adds no-supporting-evidence response and executor metadata. Cycle 14 adds optional minimum-source diagnostics and limited-evidence synthesis guidance. Cycle 15 adds optional citation-budget controls and capped citation guidance. Cycle 16 adds optional answer-shape guidance for brief answers, evidence tables, and research memos. Cycle 17 adds graph budget and duration diagnostics. Cycle 18 adds opt-in per-node timeout budgets, retries, and attempt/timeout metadata. Cycle 19 exposes supporting node ids on merged sources and results. Cycle 20 adds multi-node source count diagnostics and metadata. It remains opt-in and not a recommended default research product. |
 | 19 | P2 | Observability should be structured | Complete | Trace events are now sanitized at the server `emitTrace` exit, `docs/OBSERVABILITY_AND_ERROR_POLICY.md` defines trace redaction policy, Cycle 4 adds hosted-tool SSE delta/output-preview trace redaction coverage, Cycle 6 adds `web_search.citations` count summaries, Cycle 7 adds `web_search.executed` execution count/duration summaries, Cycle 8 adds retrieval cache hit/miss counts, and Cycle 9 adds local-index hit/miss counts. |
 | 20 | P2 | CI and release automation | Complete | Phase 8 CI runs test, typecheck, build, consumer harness, boundary, package-surface, and pack dry-run checks. Publishing remains manual and `private: true` is unchanged. |
@@ -188,6 +188,7 @@ Live smoke evidence is recorded with secrets redacted and without changing relea
 - `docs/LIVE_SMOKE_RESULTS.md` records the latest `pnpm smoke:host` evidence for mixed-runtime host integration.
 - The host smoke covers normal Responses output, custom tool loop continuation, adapter-emulated `file_search`, non-streaming adapter-emulated `web_search`, and streaming adapter-emulated `web_search`.
 - The 2026-06-10 run used OpenRouter-compatible upstream credentials from the local environment and built-in no-key metasearch because no Brave, Serper, or Tavily API key was present.
+- The 2026-06-29 run used DashScope/Qwen `QWEN_API_KEY` credentials with the inferred `qwen-plus` model and built-in no-key metasearch.
 - Secrets remain redacted in the evidence file. `.env` values are not copied into repository docs.
 - `private: true` remains unchanged; Phase 10 owns the public alpha release decision.
 
@@ -417,7 +418,7 @@ SERPER_API_KEY=missing
 TAVILY_API_KEY=missing
 ```
 
-The successful Phase 9 smoke runs used OpenRouter-compatible upstream credentials and built-in no-key metasearch. Redacted evidence is recorded in `docs/LIVE_SMOKE_RESULTS.md`.
+The successful Phase 9 smoke runs used OpenRouter-compatible upstream credentials and built-in no-key metasearch. DashScope/Qwen host integration evidence was added on 2026-06-29 with `qwen-plus`. Redacted evidence is recorded in `docs/LIVE_SMOKE_RESULTS.md`.
 
 Recursive quality Cycle 1 validation run on 2026-06-10:
 
