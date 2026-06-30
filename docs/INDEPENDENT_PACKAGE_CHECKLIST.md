@@ -1,15 +1,15 @@
 # Independent Package Checklist
 
-`@codex-provider/core` remains internal-only until this checklist is complete.
+`codex-provider` is prepared for manual public alpha publishing.
 
 ## Release Gate
 
-- [x] `private: true` is retained while the API is still stabilizing.
+- [x] `private: false` is set for the first public alpha publish.
 - [x] Root `exports` exposes only the stable root entrypoint and `./package.json`.
 - [x] Historical server/trace names are removed from the active package surface.
 - [x] Canonical `CodexProvider*`, `OpenAICompatible*`, and `createCodexProvider*` APIs are exported from the root entrypoint.
 - [x] Historical Relay/Gateway compatibility aliases are not part of the active package surface.
-- [x] Package metadata uses `@codex-provider/core` and `0.1.0-alpha.0` while retaining `private: true`.
+- [x] Package metadata uses `codex-provider` and `0.1.0-alpha.0` for public alpha.
 - [x] Root scripts use canonical `codex-provider:*` names only.
 - [x] Built-in hosted tools require explicit declarations.
 - [x] Adapter-emulated hosted tools require explicit executors.
@@ -58,4 +58,4 @@ Deprecated Relay/Gateway names are not part of the active package surface.
 
 ## Current Status
 
-The public package name is now `@codex-provider/core`, and real upstream live smoke evidence for OpenRouter, DeepSeek official, and DashScope/Qwen is recorded in `docs/LIVE_SMOKE_RESULTS.md`. Keep `private: true` and `version: "0.1.0-alpha.0"` until the API is intentionally promoted beyond internal alpha.
+The public package name is now `codex-provider`, and real upstream live smoke evidence for OpenRouter, DeepSeek official, DashScope/Qwen, and API-backed SerpApi web_search is recorded in `docs/LIVE_SMOKE_RESULTS.md`. Keep version `0.1.0-alpha.0` for the first public alpha publish.

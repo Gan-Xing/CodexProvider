@@ -125,5 +125,5 @@ Current package support:
 6. Switch CodexBridge provider code to consume this package through host-side adapter options.
 7. Allow CodexNext to consume the same package without importing CodexBridge internals.
 8. Expose high-level official/mixed/pure API profile builders so app-servers can avoid invalid auth/protocol combinations.
-9. Keep historical package names only in archived migration notes; active consumers should import only `@codex-provider/core`.
+9. Keep historical package names only in archived migration notes; active consumers should import only `codex-provider`.
 10. Add remaining hosted-tool executors as separate adapters, keeping each capability explicitly declared and independently testable. Local filesystem `file_search`, memory-documents `file_search`, SQLite FTS `file_search`, in-memory vector `file_search`, local-vector `file_search`, SQLite vector persistence, and the generic embedding/source/store contracts are implemented first; Qdrant/LanceDB/pgvector sources, code interpreter, image generation, and computer-use adapters remain future work.

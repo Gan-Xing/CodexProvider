@@ -2,7 +2,7 @@ import {
   CodexProviderRuntime,
   createCodexProviderEmbeddingsApiProvider,
   createCodexProviderFileSearchExecutor,
-} from '@codex-provider/core';
+} from 'codex-provider';
 
 const workspaceRoot = process.env.WORKSPACE_ROOT ?? process.cwd();
 const embeddings = createCodexProviderEmbeddingsApiProvider({

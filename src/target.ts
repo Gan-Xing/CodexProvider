@@ -4,11 +4,11 @@ export const CODEX_PROVIDER_TARGET =
 export const CODEX_PROVIDER_TARGET_ZH =
   '让非 OpenAI 模型也能参与 Codex 的原生工具调用闭环。' as const;
 
-export const CODEX_PROVIDER_PACKAGE_NAME = '@codex-provider/core' as const;
+export const CODEX_PROVIDER_PACKAGE_NAME = 'codex-provider' as const;
 
 export const CODEX_PROVIDER_PACKAGE_PHASE = 'phase-2-canonical-api' as const;
 
-export const CODEX_PROVIDER_RELEASE_CHANNEL = 'internal-only' as const;
+export const CODEX_PROVIDER_RELEASE_CHANNEL = 'public-alpha' as const;
 
 export const CODEX_PROVIDER_OWNS = [
   'codex-provider-config',

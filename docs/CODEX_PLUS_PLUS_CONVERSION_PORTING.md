@@ -8,7 +8,7 @@ The fixed target is unchanged:
 
 > Let non-OpenAI models participate in the Codex native tool-call loop.
 
-The conversion work now belongs in the standalone `@codex-provider/core` package. The package exposes the reusable integration surface, Codex config/profile helpers, low-level protocol conversion, capability policy, and the local Responses adapter server as a single SDK surface for CodexBridge, CodexNext, and future app-server integrations.
+The conversion work now belongs in the standalone `codex-provider` package. The package exposes the reusable integration surface, Codex config/profile helpers, low-level protocol conversion, capability policy, and the local Responses adapter server as a single SDK surface for CodexBridge, CodexNext, and future app-server integrations.
 
 ## Current Status Snapshot
 

@@ -1,8 +1,8 @@
 # Unsafe Tool Security
 
-`@codex-provider/core` defines contracts for unsafe tools but must not become the default executor for dangerous actions.
+`codex-provider` defines contracts for unsafe tools but must not become the default executor for dangerous actions.
 
-Historical package names are documented only in archived migration notes. Active code uses canonical `@codex-provider/core` exports and canonical hosted tool names.
+Historical package names are documented only in archived migration notes. Active code uses canonical `codex-provider` exports and canonical hosted tool names.
 
 ## Default Policy
 

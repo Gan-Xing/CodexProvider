@@ -1,6 +1,6 @@
 import {
   CodexProviderRuntime,
-} from '@codex-provider/core';
+} from 'codex-provider';
 
 const runtime = new CodexProviderRuntime({
   apiKey: mustGetEnv('OPENROUTER_API_KEY'),

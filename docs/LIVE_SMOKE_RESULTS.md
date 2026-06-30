@@ -1,6 +1,6 @@
 # Live Smoke Results
 
-This file records redacted live smoke evidence for `@codex-provider/core`.
+This file records redacted live smoke evidence for `codex-provider`.
 
 ## Current Evidence Summary
 
@@ -16,23 +16,22 @@ API-backed SerpApi web_search evidence is recorded. Additional Brave/Serper/Tavi
 
 - `SERPAPI_API_KEY` was configured in the local ignored `.env`.
 - `pnpm smoke:web-search` passed with `CODEX_PROVIDER_WEB_SEARCH_PROVIDER=serpapi`, `DEEPSEEK_API_KEY=<redacted>`, and `deepseek-chat`.
-- This closes the API-backed web_search evidence blocker for the current public-alpha audit. npm scope ownership remains unconfirmed.
+- This closes the API-backed web_search evidence blocker for the current public-alpha audit. The package now uses the unscoped `codex-provider` npm name, so npm organization ownership is no longer required.
 
 ## 2026-06-30 Public Alpha Blocker Audit
 
 - npm auth update: `npm whoami` now passes as `ganxing` after browser-assisted CLI login on the server.
-- npm scope: `npm org ls @codex-provider --json` returned `E404 Scope not found`; this is not proof that the project owns the scope.
-- npm package: `npm view @codex-provider/core --json` returned `E404 Not found`; the package is not publicly visible.
+- Earlier scoped-package check returned `E404 Scope not found`; the project now uses the unscoped `codex-provider` package name instead.
+- npm package: `npm view codex-provider --json` returned `E404 Not found`; the unscoped package is not publicly visible yet and is available for first publish.
 - API-backed search credentials were missing at the time of this blocker audit; later in this cycle `SERPAPI_API_KEY` became available and the SerpApi smoke evidence below closed the search-evidence blocker.
 - Third-provider evidence: `DEEPSEEK_API_KEY` was available in local `.env` and the DeepSeek official full-host smoke passed at `2026-06-30T16:29:29.940Z`; SiliconFlow, MiniMax, Moonshot/Kimi, and OpenAI direct Responses remain credential-gated.
 
 ## 2026-06-30 npm Scope Login Update
 
 - `npm whoami` passed as `ganxing` after server-side CLI web login.
-- Authenticated `npm org ls @codex-provider --json` still returned `E404 Scope not found`.
-- Authenticated `npm team ls @codex-provider:developers --json` returned `E404 Team not found`.
-- Authenticated `npm view @codex-provider/core --json` returned `E404 Not found`.
-- Public alpha remains blocked on creating or proving access to the intended `@codex-provider` npm scope; search evidence is no longer the blocker.
+- Authenticated scoped-package org/team checks still returned `E404`, so the release path moved away from an npm organization.
+- Authenticated `npm view codex-provider --json` returned `E404 Not found`.
+- Follow-up decision: use the unscoped `codex-provider` package name instead of creating an npm organization. Search evidence and npm login are no longer blockers.
 
 ## 2026-06-07 OpenRouter non-web smoke
 

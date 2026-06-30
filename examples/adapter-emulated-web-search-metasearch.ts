@@ -16,7 +16,7 @@ import {
   createCodexProviderWebRetrievalFetcher,
   createCodexProviderWebSearchExecutor,
   type CodexProviderSearchEngine,
-} from '@codex-provider/core';
+} from 'codex-provider';
 
 const localIndex = createCodexProviderMemoryWebSearchLocalIndex();
 const retrieval = createCodexProviderWebRetrievalFetcher({

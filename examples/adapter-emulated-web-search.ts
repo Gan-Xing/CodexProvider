@@ -1,7 +1,7 @@
 import {
   CodexProviderRuntime,
   createCodexProviderWebSearchExecutor,
-} from '@codex-provider/core';
+} from 'codex-provider';
 
 const webSearch = createCodexProviderWebSearchExecutor({
   provider: 'tavily',

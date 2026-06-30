@@ -1,8 +1,8 @@
 # Live Smoke Recipes
 
-These recipes are for validating `@codex-provider/core` against real upstream services before public packaging.
+These recipes are for validating `codex-provider` against real upstream services before public packaging.
 
-Historical package names are documented only in archived migration notes. Active smoke recipes use canonical `@codex-provider/core` package behavior.
+Historical package names are documented only in archived migration notes. Active smoke recipes use canonical `codex-provider` package behavior.
 
 Live smoke tests are intentionally manual or opt-in. They require provider credentials, may call paid APIs, and should never run in ordinary unit test flows.
 

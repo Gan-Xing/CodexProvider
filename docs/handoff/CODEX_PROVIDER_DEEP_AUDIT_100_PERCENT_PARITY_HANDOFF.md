@@ -1,7 +1,7 @@
 # CodexProvider Deep Audit Handoff: 100% Tool Parity & Package Hardening Loop
 
 > Repository: `Gan-Xing/CodexProvider`
-> Package: `@codex-provider/core`
+> Package: `codex-provider`
 > Current target: make CodexProvider a production-grade provider compatibility SDK that can replace OpenAI API-key-only usage in Codex-style hosts while preserving OpenAI-compatible Responses, hosted-tool, streaming, `web_search`, and `file_search` behavior.
 
 ---
@@ -32,7 +32,7 @@ This is P0 because it affects real OpenAI compatibility.
 
 ### 1.1 Package boundary
 
-- `package.json` uses `@codex-provider/core`.
+- `package.json` uses `codex-provider`.
 - Only `codex-provider-server` is exposed as bin.
 - No active Relay/Gateway public API remains.
 - No runtime dependencies beyond dev tooling.

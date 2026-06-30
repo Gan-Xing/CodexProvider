@@ -1,6 +1,6 @@
 # Observability and Error Policy
 
-This document defines the current debug and error contract for `@codex-provider/core` host integrations.
+This document defines the current debug and error contract for `codex-provider` host integrations.
 
 ## Trace Events
 

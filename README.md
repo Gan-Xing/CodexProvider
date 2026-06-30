@@ -1,6 +1,6 @@
 # CodexProvider
 
-`@codex-provider/core` is a provider compatibility SDK for Codex app-server integrations. It lets non-OpenAI models participate in the Codex native tool-call loop by exposing a Responses-compatible surface over provider-specific Chat Completions APIs.
+`codex-provider` is a provider compatibility SDK for Codex app-server integrations. It lets non-OpenAI models participate in the Codex native tool-call loop by exposing a Responses-compatible surface over provider-specific Chat Completions APIs.
 
 This project is not affiliated with OpenAI. CodexBridge and CodexNext are consumers, not owners of this package.
 
@@ -88,6 +88,6 @@ See [docs/RECIPES.md](docs/RECIPES.md) and [examples](examples) for host-neutral
 
 See [docs/PROVIDER_COMPATIBILITY_MATRIX.md](docs/PROVIDER_COMPATIBILITY_MATRIX.md) for provider evidence status and preset coverage.
 
-See [docs/INDEPENDENT_PACKAGE_CHECKLIST.md](docs/INDEPENDENT_PACKAGE_CHECKLIST.md) for the remaining package readiness gates before `private: true` can be removed.
+See [docs/INDEPENDENT_PACKAGE_CHECKLIST.md](docs/INDEPENDENT_PACKAGE_CHECKLIST.md) for the public alpha package readiness gates.
 
 See [docs/LIVE_SMOKE_RECIPES.md](docs/LIVE_SMOKE_RECIPES.md), [docs/UNSAFE_TOOL_SECURITY.md](docs/UNSAFE_TOOL_SECURITY.md), [docs/PUBLIC_ALPHA_RELEASE_PLAN.md](docs/PUBLIC_ALPHA_RELEASE_PLAN.md), [docs/OBSERVABILITY_AND_ERROR_POLICY.md](docs/OBSERVABILITY_AND_ERROR_POLICY.md), and [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md) for release-readiness validation.

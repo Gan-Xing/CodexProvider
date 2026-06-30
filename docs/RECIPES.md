@@ -1,6 +1,6 @@
 # CodexProvider Recipes
 
-These recipes describe how a host app should wire `@codex-provider/core` without depending on CodexBridge internals.
+These recipes describe how a host app should wire `codex-provider` without depending on CodexBridge internals.
 
 ## Mixed OpenRouter Runtime
 

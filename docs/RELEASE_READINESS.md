@@ -1,20 +1,20 @@
 # Release Readiness
 
-This package is still internal-only.
+This package is prepared for a manual public alpha publish.
 
 ```json
 {
-  "name": "@codex-provider/core",
+  "name": "codex-provider",
   "version": "0.1.0-alpha.0",
-  "private": true
+  "private": false
 }
 ```
 
 ## Current Publish Position
 
-- Keep `private: true`.
-- Current live provider evidence covers OpenRouter, DeepSeek official, DashScope/Qwen, and API-backed SerpApi web_search, but public alpha release approval and npm scope ownership are still pending.
-- Current 2026-06-30 blocker audit: local npm is authenticated as `ganxing`, but authenticated registry checks still do not show `@codex-provider/core`, and `@codex-provider` scope ownership cannot be proven because `npm org ls @codex-provider --json` returns `E404 Scope not found`. The preferred third-provider smoke is satisfied by DeepSeek official evidence, and API-backed web-search evidence is satisfied by the SerpApi smoke.
+- Set `private: false`.
+- Current live provider evidence covers OpenRouter, DeepSeek official, DashScope/Qwen, and API-backed SerpApi web_search. The package now uses the unscoped npm name `codex-provider`, so no npm organization is required.
+- Current 2026-06-30 package-name audit: local npm is authenticated as `ganxing`, and `npm view codex-provider --json` returns `E404 Not found`, so the unscoped name is available for first publish.
 - Search release exception status: not needed for the current audit because API-backed SerpApi web_search evidence is recorded.
 - Keep root `exports` limited to `.` and `./package.json`.
 - Active consumers must use the canonical `CodexProvider*`, `OpenAICompatible*`, and `createCodexProvider*` root exports.
@@ -24,9 +24,9 @@ This package is still internal-only.
 
 ## Release Workflow Decision
 
-- npm package: `@codex-provider/core`.
-- npm scope: intended scope is `@codex-provider`; create or obtain access to that npm organization/scope before removing `private: true`, or explicitly choose a different scope.
-- Versioning: stay on `0.1.0-alpha.x` while the package is private and the root API is still changing.
+- npm package: `codex-provider`.
+- npm scope: none. The package uses the unscoped name `codex-provider`.
+- Versioning: stay on `0.1.0-alpha.x` while the root API is still changing.
 - Changelog: keep `CHANGELOG.md` grouped by version with `Added`, `Changed`, `Fixed`, and `Validation` bullets.
 - Release mode: manual release only for now. Do not add automatic npm publishing; OpenRouter, DeepSeek official, and DashScope/Qwen live evidence is recorded, but it still needs release-owner review before any public alpha decision.
 - GitHub Actions: CI runs local verification and package hygiene checks, but publishing remains manual.
@@ -34,13 +34,13 @@ This package is still internal-only.
 
 ## Recommended Version Strategy
 
-- Stay at `0.1.0-alpha.0` while `private: true`.
+- Stay at `0.1.0-alpha.0` for the first public alpha publish.
 - Update `CHANGELOG.md` in the same PR/commit as release-affecting behavior.
 - Keep package export audit tests updated for every stable root value export.
 - Keep `examples/standalone-consumer-harness.ts` passing as the root entrypoint consumer validation.
 - Keep live smoke evidence current. Current redacted full-host evidence covers OpenRouter, DeepSeek official, and DashScope/Qwen; additional provider-preset evidence remains credential-gated.
-- Publish only after a release owner reviews the evidence and confirms npm scope ownership.
-- Do not prepare `0.1.0-alpha.1` until the public alpha plan moves from `continue private` to a release-owner-approved alpha decision.
+- Publish only after the command gate passes and `npm view codex-provider --json` still returns `E404 Not found`.
+- Do not prepare `0.1.0-alpha.1` until after the first public alpha publish needs a follow-up.
 
 ## Pre-Publish Command Gate
 
@@ -68,7 +68,7 @@ pnpm public-alpha:audit
 git diff --check
 ```
 
-`pnpm public-alpha:audit` is expected to fail while the project remains private or externally blocked. Treat it as the final manual readiness audit after npm scope ownership, API-backed search evidence, or the search exception approval has been resolved.
+`pnpm public-alpha:audit` is expected to pass before the first manual public alpha publish. Treat it as the final readiness audit after package-name availability and API-backed search evidence are confirmed.
 
 When credentials are available, also run:
 
@@ -79,7 +79,7 @@ pnpm smoke:host
 
 ## Tarball Inspection
 
-Before removing `private: true`, inspect the package contents:
+Before publishing, inspect the package contents:
 
 ```bash
 pnpm pack:dry-run
@@ -101,10 +101,10 @@ It must not include secrets, `.env` files, local indexes, generated caches, Tele
 
 Recorded on 2026-06-30 with `npm pack --dry-run --json`:
 
-- Package: `@codex-provider/core@0.1.0-alpha.0`
-- Tarball: `codex-provider-core-0.1.0-alpha.0.tgz`
+- Package: `codex-provider@0.1.0-alpha.0`
+- Tarball: `codex-provider-0.1.0-alpha.0.tgz`
 - Total files: 594
-- Package size: 407.8 kB
+- Package size: 407.6 kB
 - Unpacked size: 1.9 MB
 - Top-level shipped entries: `dist`, `README.md`, `CHANGELOG.md`, `LICENSE`, `docs`, `examples`, `package.json`
 - Examples are intentionally shipped for alpha host integration reference.

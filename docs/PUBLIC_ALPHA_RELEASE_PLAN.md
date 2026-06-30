@@ -1,20 +1,20 @@
 # Public Alpha Release Plan
 
-`@codex-provider/core` remains an internal alpha package. This plan defines the path to a public alpha without publishing automatically.
+`codex-provider` is the public alpha package name. This plan defines the manual path to publish without adding automatic npm release workflows.
 
 ## Current Decision
 
-- Keep `private: true`.
+- Set `private: false`.
 - Keep version `0.1.0-alpha.0`.
 - Keep package exports limited to `.` and `./package.json`.
 - Keep publishing manual. Do not add npm auto-publish workflows.
-- Keep `@codex-provider` as the intended npm scope, pending account and scope ownership confirmation.
-- Treat current OpenRouter, DeepSeek official, and DashScope/Qwen live evidence as necessary but not sufficient for public alpha; release-owner review is still required.
-- Current conclusion on 2026-06-30: continue private. Do not prepare `0.1.0-alpha.1` yet and do not enter manual publish approval until the blockers below are resolved or explicitly accepted by the release owner.
+- Use the unscoped npm package name `codex-provider`; no npm organization is required.
+- Treat current OpenRouter, DeepSeek official, DashScope/Qwen, and SerpApi live evidence as sufficient for the first manual public alpha gate.
+- Current conclusion on 2026-06-30: proceed with public alpha using `codex-provider`.
 
 ## Current Blockers
 
-- npm scope ownership is not confirmed. `npm whoami` now passes as `ganxing`, but authenticated checks still show `npm org ls @codex-provider --json` returning `E404 Scope not found`, `npm team ls @codex-provider:developers --json` returning `E404 Team not found`, and `npm view @codex-provider/core --json` returning `E404 Not found`. The next release-owner action is to create or obtain access to the `@codex-provider` npm organization/scope, or explicitly choose a different package scope before public alpha.
+- None for the unscoped package-name decision. `npm whoami` passes as `ganxing`, and `npm view codex-provider --json` returns `E404 Not found`, which means no public package currently occupies the unscoped name.
 
 ## Search Release Exception Request
 
@@ -32,9 +32,9 @@
 | Area | Current status | Public-alpha action |
 | --- | --- | --- |
 | `README.md` | Explains package goal, non-affiliation with OpenAI, profile modes, hosted tool boundaries, current three-provider evidence, and key docs. | Keep provider evidence summary aligned with the matrix. |
-| `CHANGELOG.md` | Has `0.1.0-alpha.0` with added/changed/validation notes and unreleased live-evidence updates. | Add a `0.1.0-alpha.1` section before any public alpha publish. |
+| `CHANGELOG.md` | Has `0.1.0-alpha.0` with added/changed/validation notes and unreleased live-evidence updates. | Keep aligned with the first public alpha publish. |
 | `docs/RELEASE_READINESS.md` | Records manual release posture, pre-publish gate, and latest dry-run snapshot. | Refresh after every release-affecting doc/code change. |
-| `docs/INDEPENDENT_PACKAGE_CHECKLIST.md` | Package boundary and release checklist is largely complete while `private: true` remains. | Keep private until scope ownership, provider evidence, and search evidence gaps are reviewed. |
+| `docs/INDEPENDENT_PACKAGE_CHECKLIST.md` | Package boundary and release checklist is complete for the unscoped public alpha path. | Keep aligned with package metadata and tarball checks. |
 | Package surface | `pnpm check-package-surface` scans docs/examples/package metadata and dry-run tarball contents. | Must pass before any publish decision. |
 
 ## Current Live Evidence
@@ -46,13 +46,13 @@ As of 2026-06-30:
 - Passed: DashScope/Qwen with `qwen-plus` for normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
 - Passed: API-backed SerpApi web_search with DeepSeek official `deepseek-chat`.
 - Pending credentials: SiliconFlow, MiniMax, Moonshot/Kimi, OpenAI direct Responses, and additional API-backed Brave/Serper/Tavily search records.
-- npm registry visibility check: local npm is authenticated as `ganxing`, but `@codex-provider/core` is not published publicly and authenticated registry checks cannot prove `@codex-provider` scope ownership because the org/team is not visible.
+- npm registry visibility check: local npm is authenticated as `ganxing`; `npm view codex-provider --json` returns `E404 Not found`, so the unscoped name is available for first publish.
 
-## `private:true` Exit Criteria
+## `private:false` Exit Criteria
 
-Do not set `private:false` until all items below are complete:
+Keep `private:false` only while all items below remain true:
 
-- npm account ownership for the `@codex-provider` scope is confirmed.
+- The package uses the unscoped npm name `codex-provider`, so no organization scope confirmation is required.
 - `pnpm test`, `pnpm typecheck`, `pnpm build`, `pnpm consumer:harness`, `pnpm check-boundary`, `pnpm check-package-surface`, and `pnpm pack:dry-run` pass on the release commit.
 - At least two OpenAI-compatible provider paths have current live smoke evidence for normal response, forced custom tool, `file_search`, non-streaming `web_search`, and streaming `web_search`. Current evidence satisfies this for OpenRouter, DeepSeek official, and DashScope/Qwen.
 - API-backed web search evidence is recorded for Brave, SerpApi, Serper, or Tavily, or the release owner explicitly approves the search release exception request above.
@@ -62,24 +62,24 @@ Do not set `private:false` until all items below are complete:
 
 ## Alpha Version Policy
 
-- `0.1.0-alpha.0` is the current internal alpha.
-- `0.1.0-alpha.1` should be prepared only after the exit criteria above are satisfied and the changelog is updated.
+- `0.1.0-alpha.0` is the first public alpha candidate.
+- `0.1.0-alpha.1` should be prepared only for a follow-up alpha after the first publish.
 - Do not skip from `0.1.0-alpha.0` to a stable version while provider behavior records are incomplete.
 - Any breaking root API change before public alpha should remain within the `0.1.0-alpha.x` line and be called out in `CHANGELOG.md`.
 
-## npm Scope Confirmation
+## npm Package Name Confirmation
 
-Before changing `private:true`:
+Before publishing:
 
-1. Confirm the npm organization or user owns the `@codex-provider` scope. Current authenticated registry checks as `ganxing` return `E404 Scope not found` / `E404 Team not found`; this indicates the scope is not currently proven available to the publishing account.
-2. Confirm package name availability for `@codex-provider/core`. Current authenticated registry check returns `E404 Not found`; this only proves the package is not publicly visible or not accessible to this account.
+1. Confirm `npm whoami` returns `ganxing`.
+2. Confirm `npm view codex-provider --json` returns `E404 Not found` immediately before first publish.
 3. Confirm two-factor requirements for the publishing account.
 4. Confirm who can publish and who can deprecate an accidental release.
 5. Record the decision in `docs/RELEASE_READINESS.md`.
 
 ## Manual Publish Steps
 
-These steps are for a future release owner. They are not authorized by this cycle.
+These steps are for the manual first public alpha publish.
 
 ```bash
 pnpm test
@@ -102,9 +102,9 @@ pnpm smoke:host
 Then, after release approval:
 
 ```bash
-npm publish --access public
+npm publish
 ```
 
 ## No Auto-Publish Policy
 
-CI may run validation and package hygiene checks, but npm publishing stays manual until the project has a reviewed release owner, provider evidence is current, and the public alpha decision has been made explicitly.
+CI may run validation and package hygiene checks, but npm publishing stays manual. No automatic npm publish workflow is added.

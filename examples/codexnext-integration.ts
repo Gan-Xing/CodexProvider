@@ -1,7 +1,7 @@
 import {
   CodexProviderRuntime,
   type CodexProviderRuntimeState,
-} from '@codex-provider/core';
+} from 'codex-provider';
 
 export interface CodexNextProviderOptions {
   apiKey: string;

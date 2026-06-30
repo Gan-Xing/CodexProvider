@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-30.
 
-This matrix tracks public-alpha provider readiness for `@codex-provider/core`. Evidence status is intentionally conservative: providers without current credentials are marked `[!] Pending credentials` rather than treated as passed.
+This matrix tracks public-alpha provider readiness for `codex-provider`. Evidence status is intentionally conservative: providers without current credentials are marked `[!] Pending credentials` rather than treated as passed.
 
 ## Matrix
 

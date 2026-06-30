@@ -1,8 +1,8 @@
 # OpenAI Built-in Tool Compatibility
 
-This document tracks how `@codex-provider/core` maps OpenAI Responses built-in tools to package-owned behavior.
+This document tracks how `codex-provider` maps OpenAI Responses built-in tools to package-owned behavior.
 
-Historical package and tool names are documented only in archived migration notes. The active package surface uses canonical `@codex-provider/core` exports and canonical hosted tool names.
+Historical package and tool names are documented only in archived migration notes. The active package surface uses canonical `codex-provider` exports and canonical hosted tool names.
 
 The package goal is not to pretend every upstream provider supports OpenAI hosted tools. It must make each tool mode explicit:
 
@@ -156,7 +156,7 @@ The next phase should keep moving heavy or unsafe tools behind explicit executor
 - No Qdrant, LanceDB, pgvector, sqlite-vec dependency.
 - No CodexBridge/CodexNext session or UI logic.
 - No shell/computer/code execution default.
-- No package publishing switch; `private: true` stays until package readiness is complete.
+- No automatic package publishing workflow; public alpha publishing remains manual.
 
 ## Package Independence Status
 

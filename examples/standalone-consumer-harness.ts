@@ -4,7 +4,7 @@ import {
   createCodexProviderFileSearchExecutor,
   createCodexProviderMemoryFileSearchSource,
   type CodexProviderAdapterServerOptions,
-} from '@codex-provider/core';
+} from 'codex-provider';
 
 const fileSearch = createCodexProviderFileSearchExecutor({
   sources: [

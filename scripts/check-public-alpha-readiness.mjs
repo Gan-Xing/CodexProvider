@@ -13,10 +13,11 @@ const packageJson = readJson('package.json');
 const publicAlphaPlan = readText('docs/PUBLIC_ALPHA_RELEASE_PLAN.md');
 const releaseReadiness = readText('docs/RELEASE_READINESS.md');
 const liveSmokeResults = readText('docs/LIVE_SMOKE_RESULTS.md');
+const packageName = packageJson.name;
 
 checkPackageState();
 checkProviderEvidence();
-checkNpmScopeOwnership();
+checkNpmPackageAvailability();
 checkApiBackedSearchOrException();
 checkReleasePlanConclusion();
 
@@ -36,9 +37,9 @@ if (jsonOutput) {
 process.exit(result.ready ? 0 : 1);
 
 function checkPackageState() {
-  addCheck('package-name', packageJson.name === '@codex-provider/core', `package name is ${formatValue(packageJson.name)}`);
+  addCheck('package-name', packageJson.name === 'codex-provider', `package name is ${formatValue(packageJson.name)}`);
   addCheck('package-version', packageJson.version === '0.1.0-alpha.0', `package version is ${formatValue(packageJson.version)}`);
-  addCheck('package-private', packageJson.private === true, 'package remains private for internal alpha');
+  addCheck('package-public', packageJson.private === false, 'package is configured for public alpha publishing');
 }
 
 function checkProviderEvidence() {
@@ -52,23 +53,28 @@ function checkProviderEvidence() {
   }
 }
 
-function checkNpmScopeOwnership() {
+function checkNpmPackageAvailability() {
   const whoami = runNpm(['whoami']);
   addCheck('npm-authenticated', whoami.status === 0, summarizeCommand('npm whoami', whoami));
   if (whoami.status !== 0) {
-    blockers.push('npm scope ownership is unconfirmed because local npm is not authenticated.');
+    blockers.push('npm package availability cannot be checked because local npm is not authenticated.');
   }
 
-  const org = runNpm(['org', 'ls', '@codex-provider', '--json']);
-  addCheck('npm-scope-visible', org.status === 0, summarizeCommand('npm org ls @codex-provider --json', org));
-  if (org.status !== 0) {
-    blockers.push('npm registry did not prove ownership or visibility for the @codex-provider scope.');
+  const view = runNpm(['view', packageName, '--json']);
+  const packageIsAvailable = view.status !== 0 && commandLooksLikeNpm404(view);
+  const packageIsVisible = view.status === 0;
+  addCheck(
+    'npm-package-available-or-visible',
+    packageIsAvailable || packageIsVisible,
+    packageIsAvailable
+      ? `npm view ${packageName} --json returned E404; the unscoped package name is currently available for first publish`
+      : summarizeCommand(`npm view ${packageName} --json`, view),
+  );
+  if (!packageIsAvailable && !packageIsVisible) {
+    blockers.push(`npm registry did not confirm that ${packageName} is available or already visible.`);
   }
-
-  const view = runNpm(['view', '@codex-provider/core', '--json']);
-  addCheck('npm-package-visible', view.status === 0, summarizeCommand('npm view @codex-provider/core --json', view));
-  if (view.status !== 0) {
-    warnings.push('@codex-provider/core is not publicly visible; this is expected while private, but not proof of scope ownership.');
+  if (packageIsVisible) {
+    warnings.push(`${packageName} is already publicly visible; confirm the current npm account owns it before publishing a new version.`);
   }
 }
 
@@ -108,13 +114,13 @@ function checkApiBackedSearchOrException() {
 }
 
 function checkReleasePlanConclusion() {
-  const continuePrivate = /Current conclusion on 2026-06-30:\s*continue private\b/iu.test(publicAlphaPlan);
+  const publicAlphaApproved = /Current conclusion on 2026-06-30:\s*proceed with public alpha using `codex-provider`/iu.test(publicAlphaPlan);
   addCheck(
     'release-plan-conclusion',
-    continuePrivate,
-    continuePrivate
-      ? 'release plan explicitly concludes continue private'
-      : 'release plan conclusion is missing or no longer says continue private',
+    publicAlphaApproved,
+    publicAlphaApproved
+      ? 'release plan explicitly approves public alpha using codex-provider'
+      : 'release plan conclusion is missing or does not approve the codex-provider public alpha',
   );
 }
 
@@ -151,6 +157,10 @@ function summarizeCommand(command, result) {
     .replace(/\s+/gu, ' ')
     .trim();
   return `${command} failed${output ? `: ${truncate(output, 180)}` : ''}`;
+}
+
+function commandLooksLikeNpm404(result) {
+  return /\bE404\b|404 Not Found|Not found/iu.test([result.stderr, result.stdout].filter(Boolean).join(' '));
 }
 
 function scrubCommandOutput(value) {

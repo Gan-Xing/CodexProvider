@@ -6,7 +6,7 @@ Repository: `Gan-Xing/CodexProvider`
 
 This handoff reviews the current CodexProvider architecture after the latest rename/refactor updates and defines the next phased plan toward:
 
-1. Making `@codex-provider/core` independently packageable.
+1. Making `codex-provider` independently packageable.
 2. Letting Codex use non-OpenAI provider API keys through the local Responses adapter.
 3. Hardening adapter-emulated `web_search` so it can replace OpenAI hosted web search for non-OpenAI upstreams.
 4. Hardening `file_search` as a separate private/local/document retrieval tool without colliding with `web_search`.
@@ -24,7 +24,7 @@ Current `package.json` is already using the target package name:
 
 ```json
 {
-  "name": "@codex-provider/core",
+  "name": "codex-provider",
   "version": "0.1.0-alpha.0",
   "private": true
 }
@@ -837,7 +837,7 @@ Goal: prove actual Codex-style consumption with a non-OpenAI API key.
 
 Tasks:
 
-1. Build or pack `@codex-provider/core`.
+1. Build or pack `codex-provider`.
 2. Consume through a standalone app-server harness or CodexNext.
 3. Use a real provider key:
    - OpenRouter DeepSeek/Qwen

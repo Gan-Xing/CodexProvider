@@ -1,7 +1,7 @@
 import {
   CodexProviderRuntime,
   createCodexProviderCodeInterpreterExecutor,
-} from '@codex-provider/core';
+} from 'codex-provider';
 
 const codeInterpreter = createCodexProviderCodeInterpreterExecutor({
   async execute(request) {

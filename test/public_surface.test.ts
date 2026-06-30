@@ -240,9 +240,9 @@ translateChatCompletionsSseToResponsesEvents
 `.trim().split('\n');
 
 test('codex provider package exposes the unified provider boundary contract', () => {
-  assert.equal(CODEX_PROVIDER_PACKAGE_NAME, '@codex-provider/core');
+  assert.equal(CODEX_PROVIDER_PACKAGE_NAME, 'codex-provider');
   assert.equal(CODEX_PROVIDER_PACKAGE_PHASE, 'phase-2-canonical-api');
-  assert.equal(CODEX_PROVIDER_RELEASE_CHANNEL, 'internal-only');
+  assert.equal(CODEX_PROVIDER_RELEASE_CHANNEL, 'public-alpha');
   assert.equal(CODEX_PROVIDER_TARGET, 'Let non-OpenAI models participate in the Codex native tool-call loop.');
   assert.equal(CODEX_PROVIDER_OWNS.includes('codex-provider-config'), true);
   assert.equal(CODEX_PROVIDER_OWNS.includes('provider-profile-presets'), true);
@@ -266,9 +266,9 @@ test('codex provider package metadata exposes only the primary server bin', () =
     version?: string;
   };
 
-  assert.equal(packageJson.name, '@codex-provider/core');
+  assert.equal(packageJson.name, 'codex-provider');
   assert.equal(packageJson.version, '0.1.0-alpha.0');
-  assert.equal(packageJson.private, true);
+  assert.equal(packageJson.private, false);
   assert.equal(
     packageJson.description,
     'Provider compatibility SDK that lets non-OpenAI models participate in the Codex native tool-call loop.',
@@ -440,14 +440,14 @@ test('codex provider docs and examples prefer primary product naming', () => {
   ];
 
   assert.match(readme, /^# CodexProvider/u);
-  assert.match(readme, /`@codex-provider\/core` is a provider compatibility SDK/u);
+  assert.match(readme, /`codex-provider` is a provider compatibility SDK/u);
   assert.doesNotMatch(readme, legacyNamePattern);
   assert.match(recipes, /^# CodexProvider Recipes/u);
   assert.match(recipes, /codex-provider-server/u);
 
   for (const relativePath of examples) {
     const source = readPackageFile(relativePath);
-    assert.match(source, /from '@codex-provider\/core'/u, `${relativePath} should import the package name`);
+    assert.match(source, /from 'codex-provider'/u, `${relativePath} should import the package name`);
     assert.doesNotMatch(source, /@codexbridge\/codex-provider/u, `${relativePath} should not import legacy package names`);
     assert.doesNotMatch(source, legacyExampleNamePattern, `${relativePath} should not use legacy names`);
   }
@@ -475,9 +475,9 @@ test('codex provider release readiness docs keep unsafe tools disabled by defaul
   assert.match(securityDoc, /No shell executor is bundled/u);
   assert.match(securityDoc, /No local computer controller is bundled/u);
   assert.match(securityDoc, /No code interpreter sandbox is bundled/u);
-  assert.match(releaseDoc, /Keep `private: true`/u);
-  assert.match(releaseDoc, /"name": "@codex-provider\/core"/u);
+  assert.match(releaseDoc, /Set `private: false`/u);
+  assert.match(releaseDoc, /"name": "codex-provider"/u);
   assert.match(releaseDoc, /"version": "0\.1\.0-alpha\.0"/u);
   assert.match(checklist, /Live consumer validation is completed/u);
-  assert.match(checklist, /package name is now `@codex-provider\/core`/u);
+  assert.match(checklist, /package name is now `codex-provider`/u);
 });

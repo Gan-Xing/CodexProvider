@@ -38,7 +38,7 @@
 
 ### A. Public Alpha Release Readiness
 
-目标：让 `@codex-provider/core` 从 internal alpha 逐步具备 public alpha 发布条件，但不自动发布。
+目标：让 `codex-provider` 从 internal alpha 逐步具备 public alpha 发布条件，但不自动发布。
 
 需要持续审计：
 

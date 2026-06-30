@@ -1,7 +1,7 @@
 {
-  "name": "@codex-provider/core",
+  "name": "codex-provider",
   "version": "0.1.0-alpha.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "description": "Provider compatibility SDK that lets non-OpenAI models participate in the Codex native tool-call loop.",
   "exports": {
@@ -12,7 +12,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "codex-provider-server": "./dist/cli.js"
+    "codex-provider-server": "dist/cli.js"
   },
   "files": [
     "dist",

@@ -2,7 +2,7 @@ import {
   CodexProviderRuntime,
   createCodexProviderImageGenerationExecutor,
   createCodexProviderOpenAICompatibleImageGenerationProvider,
-} from '@codex-provider/core';
+} from 'codex-provider';
 
 const imageGeneration = createCodexProviderImageGenerationExecutor({
   generate: createCodexProviderOpenAICompatibleImageGenerationProvider({

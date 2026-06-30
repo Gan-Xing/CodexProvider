@@ -19,7 +19,7 @@ import {
   createCodexProviderWebSearchExecutor,
   type CodexProviderRuntimeState,
   type CodexProviderSearchEngine,
-} from '@codex-provider/core';
+} from 'codex-provider';
 
 type HostSmokeEnv = {
   upstreamKeyName: string;
