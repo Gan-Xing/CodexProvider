@@ -33,6 +33,13 @@ API-backed SerpApi web_search evidence is recorded. Additional Brave/Serper/Tavi
 - Authenticated `npm view codex-provider --json` returned `E404 Not found`.
 - Follow-up decision: use the unscoped `codex-provider` package name instead of creating an npm organization. Search evidence and npm login are no longer blockers.
 
+## 2026-06-30 Public Alpha Publish
+
+- `codex-provider@0.1.0-alpha.0` was published to npm with `npm publish --tag alpha`.
+- npm browser 2FA authorization was required and completed.
+- `npm view codex-provider version dist-tags --json` returns `0.1.0-alpha.0` with `alpha` and `latest` pointing at the published version.
+- Source tag: `v0.1.0-alpha.0` at commit `6514cf0`.
+
 ## 2026-06-07 OpenRouter non-web smoke
 
 - Date: 2026-06-07T20:42:29.450Z

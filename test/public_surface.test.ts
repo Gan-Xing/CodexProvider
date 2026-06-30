@@ -274,7 +274,7 @@ test('codex provider package metadata exposes only the primary server bin', () =
     'Provider compatibility SDK that lets non-OpenAI models participate in the Codex native tool-call loop.',
   );
   assert.deepEqual(Object.keys(packageJson.exports ?? {}).sort(), ['.', './package.json']);
-  assert.equal(packageJson.bin?.['codex-provider-server'], './dist/cli.js');
+  assert.equal(packageJson.bin?.['codex-provider-server'], 'dist/cli.js');
   assert.equal(packageJson.bin?.[legacyProviderBin], undefined);
   assert.equal(packageJson.bin?.[legacyHostBin], undefined);
   assert.deepEqual(packageJson.files, ['dist', 'README.md', 'CHANGELOG.md', 'docs', 'examples']);
@@ -296,7 +296,7 @@ test('codex provider package metadata and build layout stay aligned', () => {
   assert.equal(tsconfig.compilerOptions?.outDir, 'dist');
   assert.equal((packageJson.exports?.['.'] as { types?: string })?.types, './dist/index.d.ts');
   assert.equal((packageJson.exports?.['.'] as { default?: string })?.default, './dist/index.js');
-  assert.equal(packageJson.bin?.['codex-provider-server'], './dist/cli.js');
+  assert.equal(packageJson.bin?.['codex-provider-server'], 'dist/cli.js');
   assert.equal(packageJson.bin?.[legacyProviderBin], undefined);
   assert.equal(packageJson.bin?.[legacyHostBin], undefined);
   assert.deepEqual(packageJson.files, ['dist', 'README.md', 'CHANGELOG.md', 'docs', 'examples']);

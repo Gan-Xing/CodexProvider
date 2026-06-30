@@ -41,6 +41,7 @@
 - Recorded the 2026-06-30 public-alpha blocker audit and its resolution path: API-backed search evidence is now satisfied by SerpApi, and the npm organization blocker is avoided by using the unscoped `codex-provider` package name.
 - Recorded the server-side npm CLI login update: `npm whoami` now passes as `ganxing`.
 - Switched the public alpha package path to the unscoped `codex-provider` npm name, set `private:false`, and updated readiness checks to treat `npm view codex-provider` E404 as first-publish availability.
+- Published `codex-provider@0.1.0-alpha.0` to npm with `npm publish --tag alpha` after browser 2FA authorization, and tagged the source commit as `v0.1.0-alpha.0`.
 
 ## 0.1.0-alpha.0
 

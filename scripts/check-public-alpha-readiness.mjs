@@ -17,7 +17,7 @@ const packageName = packageJson.name;
 
 checkPackageState();
 checkProviderEvidence();
-checkNpmPackageAvailability();
+checkNpmPackagePublication();
 checkApiBackedSearchOrException();
 checkReleasePlanConclusion();
 
@@ -53,28 +53,36 @@ function checkProviderEvidence() {
   }
 }
 
-function checkNpmPackageAvailability() {
+function checkNpmPackagePublication() {
   const whoami = runNpm(['whoami']);
   addCheck('npm-authenticated', whoami.status === 0, summarizeCommand('npm whoami', whoami));
   if (whoami.status !== 0) {
-    blockers.push('npm package availability cannot be checked because local npm is not authenticated.');
+    blockers.push('npm package publication cannot be checked because local npm is not authenticated.');
   }
 
-  const view = runNpm(['view', packageName, '--json']);
-  const packageIsAvailable = view.status !== 0 && commandLooksLikeNpm404(view);
-  const packageIsVisible = view.status === 0;
+  const view = runNpm(['view', packageName, 'name', 'version', 'dist-tags', '--json']);
+  const packageMetadata = view.status === 0 ? parseJsonObject(view.stdout) : null;
+  const publishedVersion = normalizeString(packageMetadata?.version);
+  const alphaTag = normalizeString(packageMetadata?.['dist-tags']?.alpha);
   addCheck(
-    'npm-package-available-or-visible',
-    packageIsAvailable || packageIsVisible,
-    packageIsAvailable
-      ? `npm view ${packageName} --json returned E404; the unscoped package name is currently available for first publish`
-      : summarizeCommand(`npm view ${packageName} --json`, view),
+    'npm-package-published',
+    view.status === 0 && publishedVersion === packageJson.version,
+    view.status === 0
+      ? `${packageName}@${publishedVersion || '<unknown>'} is visible on npm`
+      : summarizeCommand(`npm view ${packageName} name version dist-tags --json`, view),
   );
-  if (!packageIsAvailable && !packageIsVisible) {
-    blockers.push(`npm registry did not confirm that ${packageName} is available or already visible.`);
+  if (view.status !== 0 || publishedVersion !== packageJson.version) {
+    blockers.push(`npm registry did not confirm that ${packageName}@${packageJson.version} is published.`);
   }
-  if (packageIsVisible) {
-    warnings.push(`${packageName} is already publicly visible; confirm the current npm account owns it before publishing a new version.`);
+  addCheck(
+    'npm-alpha-dist-tag',
+    alphaTag === packageJson.version,
+    alphaTag
+      ? `alpha dist-tag points to ${alphaTag}`
+      : 'alpha dist-tag is missing',
+  );
+  if (alphaTag !== packageJson.version) {
+    blockers.push(`npm alpha dist-tag does not point to ${packageName}@${packageJson.version}.`);
   }
 }
 
@@ -114,13 +122,13 @@ function checkApiBackedSearchOrException() {
 }
 
 function checkReleasePlanConclusion() {
-  const publicAlphaApproved = /Current conclusion on 2026-06-30:\s*proceed with public alpha using `codex-provider`/iu.test(publicAlphaPlan);
+  const publicAlphaPublished = /Current conclusion on 2026-06-30:\s*public alpha `codex-provider@0\.1\.0-alpha\.0` is published/iu.test(publicAlphaPlan);
   addCheck(
     'release-plan-conclusion',
-    publicAlphaApproved,
-    publicAlphaApproved
-      ? 'release plan explicitly approves public alpha using codex-provider'
-      : 'release plan conclusion is missing or does not approve the codex-provider public alpha',
+    publicAlphaPublished,
+    publicAlphaPublished
+      ? 'release plan records the codex-provider public alpha publish'
+      : 'release plan conclusion is missing or does not record the codex-provider public alpha publish',
   );
 }
 
@@ -159,14 +167,19 @@ function summarizeCommand(command, result) {
   return `${command} failed${output ? `: ${truncate(output, 180)}` : ''}`;
 }
 
-function commandLooksLikeNpm404(result) {
-  return /\bE404\b|404 Not Found|Not found/iu.test([result.stderr, result.stdout].filter(Boolean).join(' '));
-}
-
 function scrubCommandOutput(value) {
   return String(value ?? '')
     .replace(/\/\/[^:\s]+:[^@\s]+@/gu, '//<redacted>@')
     .replace(/\b(_authToken|token|password)\s*=\s*\S+/giu, '$1=<redacted>');
+}
+
+function parseJsonObject(value) {
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
 }
 
 function findConfiguredSearchCredential() {

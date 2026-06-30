@@ -1,6 +1,6 @@
 # Independent Package Checklist
 
-`codex-provider` is prepared for manual public alpha publishing.
+`codex-provider` has a manual public alpha published on npm.
 
 ## Release Gate
 
@@ -28,6 +28,7 @@
 - [x] Live consumer validation is completed through CodexNext or a standalone app-server harness.
 - [x] Changelog policy and npm release workflow are decided.
 - [x] Package tarball contents are inspected and recorded in `docs/RELEASE_READINESS.md`.
+- [x] `codex-provider@0.1.0-alpha.0` is published to npm with the `alpha` dist-tag.
 
 ## Consumer Boundary
 
@@ -58,4 +59,4 @@ Deprecated Relay/Gateway names are not part of the active package surface.
 
 ## Current Status
 
-The public package name is now `codex-provider`, and real upstream live smoke evidence for OpenRouter, DeepSeek official, DashScope/Qwen, and API-backed SerpApi web_search is recorded in `docs/LIVE_SMOKE_RESULTS.md`. Keep version `0.1.0-alpha.0` for the first public alpha publish.
+The public package name is now `codex-provider`, and real upstream live smoke evidence for OpenRouter, DeepSeek official, DashScope/Qwen, and API-backed SerpApi web_search is recorded in `docs/LIVE_SMOKE_RESULTS.md`. Version `0.1.0-alpha.0` is published as the first public alpha.

@@ -1,6 +1,6 @@
 # Public Alpha Release Plan
 
-`codex-provider` is the public alpha package name. This plan defines the manual path to publish without adding automatic npm release workflows.
+`codex-provider` is the public alpha package name. This plan records the manual publish path without adding automatic npm release workflows.
 
 ## Current Decision
 
@@ -10,11 +10,18 @@
 - Keep publishing manual. Do not add npm auto-publish workflows.
 - Use the unscoped npm package name `codex-provider`; no npm organization is required.
 - Treat current OpenRouter, DeepSeek official, DashScope/Qwen, and SerpApi live evidence as sufficient for the first manual public alpha gate.
-- Current conclusion on 2026-06-30: proceed with public alpha using `codex-provider`.
+- Current conclusion on 2026-06-30: public alpha `codex-provider@0.1.0-alpha.0` is published.
 
 ## Current Blockers
 
-- None for the unscoped package-name decision. `npm whoami` passes as `ganxing`, and `npm view codex-provider --json` returns `E404 Not found`, which means no public package currently occupies the unscoped name.
+- None for the first public alpha publish. `npm whoami` passed as `ganxing`; `npm publish --tag alpha` completed after npm browser 2FA authorization.
+
+## Published Artifact
+
+- Package: `codex-provider@0.1.0-alpha.0`
+- npm dist-tags: `alpha` and `latest` both resolve to `0.1.0-alpha.0` because this is the first published version.
+- Tarball: `https://registry.npmjs.org/codex-provider/-/codex-provider-0.1.0-alpha.0.tgz`
+- Source tag: `v0.1.0-alpha.0` at commit `6514cf0`.
 
 ## Search Release Exception Request
 
@@ -46,7 +53,7 @@ As of 2026-06-30:
 - Passed: DashScope/Qwen with `qwen-plus` for normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
 - Passed: API-backed SerpApi web_search with DeepSeek official `deepseek-chat`.
 - Pending credentials: SiliconFlow, MiniMax, Moonshot/Kimi, OpenAI direct Responses, and additional API-backed Brave/Serper/Tavily search records.
-- npm registry visibility check: local npm is authenticated as `ganxing`; `npm view codex-provider --json` returns `E404 Not found`, so the unscoped name is available for first publish.
+- npm registry visibility check: `npm view codex-provider version dist-tags --json` returns `0.1.0-alpha.0` with the `alpha` dist-tag.
 
 ## `private:false` Exit Criteria
 
@@ -62,14 +69,14 @@ Keep `private:false` only while all items below remain true:
 
 ## Alpha Version Policy
 
-- `0.1.0-alpha.0` is the first public alpha candidate.
-- `0.1.0-alpha.1` should be prepared only for a follow-up alpha after the first publish.
+- `0.1.0-alpha.0` is the first published public alpha.
+- `0.1.0-alpha.1` should be prepared only for a follow-up alpha.
 - Do not skip from `0.1.0-alpha.0` to a stable version while provider behavior records are incomplete.
 - Any breaking root API change before public alpha should remain within the `0.1.0-alpha.x` line and be called out in `CHANGELOG.md`.
 
 ## npm Package Name Confirmation
 
-Before publishing:
+For the first publish:
 
 1. Confirm `npm whoami` returns `ganxing`.
 2. Confirm `npm view codex-provider --json` returns `E404 Not found` immediately before first publish.
@@ -79,7 +86,7 @@ Before publishing:
 
 ## Manual Publish Steps
 
-These steps are for the manual first public alpha publish.
+These steps were used for the manual first public alpha publish.
 
 ```bash
 pnpm test
@@ -99,10 +106,10 @@ pnpm smoke:web-search
 pnpm smoke:host
 ```
 
-Then, after release approval:
+Then, after release approval and browser 2FA authorization:
 
 ```bash
-npm publish
+npm publish --tag alpha
 ```
 
 ## No Auto-Publish Policy

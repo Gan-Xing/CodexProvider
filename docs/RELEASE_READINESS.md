@@ -1,6 +1,6 @@
 # Release Readiness
 
-This package is prepared for a manual public alpha publish.
+This package has a manual public alpha published on npm.
 
 ```json
 {
@@ -14,7 +14,7 @@ This package is prepared for a manual public alpha publish.
 
 - Set `private: false`.
 - Current live provider evidence covers OpenRouter, DeepSeek official, DashScope/Qwen, and API-backed SerpApi web_search. The package now uses the unscoped npm name `codex-provider`, so no npm organization is required.
-- Current 2026-06-30 package-name audit: local npm is authenticated as `ganxing`, and `npm view codex-provider --json` returns `E404 Not found`, so the unscoped name is available for first publish.
+- Current 2026-06-30 publish result: `codex-provider@0.1.0-alpha.0` is published to npm with the `alpha` dist-tag after browser 2FA authorization.
 - Search release exception status: not needed for the current audit because API-backed SerpApi web_search evidence is recorded.
 - Keep root `exports` limited to `.` and `./package.json`.
 - Active consumers must use the canonical `CodexProvider*`, `OpenAICompatible*`, and `createCodexProvider*` root exports.
@@ -34,13 +34,13 @@ This package is prepared for a manual public alpha publish.
 
 ## Recommended Version Strategy
 
-- Stay at `0.1.0-alpha.0` for the first public alpha publish.
+- `0.1.0-alpha.0` is the first published public alpha.
 - Update `CHANGELOG.md` in the same PR/commit as release-affecting behavior.
 - Keep package export audit tests updated for every stable root value export.
 - Keep `examples/standalone-consumer-harness.ts` passing as the root entrypoint consumer validation.
 - Keep live smoke evidence current. Current redacted full-host evidence covers OpenRouter, DeepSeek official, and DashScope/Qwen; additional provider-preset evidence remains credential-gated.
-- Publish only after the command gate passes and `npm view codex-provider --json` still returns `E404 Not found`.
-- Do not prepare `0.1.0-alpha.1` until after the first public alpha publish needs a follow-up.
+- Prepare `0.1.0-alpha.1` only for a follow-up alpha release.
+- Keep future prerelease publishes on an explicit prerelease dist-tag such as `alpha`.
 
 ## Pre-Publish Command Gate
 
@@ -108,3 +108,12 @@ Recorded on 2026-06-30 with `npm pack --dry-run --json`:
 - Unpacked size: 1.9 MB
 - Top-level shipped entries: `dist`, `README.md`, `CHANGELOG.md`, `LICENSE`, `docs`, `examples`, `package.json`
 - Examples are intentionally shipped for alpha host integration reference.
+
+## Published Snapshot
+
+Published on 2026-06-30 with `npm publish --tag alpha` after npm browser 2FA authorization:
+
+- Package: `codex-provider@0.1.0-alpha.0`
+- npm dist-tags: `alpha` and `latest` both resolve to `0.1.0-alpha.0` because this is the first published version.
+- Tarball: `https://registry.npmjs.org/codex-provider/-/codex-provider-0.1.0-alpha.0.tgz`
+- Source tag: `v0.1.0-alpha.0` at commit `6514cf0`.
