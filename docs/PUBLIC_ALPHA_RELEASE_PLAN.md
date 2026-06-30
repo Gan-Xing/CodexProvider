@@ -15,17 +15,17 @@
 ## Current Blockers
 
 - npm scope ownership is not confirmed. `npm whoami` fails with `ENEEDAUTH`, `npm org ls @codex-provider --json` returns `E404 Scope not found`, and `npm view @codex-provider/core --json` returns `E404 Not found`.
-- API-backed `web_search` evidence is not available in this environment because `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, and `TAVILY_API_KEY` are missing. Public alpha needs either one passing API-backed smoke or a written release-owner exception accepting built-in no-key metasearch as the alpha search baseline.
 
 ## Search Release Exception Request
 
-- Status: not approved.
-- Request: allow built-in no-key metasearch evidence to serve as the `0.1.0-alpha.1` search baseline when Brave/Serper/Tavily credentials are unavailable.
-- Required release-owner decision: approve this exception explicitly, or provide one of `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, or `TAVILY_API_KEY` and record a passing API-backed smoke.
+- Status: not needed for the current audit.
+- Request: allow built-in no-key metasearch evidence to serve as the `0.1.0-alpha.1` search baseline when supported API-backed credentials are unavailable.
+- Current decision: a release exception is not required because `SERPAPI_API_KEY` is configured and a passing SerpApi API-backed web_search smoke is recorded.
 
 ## Recently Resolved
 
 - Third provider live evidence is now recorded. DeepSeek official with `deepseek-chat` passed the full host smoke on `2026-06-30T16:29:29.940Z`, covering normal response, forced custom tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
+- API-backed web_search evidence is now recorded. DeepSeek official with `deepseek-chat` plus SerpApi passed `pnpm smoke:web-search` on `2026-06-30T17:06:48.247Z`, covering offline local-index, non-streaming adapter-emulated `web_search`, and streaming adapter-emulated `web_search`.
 
 ## Readiness Audit
 
@@ -44,7 +44,8 @@ As of 2026-06-30:
 - Passed: OpenRouter with `deepseek/deepseek-chat` for normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
 - Passed: DeepSeek official with `deepseek-chat` for normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
 - Passed: DashScope/Qwen with `qwen-plus` for normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
-- Pending credentials: SiliconFlow, MiniMax, Moonshot/Kimi, OpenAI direct Responses, and API-backed Brave/Serper/Tavily search.
+- Passed: API-backed SerpApi web_search with DeepSeek official `deepseek-chat`.
+- Pending credentials: SiliconFlow, MiniMax, Moonshot/Kimi, OpenAI direct Responses, and additional API-backed Brave/Serper/Tavily search records.
 - npm registry visibility check: `@codex-provider/core` is not published publicly, and the local environment cannot prove `@codex-provider` scope ownership without npm authentication.
 
 ## `private:true` Exit Criteria
@@ -54,7 +55,7 @@ Do not set `private:false` until all items below are complete:
 - npm account ownership for the `@codex-provider` scope is confirmed.
 - `pnpm test`, `pnpm typecheck`, `pnpm build`, `pnpm consumer:harness`, `pnpm check-boundary`, `pnpm check-package-surface`, and `pnpm pack:dry-run` pass on the release commit.
 - At least two OpenAI-compatible provider paths have current live smoke evidence for normal response, forced custom tool, `file_search`, non-streaming `web_search`, and streaming `web_search`. Current evidence satisfies this for OpenRouter, DeepSeek official, and DashScope/Qwen.
-- API-backed web search evidence is recorded for Brave, Serper, or Tavily, or the release owner explicitly approves the search release exception request above.
+- API-backed web search evidence is recorded for Brave, SerpApi, Serper, or Tavily, or the release owner explicitly approves the search release exception request above.
 - `docs/PROVIDER_COMPATIBILITY_MATRIX.md` has current evidence status for OpenRouter, DeepSeek official, DashScope/Qwen, SiliconFlow, MiniMax, Moonshot/Kimi, and OpenAI direct Responses.
 - `docs/OBSERVABILITY_AND_ERROR_POLICY.md` documents trace redaction, request validation, security violations, recoverable provider failures, fatal hosted tool failures, and loop-exceeded behavior.
 - The release owner has reviewed the packed file list for secrets, host-app imports, private paths, generated caches, and binary artifacts.

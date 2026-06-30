@@ -4,6 +4,7 @@ export * from './duckduckgo-html.js';
 export * from './ecosia-html.js';
 export * from './mojeek-html.js';
 export * from './openserp-endpoint.js';
+export * from './serpapi-api.js';
 export * from './serper-api.js';
 export * from './searxng-endpoint.js';
 export * from './tavily-api.js';

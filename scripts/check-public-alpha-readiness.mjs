@@ -74,6 +74,7 @@ function checkNpmScopeOwnership() {
 
 function checkApiBackedSearchOrException() {
   const searchEnv = findConfiguredSearchCredential();
+  const searchEvidence = findRecordedApiBackedSearchEvidence();
   const exceptionApproved = /## Search Release Exception Request[\s\S]*?- Status:\s*approved\b/iu.test(publicAlphaPlan)
     || /Search release exception status:\s*approved\b/iu.test(releaseReadiness);
 
@@ -82,17 +83,26 @@ function checkApiBackedSearchOrException() {
     Boolean(searchEnv),
     searchEnv
       ? `${searchEnv.name} is configured in ${searchEnv.source}`
-      : 'BRAVE_SEARCH_API_KEY, SERPER_API_KEY, and TAVILY_API_KEY are not configured',
+      : 'BRAVE_SEARCH_API_KEY, SERPAPI_API_KEY, SERPER_API_KEY, and TAVILY_API_KEY are not configured',
   );
   addCheck(
-    'search-release-exception-approved',
-    exceptionApproved,
-    exceptionApproved
+    'api-backed-search-evidence',
+    Boolean(searchEvidence),
+    searchEvidence
+      ? `${searchEvidence.provider} API-backed web_search smoke evidence is recorded`
+      : 'no passing API-backed Brave/SerpApi/Serper/Tavily web_search smoke evidence is recorded',
+  );
+  addCheck(
+    'api-backed-search-or-exception',
+    Boolean(searchEvidence) || exceptionApproved,
+    searchEvidence
+      ? 'release exception is not required because API-backed search evidence is recorded'
+      : exceptionApproved
       ? 'release owner approved the search exception'
       : 'search release exception is not approved',
   );
 
-  if (!searchEnv && !exceptionApproved) {
+  if (!searchEvidence && !exceptionApproved) {
     blockers.push('API-backed web_search evidence is missing and the search release exception is not approved.');
   }
 }
@@ -150,7 +160,7 @@ function scrubCommandOutput(value) {
 }
 
 function findConfiguredSearchCredential() {
-  const names = ['BRAVE_SEARCH_API_KEY', 'SERPER_API_KEY', 'TAVILY_API_KEY'];
+  const names = ['BRAVE_SEARCH_API_KEY', 'SERPAPI_API_KEY', 'SERPER_API_KEY', 'TAVILY_API_KEY'];
   for (const name of names) {
     if (normalizeString(process.env[name])) {
       return { name, source: 'environment' };
@@ -163,6 +173,27 @@ function findConfiguredSearchCredential() {
       if (pattern.test(text)) {
         return { name, source: path.relative(repoRoot, envFile) };
       }
+    }
+  }
+  return null;
+}
+
+function findRecordedApiBackedSearchEvidence() {
+  const providers = ['brave', 'serpapi', 'serper', 'tavily'];
+  const sections = liveSmokeResults.split(/\n(?=## )/u);
+  for (const section of sections) {
+    if (!/Adapter-emulated web_search live smoke/u.test(section)) {
+      continue;
+    }
+    const provider = providers.find((entry) => section.includes(`Search provider: \`${entry}\``));
+    if (!provider) {
+      continue;
+    }
+    if (
+      /\| Non-streaming adapter web_search \| Passed \|/u.test(section)
+      && /\| Streaming adapter web_search \| Passed \|/u.test(section)
+    ) {
+      return { provider };
     }
   }
   return null;

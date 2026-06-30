@@ -38,11 +38,11 @@ Cycle semantics:
 
 ### C1-D Web Search Productization
 
-- [x] Audit examples/live-web-search-smoke.ts for explicit API-backed Brave/Serper/Tavily selection.
-- [x] Add env-driven provider selection if missing: CODEX_PROVIDER_WEB_SEARCH_PROVIDER=brave|serper|tavily|builtin-metasearch.
+- [x] Audit examples/live-web-search-smoke.ts for explicit API-backed Brave/SerpApi/Serper/Tavily selection.
+- [x] Add env-driven provider selection if missing: CODEX_PROVIDER_WEB_SEARCH_PROVIDER=brave|serpapi|serper|tavily|builtin-metasearch.
 - [x] Document required API key env names.
 - [x] Document no-key metasearch vs API-backed search tradeoffs.
-- [!] Pending credentials: API-backed Brave/Serper/Tavily smoke was not run because `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, and `TAVILY_API_KEY` were absent.
+- [!] Pending credentials: API-backed Brave/SerpApi/Serper/Tavily smoke was not run because `BRAVE_SEARCH_API_KEY`, `SERPAPI_API_KEY`, `SERPER_API_KEY`, and `TAVILY_API_KEY` were absent.
 - [x] If credentials are missing, mark as `[!] Pending credentials`.
 
 ### C1-E Deep Search / Observability / Error Policy

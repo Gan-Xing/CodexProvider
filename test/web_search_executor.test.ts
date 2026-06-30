@@ -147,6 +147,49 @@ test('Serper web_search executor maps organic results and answer boxes', async (
   assert.equal(content.results[0].url, 'https://example.com/serper');
 });
 
+test('SerpApi web_search executor maps organic results and answer boxes', async () => {
+  const calls: string[] = [];
+  const executor = createCodexProviderWebSearchExecutor({
+    provider: 'serpapi',
+    apiKey: 'serpapi-test',
+    maxResults: 2,
+    country: 'us',
+    language: 'en',
+    fetchImpl: (async (url) => {
+      calls.push(String(url));
+      return new Response(JSON.stringify({
+        answer_box: {
+          answer: 'serpapi answer',
+        },
+        organic_results: [{
+          title: 'SerpApi Result',
+          link: 'https://example.com/serpapi',
+          snippet: 'SerpApi snippet',
+          position: 1,
+        }],
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as typeof fetch,
+  });
+
+  const result = await executor(baseRequest({ query: 'serpapi query' }));
+  const url = new URL(calls[0]);
+
+  assert.equal(url.origin + url.pathname, 'https://serpapi.com/search.json');
+  assert.equal(url.searchParams.get('engine'), 'google');
+  assert.equal(url.searchParams.get('q'), 'serpapi query');
+  assert.equal(url.searchParams.get('api_key'), 'serpapi-test');
+  assert.equal(url.searchParams.get('num'), '2');
+  assert.equal(url.searchParams.get('gl'), 'us');
+  assert.equal(url.searchParams.get('hl'), 'en');
+  const content = result.content as CodexProviderWebSearchExecutorContent;
+  assert.equal(content.provider, 'serpapi');
+  assert.equal(content.answer, 'serpapi answer');
+  assert.equal(content.results[0].url, 'https://example.com/serpapi');
+});
+
 test('web_search executor rejects offline mode when only live providers are configured', async () => {
   let called = false;
   const executor = createCodexProviderWebSearchExecutor({

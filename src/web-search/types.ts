@@ -15,6 +15,7 @@ import type {
 export type CodexProviderWebSearchProvider =
   | 'tavily'
   | 'brave'
+  | 'serpapi'
   | 'serper';
 
 export type CodexProviderWebSearchContextSize = 'low' | 'medium' | 'high';

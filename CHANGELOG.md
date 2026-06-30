@@ -24,10 +24,11 @@
 - Added opt-in deep-search subquery timeout and retry controls with per-node and hosted-tool metadata.
 - Added deep-search `supporting_node_ids` provenance on returned results and sources.
 - Added deep-search `multi_node_source_count` diagnostics and hosted-tool metadata.
+- Added SerpApi as a first-class API-backed web-search engine, source provider, smoke-test selection, and public-alpha audit credential.
 
 ### Changed
 
-- Added explicit `CODEX_PROVIDER_WEB_SEARCH_PROVIDER` selection for live web-search smoke runs.
+- Added explicit `CODEX_PROVIDER_WEB_SEARCH_PROVIDER` selection for live web-search smoke runs, including `serpapi`.
 - Sanitized trace events before invoking `traceSink` by redacting secret-looking values and truncating large payloads.
 - Returned structured category and retry metadata for non-streaming and streaming adapter-emulated hosted-tool loop exhaustion.
 
@@ -35,6 +36,7 @@
 
 - Recorded current DashScope/Qwen `qwen-plus` live host integration smoke evidence for mixed runtime, forced custom tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
 - Recorded current DeepSeek official `deepseek-chat` live host integration smoke evidence for mixed runtime, forced custom tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
+- Recorded current SerpApi API-backed `web_search` smoke evidence with DeepSeek official `deepseek-chat`.
 - Refreshed release, readiness, recipe, and provider-evidence docs for the current three-provider live evidence state while keeping `private: true`.
 - Recorded the 2026-06-30 public-alpha blocker audit: npm scope ownership is unconfirmed, API-backed search credentials are missing, and the preferred third-provider smoke is now satisfied by DeepSeek official evidence.
 

@@ -12,6 +12,7 @@ import {
   createCodexProviderMemoryWebSearchLocalIndex,
   createCodexProviderMetaSearchService,
   createCodexProviderMojeekHtmlEngine,
+  createCodexProviderSerpApiEngine,
   createCodexProviderSerperApiEngine,
   createCodexProviderTavilyApiEngine,
   createCodexProviderWebRetrievalFetcher,
@@ -26,7 +27,7 @@ type HostSmokeEnv = {
   upstreamBaseUrl: string;
   model: string;
   searchKeyName: string | null;
-  searchProvider: 'local-index' | 'builtin-metasearch' | 'brave' | 'serper' | 'tavily';
+  searchProvider: 'local-index' | 'builtin-metasearch' | 'brave' | 'serpapi' | 'serper' | 'tavily';
   searchApiKey: string | null;
 };
 
@@ -41,7 +42,7 @@ if (!env) {
   console.log([
     'live host integration smoke skipped: missing upstream provider credentials.',
     'Required: CODEX_PROVIDER_API_KEY or a provider preset API key; CODEX_PROVIDER_BASE_URL and CODEX_PROVIDER_MODEL unless inferred.',
-    'Optional for API-backed search: BRAVE_SEARCH_API_KEY, SERPER_API_KEY, or TAVILY_API_KEY. Without a search key, the smoke uses built-in no-key HTML metasearch plus a local-index fallback.',
+    'Optional for API-backed search: BRAVE_SEARCH_API_KEY, SERPAPI_API_KEY, SERPER_API_KEY, or TAVILY_API_KEY. Without a search key, the smoke uses built-in no-key HTML metasearch plus a local-index fallback.',
   ].join('\n'));
   process.exit(0);
 }
@@ -207,6 +208,8 @@ function createApiSearchEngine(env: HostSmokeEnv): CodexProviderSearchEngine | n
       return createCodexProviderBraveApiEngine({ apiKey: env.searchApiKey });
     case 'serper':
       return createCodexProviderSerperApiEngine({ apiKey: env.searchApiKey });
+    case 'serpapi':
+      return createCodexProviderSerpApiEngine({ apiKey: env.searchApiKey });
     case 'tavily':
       return createCodexProviderTavilyApiEngine({ apiKey: env.searchApiKey });
     case 'builtin-metasearch':
@@ -517,6 +520,7 @@ function resolveHostSmokeEnv(): HostSmokeEnv | null {
   }
   const search = firstPresent([
     ['BRAVE_SEARCH_API_KEY', process.env.BRAVE_SEARCH_API_KEY],
+    ['SERPAPI_API_KEY', process.env.SERPAPI_API_KEY],
     ['SERPER_API_KEY', process.env.SERPER_API_KEY],
     ['TAVILY_API_KEY', process.env.TAVILY_API_KEY],
   ]);
@@ -554,6 +558,9 @@ function firstPresent(entries: Array<[string, string | undefined]>): { name: str
 function searchProviderForKey(name: string): HostSmokeEnv['searchProvider'] {
   if (name === 'BRAVE_SEARCH_API_KEY') {
     return 'brave';
+  }
+  if (name === 'SERPAPI_API_KEY') {
+    return 'serpapi';
   }
   if (name === 'SERPER_API_KEY') {
     return 'serper';

@@ -21,6 +21,7 @@ import {
 
 const DEFAULT_TAVILY_ENDPOINT = 'https://api.tavily.com/search';
 const DEFAULT_BRAVE_ENDPOINT = 'https://api.search.brave.com/res/v1/web/search';
+const DEFAULT_SERPAPI_ENDPOINT = 'https://serpapi.com/search.json';
 const DEFAULT_SERPER_ENDPOINT = 'https://google.serper.dev/search';
 
 export function createCodexProviderProviderWebSearchSource(
@@ -60,6 +61,16 @@ export function createCodexProviderProviderWebSearchSource(
             country,
             language,
           });
+        case 'serpapi':
+          return executeSerpApiSearch({
+            apiKey,
+            endpoint,
+            fetchImpl,
+            maxResults: Math.min(maxResults, request.maxResults),
+            request,
+            country,
+            language,
+          });
         case 'serper':
           return executeSerperSearch({
             apiKey,
@@ -74,6 +85,62 @@ export function createCodexProviderProviderWebSearchSource(
           throw new Error(`Unsupported web_search source provider: ${provider}`);
       }
     },
+  };
+}
+
+async function executeSerpApiSearch({
+  apiKey,
+  endpoint,
+  fetchImpl,
+  maxResults,
+  request,
+  country,
+  language,
+}: {
+  apiKey: string;
+  endpoint: string;
+  fetchImpl: typeof fetch;
+  maxResults: number;
+  request: CodexProviderWebSearchSourceRequest;
+  country: string;
+  language: string;
+}): Promise<CodexProviderWebSearchSourceResult> {
+  const url = new URL(endpoint);
+  url.searchParams.set('engine', 'google');
+  url.searchParams.set('q', request.query);
+  url.searchParams.set('api_key', apiKey);
+  url.searchParams.set('num', String(maxResults));
+  if (country) {
+    url.searchParams.set('gl', country.toLowerCase());
+  }
+  if (language) {
+    url.searchParams.set('hl', language.toLowerCase());
+  }
+  const response = await fetchJson(fetchImpl, url.toString(), {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+  const results = normalizeArray(response.organic_results)
+    .slice(0, maxResults)
+    .map((result) => ({
+      title: normalizeString(result?.title) || normalizeString(result?.link) || 'Untitled result',
+      url: normalizeString(result?.link),
+      snippet: normalizeString(result?.snippet),
+      source: 'serpapi',
+      publishedAt: normalizeString(result?.date) || null,
+      score: normalizeFiniteNumber(result?.position),
+    }))
+    .filter((result) => result.url);
+  return {
+    answer: normalizeString(response.answer_box?.answer)
+      || normalizeString(response.answer_box?.snippet)
+      || normalizeString(response.knowledge_graph?.description)
+      || null,
+    results,
+    sources: results.map(resultToSourceReference),
+    citations: results.map(resultToCitation),
   };
 }
 
@@ -279,6 +346,8 @@ function defaultEndpointForWebSearchProvider(provider: CodexProviderWebSearchPro
       return DEFAULT_TAVILY_ENDPOINT;
     case 'brave':
       return DEFAULT_BRAVE_ENDPOINT;
+    case 'serpapi':
+      return DEFAULT_SERPAPI_ENDPOINT;
     case 'serper':
       return DEFAULT_SERPER_ENDPOINT;
     default:
@@ -288,7 +357,7 @@ function defaultEndpointForWebSearchProvider(provider: CodexProviderWebSearchPro
 
 function normalizeWebSearchProvider(value: unknown): CodexProviderWebSearchProvider {
   const normalized = normalizeString(value).toLowerCase();
-  if (normalized === 'tavily' || normalized === 'brave' || normalized === 'serper') {
+  if (normalized === 'tavily' || normalized === 'brave' || normalized === 'serpapi' || normalized === 'serper') {
     return normalized;
   }
   throw new Error(`Unsupported web_search executor provider: ${String(value)}`);

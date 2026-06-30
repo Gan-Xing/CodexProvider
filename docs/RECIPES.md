@@ -87,6 +87,9 @@ const webSearch = createCodexProviderWebSearchExecutor({
     process.env.SERPER_API_KEY
       ? createCodexProviderSerperApiEngine({ apiKey: process.env.SERPER_API_KEY })
       : null,
+    process.env.SERPAPI_API_KEY
+      ? createCodexProviderSerpApiEngine({ apiKey: process.env.SERPAPI_API_KEY })
+      : null,
     createCodexProviderDuckDuckGoHtmlEngine(),
     createCodexProviderBraveHtmlEngine(),
     createCodexProviderEcosiaHtmlEngine(),
@@ -165,12 +168,13 @@ See `examples/adapter-emulated-web-search-metasearch.ts` for a full metasearch w
 
 ```bash
 CODEX_PROVIDER_WEB_SEARCH_PROVIDER=brave BRAVE_SEARCH_API_KEY=... pnpm smoke:web-search
+CODEX_PROVIDER_WEB_SEARCH_PROVIDER=serpapi SERPAPI_API_KEY=... pnpm smoke:web-search
 CODEX_PROVIDER_WEB_SEARCH_PROVIDER=serper SERPER_API_KEY=... pnpm smoke:web-search
 CODEX_PROVIDER_WEB_SEARCH_PROVIDER=tavily TAVILY_API_KEY=... pnpm smoke:web-search
 CODEX_PROVIDER_WEB_SEARCH_PROVIDER=builtin-metasearch pnpm smoke:web-search
 ```
 
-No-key built-in metasearch is appropriate for development and fallback validation. Brave, Serper, or Tavily API search is the production-oriented path when credentials are available. HTML search engines are best-effort integrations and may change or block automated access.
+No-key built-in metasearch is appropriate for development and fallback validation. Brave, SerpApi, Serper, or Tavily API search is the production-oriented path when credentials are available. HTML search engines are best-effort integrations and may change or block automated access. SerpApi (`SERPAPI_API_KEY`) and Serper (`SERPER_API_KEY`) are different services and their keys are not interchangeable.
 
 ## Local Vector File Search
 

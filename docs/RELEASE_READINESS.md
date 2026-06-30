@@ -13,9 +13,9 @@ This package is still internal-only.
 ## Current Publish Position
 
 - Keep `private: true`.
-- Current live provider evidence covers OpenRouter, DeepSeek official, and DashScope/Qwen, but public alpha release approval, npm scope ownership, and API-backed search-provider evidence or exception review are still pending.
-- Current 2026-06-30 blocker audit: local npm is not authenticated, the public registry does not show `@codex-provider/core`, `@codex-provider` scope ownership cannot be proven, and API-backed Brave/Serper/Tavily keys are missing. The preferred third-provider smoke is now satisfied by DeepSeek official evidence.
-- Search release exception status: requested but not approved. A release owner must either approve built-in no-key metasearch as the `0.1.0-alpha.1` search baseline or provide one API-backed search key and record a passing smoke.
+- Current live provider evidence covers OpenRouter, DeepSeek official, DashScope/Qwen, and API-backed SerpApi web_search, but public alpha release approval and npm scope ownership are still pending.
+- Current 2026-06-30 blocker audit: local npm is not authenticated, the public registry does not show `@codex-provider/core`, and `@codex-provider` scope ownership cannot be proven. The preferred third-provider smoke is satisfied by DeepSeek official evidence, and API-backed web-search evidence is satisfied by the SerpApi smoke.
+- Search release exception status: not needed for the current audit because API-backed SerpApi web_search evidence is recorded.
 - Keep root `exports` limited to `.` and `./package.json`.
 - Active consumers must use the canonical `CodexProvider*`, `OpenAICompatible*`, and `createCodexProvider*` root exports.
 - Historical Relay/Gateway compatibility aliases are removed from the active package surface and must not be reintroduced.
@@ -39,7 +39,7 @@ This package is still internal-only.
 - Keep package export audit tests updated for every stable root value export.
 - Keep `examples/standalone-consumer-harness.ts` passing as the root entrypoint consumer validation.
 - Keep live smoke evidence current. Current redacted full-host evidence covers OpenRouter, DeepSeek official, and DashScope/Qwen; additional provider-preset evidence remains credential-gated.
-- Publish only after a release owner reviews the evidence, confirms npm scope ownership, and accepts or closes API-backed search-provider evidence gaps.
+- Publish only after a release owner reviews the evidence and confirms npm scope ownership.
 - Do not prepare `0.1.0-alpha.1` until the public alpha plan moves from `continue private` to a release-owner-approved alpha decision.
 
 ## Pre-Publish Command Gate
@@ -103,8 +103,8 @@ Recorded on 2026-06-30 with `npm pack --dry-run --json`:
 
 - Package: `@codex-provider/core@0.1.0-alpha.0`
 - Tarball: `codex-provider-core-0.1.0-alpha.0.tgz`
-- Total files: 591
-- Package size: 406.5 kB
+- Total files: 594
+- Package size: 407.8 kB
 - Unpacked size: 1.9 MB
 - Top-level shipped entries: `dist`, `README.md`, `CHANGELOG.md`, `LICENSE`, `docs`, `examples`, `package.json`
 - Examples are intentionally shipped for alpha host integration reference.

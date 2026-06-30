@@ -11,6 +11,7 @@ import {
   createCodexProviderMemoryWebSearchLocalIndex,
   createCodexProviderMetaSearchService,
   createCodexProviderMojeekHtmlEngine,
+  createCodexProviderSerpApiEngine,
   createCodexProviderSerperApiEngine,
   createCodexProviderWebRetrievalFetcher,
   createCodexProviderWebSearchExecutor,
@@ -31,6 +32,9 @@ const engines = [
     : null,
   process.env.SERPER_API_KEY
     ? createCodexProviderSerperApiEngine({ apiKey: process.env.SERPER_API_KEY })
+    : null,
+  process.env.SERPAPI_API_KEY
+    ? createCodexProviderSerpApiEngine({ apiKey: process.env.SERPAPI_API_KEY })
     : null,
   createCodexProviderLocalIndexSearchEngine({ index: localIndex, name: 'local-cache' }),
   createCodexProviderDuckDuckGoHtmlEngine(),

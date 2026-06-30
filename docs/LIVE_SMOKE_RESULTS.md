@@ -10,14 +10,20 @@ As of 2026-06-30, full host-integration live evidence is recorded for:
 - DeepSeek official with `deepseek-chat`: mixed runtime, normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
 - DashScope/Qwen with `qwen-plus`: mixed runtime, normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
 
-API-backed Brave/Serper/Tavily search evidence and remaining provider-preset records remain credential-gated. Secrets are redacted; raw API keys are never recorded here.
+API-backed SerpApi web_search evidence is recorded. Additional Brave/Serper/Tavily search records and remaining provider-preset records remain credential-gated. Secrets are redacted; raw API keys are never recorded here.
+
+## 2026-06-30 SerpApi Search Evidence Update
+
+- `SERPAPI_API_KEY` was configured in the local ignored `.env`.
+- `pnpm smoke:web-search` passed with `CODEX_PROVIDER_WEB_SEARCH_PROVIDER=serpapi`, `DEEPSEEK_API_KEY=<redacted>`, and `deepseek-chat`.
+- This closes the API-backed web_search evidence blocker for the current public-alpha audit. npm scope ownership remains unconfirmed.
 
 ## 2026-06-30 Public Alpha Blocker Audit
 
 - npm auth: `npm whoami` failed with `ENEEDAUTH`; this environment cannot prove publishing ownership.
 - npm scope: `npm org ls @codex-provider --json` returned `E404 Scope not found`; this is not proof that the project owns the scope.
 - npm package: `npm view @codex-provider/core --json` returned `E404 Not found`; the package is not publicly visible.
-- API-backed search credentials: `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, and `TAVILY_API_KEY` were missing, so Brave/Serper/Tavily live search evidence remains a release blocker or release-owner exception.
+- API-backed search credentials were missing at the time of this blocker audit; later in this cycle `SERPAPI_API_KEY` became available and the SerpApi smoke evidence below closed the search-evidence blocker.
 - Third-provider evidence: `DEEPSEEK_API_KEY` was available in local `.env` and the DeepSeek official full-host smoke passed at `2026-06-30T16:29:29.940Z`; SiliconFlow, MiniMax, Moonshot/Kimi, and OpenAI direct Responses remain credential-gated.
 
 ## 2026-06-07 OpenRouter non-web smoke
@@ -234,7 +240,7 @@ API-backed Brave/Serper/Tavily search evidence and remaining provider-preset rec
 | Smoke | Status | Notes |
 | --- | --- | --- |
 | `pnpm smoke:web-search` | Skipped live upstream | Script built successfully, verified offline local-index `web_search`, then skipped because upstream provider credentials were missing. |
-| API-backed Brave/Serper/Tavily web_search | [!] Pending credentials | Not run because the corresponding API keys were absent. |
+| API-backed Brave/SerpApi/Serper/Tavily web_search | [!] Pending credentials | Not run because the corresponding API keys were absent. |
 | `pnpm smoke:host` | Skipped live upstream | Script built and dry-run packed successfully, then skipped because upstream provider credentials were missing. |
 
 ## 2026-06-11T10:23:30.494Z Adapter-emulated web_search live smoke
@@ -346,3 +352,18 @@ API-backed Brave/Serper/Tavily search evidence and remaining provider-preset rec
 | Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 2589 ms. |
 | Adapter-emulated web_search | Passed | Sources: 1; results: 1; annotations: 1; latency: 3712 ms. |
 | Streaming adapter-emulated web_search | Passed | SSE events: 62; sources: 1; results: 1; annotations: 1; latency: 3461 ms. |
+
+## 2026-06-30T17:06:48.247Z Adapter-emulated web_search live smoke
+
+- Provider base URL host: `api.deepseek.com`
+- Model: `deepseek-chat`
+- Search provider: `serpapi`
+- Upstream key env: `DEEPSEEK_API_KEY=<redacted>`
+- Search credential: `SERPAPI_API_KEY=<redacted>`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Offline local-index path | Passed | Direct executor request used `external_web_access=false` and returned the seeded local-cache result. |
+| Non-streaming adapter web_search | Passed | web_search_call sources: 1; results: 1; annotations: 1; latency: 5332 ms. |
+| Streaming adapter web_search | Passed | SSE events: 46; web_search_call sources: 1; results: 1; annotations: 1; latency: 5138 ms. |

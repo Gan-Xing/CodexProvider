@@ -27,7 +27,7 @@
 - Phase 0-9 已完成，Phase 10 Public alpha release decision 仍未授权执行。
 - `web_search` / `file_search` 的 100% parity tracker 已经记录 request-config binding、DNS SSRF、真实 fast mode、扩展验证、web_search 输出策略、file_search cursor pagination、质量 fixture、package hygiene、live smoke evidence 等工作完成。
 - `docs/INDEPENDENT_PACKAGE_CHECKLIST.md` 已基本全部勾选，但仍建议保留 `private: true` 直到明确发布决策。
-- `docs/LIVE_SMOKE_RESULTS.md` 已有 OpenRouter-compatible + DeepSeek official + DashScope/Qwen 三条 full host integration live evidence，均使用 builtin no-key metasearch；API-backed Brave/Serper/Tavily 仍待凭证或 release-owner exception。
+- `docs/LIVE_SMOKE_RESULTS.md` 已有 OpenRouter-compatible + DeepSeek official + DashScope/Qwen 三条 full host integration live evidence，均使用 builtin no-key metasearch；API-backed Brave/SerpApi/Serper/Tavily 仍待凭证或 release-owner exception。
 - 当前仍未纳入今晚目标的是真实 CodexNext / Codex app-server 产品级接入验证。
 
 下一步不是继续补同一批底层 parity，而是进入更大目标的持续审计与递归改进。
@@ -283,14 +283,14 @@ docs/handoff/CODEX_PROVIDER_RECURSIVE_QUALITY_AUDIT_REPORT.md
 
 ### C1-D Web Search Productization
 
-- [ ] 审计 `examples/live-web-search-smoke.ts` 是否能显式选择 API-backed Brave/Serper/Tavily。
+- [ ] 审计 `examples/live-web-search-smoke.ts` 是否能显式选择 API-backed Brave/SerpApi/Serper/Tavily。
 - [ ] 若已有能力，更新 docs 明确如何运行 API-backed web_search smoke。
 - [ ] 若没有，新增 env-driven 选择：
-  - `CODEX_PROVIDER_WEB_SEARCH_PROVIDER=brave|serper|tavily|builtin-metasearch`
+  - `CODEX_PROVIDER_WEB_SEARCH_PROVIDER=brave|serpapi|serper|tavily|builtin-metasearch`
   - 对应 API key env。
 - [ ] 增加 docs 说明：
   - no-key metasearch 适合默认/开发；
-  - Brave/Serper/Tavily API 适合生产；
+  - Brave/SerpApi/Serper/Tavily API 适合生产；
   - no-key HTML engines 不保证稳定。
 - [ ] 若凭证存在，运行并记录 API-backed smoke；否则标记为 `[!] Pending credentials`。
 

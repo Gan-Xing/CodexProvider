@@ -11,6 +11,7 @@ import {
   createCodexProviderMetaSearchService,
   createCodexProviderMojeekHtmlEngine,
   createCodexProviderOpenSerpEndpointEngine,
+  createCodexProviderSerpApiEngine,
   createCodexProviderSerperApiEngine,
   createCodexProviderSearxngEndpointEngine,
   createCodexProviderTavilyApiEngine,
@@ -27,7 +28,7 @@ type SmokeEnv = {
   model: string;
   searchCredentialName: string | null;
   searchCredentialKind: 'api-key' | 'endpoint' | 'none';
-  searchProvider: 'brave' | 'serper' | 'tavily' | 'searxng' | 'openserp' | 'builtin-metasearch';
+  searchProvider: 'brave' | 'serpapi' | 'serper' | 'tavily' | 'searxng' | 'openserp' | 'builtin-metasearch';
   searchApiKey: string | null;
   searchEndpoint: string | null;
 };
@@ -83,8 +84,8 @@ if (!env) {
   console.log([
     `live web_search smoke skipped: ${skipReason ?? 'missing upstream environment variables.'}`,
     'Required: CODEX_PROVIDER_API_KEY or a provider preset API key; CODEX_PROVIDER_BASE_URL and CODEX_PROVIDER_MODEL unless inferred.',
-    'Search credentials are optional unless CODEX_PROVIDER_WEB_SEARCH_PROVIDER selects brave, serper, or tavily.',
-    'CODEX_PROVIDER_WEB_SEARCH_PROVIDER may be brave, serper, tavily, or builtin-metasearch.',
+    'Search credentials are optional unless CODEX_PROVIDER_WEB_SEARCH_PROVIDER selects brave, serpapi, serper, or tavily.',
+    'CODEX_PROVIDER_WEB_SEARCH_PROVIDER may be brave, serpapi, serper, tavily, or builtin-metasearch.',
     'Offline local-index web_search smoke passed.',
   ].join('\n'));
   process.exit(0);
@@ -358,6 +359,9 @@ function createLiveSearchEngines(env: SmokeEnv): CodexProviderSearchEngine[] {
     case 'serper':
       assert.ok(env.searchApiKey, 'SERPER_API_KEY must be present for Serper API smoke');
       return [createCodexProviderSerperApiEngine({ apiKey: env.searchApiKey })];
+    case 'serpapi':
+      assert.ok(env.searchApiKey, 'SERPAPI_API_KEY must be present for SerpApi smoke');
+      return [createCodexProviderSerpApiEngine({ apiKey: env.searchApiKey })];
     case 'tavily':
       assert.ok(env.searchApiKey, 'TAVILY_API_KEY must be present for Tavily API smoke');
       return [createCodexProviderTavilyApiEngine({ apiKey: env.searchApiKey })];
@@ -413,6 +417,7 @@ function resolveSmokeEnv(): SmokeEnvResolution {
   ]);
   const apiSearch = firstPresent([
     ['BRAVE_SEARCH_API_KEY', process.env.BRAVE_SEARCH_API_KEY],
+    ['SERPAPI_API_KEY', process.env.SERPAPI_API_KEY],
     ['SERPER_API_KEY', process.env.SERPER_API_KEY],
     ['TAVILY_API_KEY', process.env.TAVILY_API_KEY],
   ]);
@@ -483,6 +488,9 @@ function searchProviderForApiKey(name: string): SmokeEnv['searchProvider'] {
   if (name === 'BRAVE_SEARCH_API_KEY') {
     return 'brave';
   }
+  if (name === 'SERPAPI_API_KEY') {
+    return 'serpapi';
+  }
   if (name === 'SERPER_API_KEY') {
     return 'serper';
   }
@@ -498,7 +506,13 @@ function normalizeSearchProvider(value: unknown): SmokeEnv['searchProvider'] | n
   if (!normalized) {
     return null;
   }
-  if (normalized === 'brave' || normalized === 'serper' || normalized === 'tavily' || normalized === 'builtin-metasearch') {
+  if (
+    normalized === 'brave'
+    || normalized === 'serpapi'
+    || normalized === 'serper'
+    || normalized === 'tavily'
+    || normalized === 'builtin-metasearch'
+  ) {
     return normalized;
   }
   return 'unsupported';
@@ -526,6 +540,14 @@ function selectedSearchProviderConfig(provider: SmokeEnv['searchProvider'] | 'un
         credentialName: 'SERPER_API_KEY',
         provider,
         apiKey: normalizeString(process.env.SERPER_API_KEY) || null,
+        endpoint: null,
+      };
+    case 'serpapi':
+      return {
+        credentialKind: 'api-key',
+        credentialName: 'SERPAPI_API_KEY',
+        provider,
+        apiKey: normalizeString(process.env.SERPAPI_API_KEY) || null,
         endpoint: null,
       };
     case 'tavily':

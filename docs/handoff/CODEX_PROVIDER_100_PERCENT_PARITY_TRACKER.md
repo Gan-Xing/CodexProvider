@@ -23,7 +23,7 @@ This tracker is the living audit snapshot for the 100 percent parity loop. The c
 
 Out of scope for the latest completed phase:
 
-- API-key-backed Brave/Serper/Tavily live search evidence; no search-provider API key was present, so the live run used built-in no-key metasearch.
+- API-key-backed Brave/SerpApi/Serper/Tavily live search evidence; no search-provider API key was present, so the live run used built-in no-key metasearch.
 - Full provider-preset matrix live records beyond the OpenRouter-compatible and DashScope/Qwen mixed-runtime smokes.
 - Public release, npm publish automation, dependency additions, or changing `private: true`. Public alpha planning has started, but release approval remains out of scope.
 
@@ -187,7 +187,7 @@ Live smoke evidence is recorded with secrets redacted and without changing relea
 - The web-search smoke covers the offline local-index path, non-streaming adapter-emulated `web_search`, streaming adapter-emulated `web_search`, exposed `web_search_call.action.sources`, exposed `web_search_call.results`, and citation annotations.
 - `docs/LIVE_SMOKE_RESULTS.md` records the latest `pnpm smoke:host` evidence for mixed-runtime host integration.
 - The host smoke covers normal Responses output, custom tool loop continuation, adapter-emulated `file_search`, non-streaming adapter-emulated `web_search`, and streaming adapter-emulated `web_search`.
-- The 2026-06-10 run used OpenRouter-compatible upstream credentials from the local environment and built-in no-key metasearch because no Brave, Serper, or Tavily API key was present.
+- The 2026-06-10 run used OpenRouter-compatible upstream credentials from the local environment and built-in no-key metasearch because no Brave, SerpApi, Serper, or Tavily API key was present.
 - The 2026-06-29 run used DashScope/Qwen `QWEN_API_KEY` credentials with the inferred `qwen-plus` model and built-in no-key metasearch.
 - Secrets remain redacted in the evidence file. `.env` values are not copied into repository docs.
 - `private: true` remains unchanged; Phase 10 owns the public alpha release decision.

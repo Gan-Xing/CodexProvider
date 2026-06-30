@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   createCodexProviderBraveApiEngine,
   createCodexProviderSearchProcessor,
+  createCodexProviderSerpApiEngine,
   createCodexProviderSerperApiEngine,
   createCodexProviderTavilyApiEngine,
   type CodexProviderSearchEngineRequest,
@@ -181,6 +182,65 @@ test('Serper API engine posts JSON body and maps answer plus organic results', a
   assert.equal(outcome.results[0].url, 'https://example.com/answer');
   assert.equal(outcome.results[1].url, 'https://example.com/serper');
   assert.equal(outcome.results[1].publishedAt, 'Jun 8, 2026');
+});
+
+test('SerpApi engine sends query params and maps answer plus organic results', async () => {
+  const calls: Array<{ url: string; init: RequestInit }> = [];
+  const engine = createCodexProviderSerpApiEngine({
+    apiKey: 'serpapi-test',
+    maxResults: 4,
+    country: 'us',
+    language: 'en',
+  });
+  const processor = createCodexProviderSearchProcessor({
+    resolver: PUBLIC_RESOLVER,
+    fetchImpl: (async (url, init) => {
+      calls.push({ url: String(url), init: init ?? {} });
+      return new Response(JSON.stringify({
+        answer_box: {
+          title: 'Direct Answer',
+          answer: 'SerpApi answer text',
+          link: 'https://example.com/serpapi-answer',
+        },
+        organic_results: [{
+          title: 'SerpApi Result',
+          link: 'https://example.com/serpapi',
+          snippet: 'SerpApi snippet',
+          date: 'Jun 30, 2026',
+          position: 1,
+          thumbnail: 'https://example.com/thumb.png',
+        }],
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as typeof fetch,
+  });
+
+  const outcome = await processor.search(engine, baseEngineRequest({
+    maxResults: 2,
+    safeSearch: 'strict',
+    page: 2,
+  }));
+  const url = new URL(calls[0].url);
+
+  assert.equal(url.origin + url.pathname, 'https://serpapi.com/search.json');
+  assert.equal(url.searchParams.get('engine'), 'google');
+  assert.equal(url.searchParams.get('q'), 'codex provider web search');
+  assert.equal(url.searchParams.get('api_key'), 'serpapi-test');
+  assert.equal(url.searchParams.get('num'), '2');
+  assert.equal(url.searchParams.get('start'), '2');
+  assert.equal(url.searchParams.get('gl'), 'us');
+  assert.equal(url.searchParams.get('hl'), 'en');
+  assert.equal(url.searchParams.get('safe'), 'active');
+  assert.equal((calls[0].init.headers as Record<string, string>).Accept, 'application/json');
+  assert.equal(outcome.ok, true);
+  assert.equal(outcome.results[0].type, 'answer');
+  assert.equal(outcome.results[0].engine, 'serpapi');
+  assert.equal(outcome.results[0].url, 'https://example.com/serpapi-answer');
+  assert.equal(outcome.results[1].url, 'https://example.com/serpapi');
+  assert.equal(outcome.results[1].publishedAt, 'Jun 30, 2026');
+  assert.equal(outcome.results[1].thumbnail, 'https://example.com/thumb.png');
 });
 
 test('API engines require explicit keys and processor reports HTTP errors', async () => {

@@ -1470,7 +1470,7 @@ MindSearch deep agent 默认开启
 ```text
 1. 没有 OpenAI API key 也能使用 web_search，通过其他 vendor model + CodexProvider executor 工作。
 2. 没有搜索 API key 时，也能通过 HTML engines best-effort 返回结果。
-3. 有 Brave/Serper/Tavily API key 时，优先使用稳定 API engines。
+3. 有 Brave/SerpApi/Serper/Tavily API key 时，优先使用稳定 API engines。
 4. 支持多引擎 balanced 聚合、去重、合并排序。
 5. Search 后可以 fetch top pages 并提取正文 chunks。
 6. Tool output 包含 sources、documents/chunks、citation instruction。

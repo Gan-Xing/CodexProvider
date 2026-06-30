@@ -318,7 +318,7 @@ Current web search is no longer a simple API wrapper. It already has:
 1. Native metasearch service.
 2. Search modes: `fast`, `any`, `balanced`, `exhaustive`.
 3. HTML engines: DuckDuckGo, Brave, Ecosia, Mojeek.
-4. API engines: Brave API, Serper, Tavily.
+4. API engines: Brave API, SerpApi, Serper, Tavily.
 5. Endpoint adapters: SearXNG, OpenSERP.
 6. Retrieval with safe fetch.
 7. HTML extraction, chunking, ranking.
@@ -386,7 +386,7 @@ Major parity gaps:
 
 4. Live smoke for `web_search` is still pending.
    - Unit tests prove adapter behavior.
-   - They do not prove live Brave/Serper/Tavily/HTML engine behavior against real provider/model tool loops.
+   - They do not prove live Brave/SerpApi/Serper/Tavily/HTML engine behavior against real provider/model tool loops.
 
 ### 3.3 Web search next improvements
 
