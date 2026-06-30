@@ -34,8 +34,9 @@
 ### Validation
 
 - Recorded current DashScope/Qwen `qwen-plus` live host integration smoke evidence for mixed runtime, forced custom tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
-- Refreshed release, readiness, recipe, and provider-evidence docs for the current two-provider live evidence state while keeping `private: true`.
-- Recorded the 2026-06-30 public-alpha blocker audit: npm scope ownership is unconfirmed, API-backed search credentials are missing, and third-provider smoke credentials are unavailable.
+- Recorded current DeepSeek official `deepseek-chat` live host integration smoke evidence for mixed runtime, forced custom tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
+- Refreshed release, readiness, recipe, and provider-evidence docs for the current three-provider live evidence state while keeping `private: true`.
+- Recorded the 2026-06-30 public-alpha blocker audit: npm scope ownership is unconfirmed, API-backed search credentials are missing, and the preferred third-provider smoke is now satisfied by DeepSeek official evidence.
 
 ## 0.1.0-alpha.0
 

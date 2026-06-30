@@ -534,7 +534,7 @@ Create `packages/codex-provider/test/codex_plus_plus_protocol.test.ts` and port 
 - [x] HTTP adapter loop returns provider `apply_patch_*` proxy calls as Codex freeform `apply_patch` custom calls and replays patch history back to structured Chat tool calls.
 - [x] Apply-patch proxy conversion covers add, delete, update, replace, batch, and invalid JSON fallback.
 - [x] Live smoke test file includes a forced `adapter_echo` custom tool call and follow-up tool-output round trip.
-- [x] Live smoke has been executed successfully against real upstreams in this environment: OpenRouter and DashScope/Qwen have current full-host evidence recorded in `docs/LIVE_SMOKE_RESULTS.md`. DeepSeek official, MiniMax, SiliconFlow, Moonshot/Kimi, and OpenAI direct Responses remain pending credentials for the full provider-matrix suite.
+- [x] Live smoke has been executed successfully against real upstreams in this environment: OpenRouter, DeepSeek official, and DashScope/Qwen have current full-host evidence recorded in `docs/LIVE_SMOKE_RESULTS.md`. MiniMax, SiliconFlow, Moonshot/Kimi, and OpenAI direct Responses remain pending credentials for the full provider-matrix suite.
 
 ## Acceptance Criteria For The Whole Port
 

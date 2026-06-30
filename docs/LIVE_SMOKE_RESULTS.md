@@ -7,9 +7,10 @@ This file records redacted live smoke evidence for `@codex-provider/core`.
 As of 2026-06-30, full host-integration live evidence is recorded for:
 
 - OpenRouter with `deepseek/deepseek-chat`: mixed runtime, normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
+- DeepSeek official with `deepseek-chat`: mixed runtime, normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
 - DashScope/Qwen with `qwen-plus`: mixed runtime, normal response, forced custom-tool continuation, adapter-emulated `file_search`, non-streaming `web_search`, and streaming `web_search`.
 
-API-backed Brave/Serper/Tavily search evidence and additional provider-preset records remain credential-gated. Secrets are redacted; raw API keys are never recorded here.
+API-backed Brave/Serper/Tavily search evidence and remaining provider-preset records remain credential-gated. Secrets are redacted; raw API keys are never recorded here.
 
 ## 2026-06-30 Public Alpha Blocker Audit
 
@@ -17,7 +18,7 @@ API-backed Brave/Serper/Tavily search evidence and additional provider-preset re
 - npm scope: `npm org ls @codex-provider --json` returned `E404 Scope not found`; this is not proof that the project owns the scope.
 - npm package: `npm view @codex-provider/core --json` returned `E404 Not found`; the package is not publicly visible.
 - API-backed search credentials: `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`, and `TAVILY_API_KEY` were missing, so Brave/Serper/Tavily live search evidence remains a release blocker or release-owner exception.
-- Third-provider credentials: `DEEPSEEK_API_KEY`, `SILICONFLOW_API_KEY`, `MINIMAX_API_KEY`, `KIMI_API_KEY`, `MOONSHOT_API_KEY`, and `OPENAI_API_KEY` were missing, so DeepSeek official and other third-provider full-host smokes remain credential-gated.
+- Third-provider evidence: `DEEPSEEK_API_KEY` was available in local `.env` and the DeepSeek official full-host smoke passed at `2026-06-30T16:29:29.940Z`; SiliconFlow, MiniMax, Moonshot/Kimi, and OpenAI direct Responses remain credential-gated.
 
 ## 2026-06-07 OpenRouter non-web smoke
 
@@ -325,3 +326,23 @@ API-backed Brave/Serper/Tavily search evidence and additional provider-preset re
 | Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 1868 ms. |
 | Adapter-emulated web_search | Passed | Sources: 1; results: 1; annotations: 1; latency: 4865 ms. |
 | Streaming adapter-emulated web_search | Passed | SSE events: 25; sources: 6; results: 6; annotations: 1; latency: 6125 ms. |
+
+## 2026-06-30T16:29:29.940Z CodexProviderRuntime live host integration smoke
+
+- Provider base URL host: `api.deepseek.com`
+- Model: `deepseek-chat`
+- Runtime mode: `mixed`
+- Tool strategy: `adapter-emulated`
+- Upstream key env: `DEEPSEEK_API_KEY=<redacted>`
+- Search provider: `builtin-metasearch`
+- Search key env: `<not set; built-in no-key metasearch>`
+- Secrets: redacted; sourced from environment variables.
+
+| Smoke | Status | Notes |
+| --- | --- | --- |
+| Mixed runtime local adapter | Passed | Adapter base URL host: 127.0.0.1:41479. |
+| Normal response | Passed | Latency: 1108 ms. |
+| Custom tool loop | Passed | First turn produced echo_probe; second turn returned final text. Latency: 2382 ms. |
+| Adapter-emulated file_search | Passed | Results: 1; first filename: host-smoke.md; latency: 2589 ms. |
+| Adapter-emulated web_search | Passed | Sources: 1; results: 1; annotations: 1; latency: 3712 ms. |
+| Streaming adapter-emulated web_search | Passed | SSE events: 62; sources: 1; results: 1; annotations: 1; latency: 3461 ms. |

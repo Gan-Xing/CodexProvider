@@ -22,6 +22,7 @@
 - [x] Public alpha release plan exists while keeping publishing manual.
 - [x] Standalone consumer harness validates root entrypoint usage without CodexBridge internals.
 - [x] OpenRouter full host-integration live smoke results are recorded in `docs/LIVE_SMOKE_RESULTS.md`.
+- [x] DeepSeek official full host-integration live smoke results are recorded in `docs/LIVE_SMOKE_RESULTS.md`.
 - [x] DashScope/Qwen full host-integration live smoke results are recorded in `docs/LIVE_SMOKE_RESULTS.md`.
 - [x] Live smoke recipes are executed and recorded against real upstream providers.
 - [x] Live consumer validation is completed through CodexNext or a standalone app-server harness.
@@ -57,4 +58,4 @@ Deprecated Relay/Gateway names are not part of the active package surface.
 
 ## Current Status
 
-The public package name is now `@codex-provider/core`, and real upstream live smoke evidence for OpenRouter and DashScope/Qwen is recorded in `docs/LIVE_SMOKE_RESULTS.md`. Keep `private: true` and `version: "0.1.0-alpha.0"` until the API is intentionally promoted beyond internal alpha.
+The public package name is now `@codex-provider/core`, and real upstream live smoke evidence for OpenRouter, DeepSeek official, and DashScope/Qwen is recorded in `docs/LIVE_SMOKE_RESULTS.md`. Keep `private: true` and `version: "0.1.0-alpha.0"` until the API is intentionally promoted beyond internal alpha.
