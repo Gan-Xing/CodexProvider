@@ -1,4 +1,4 @@
-# CodexProvider Native Gateway Mac Handoff
+# CodexProvider Native Gateway + Skill Bootstrap Handoff
 
 ## 0. Current State
 
@@ -8,115 +8,154 @@ Repository:
 Gan-Xing/CodexProvider
 ```
 
-Package already published:
+Published package:
 
 ```text
 codex-provider@0.1.0-alpha.0
 ```
 
-Current clean baseline before this handoff:
+Current branch expectation:
 
 ```text
 main...origin/main
 ```
 
-Recent completed work outside this repository:
+Recent completed downstream work:
 
 ```text
 /home/ubuntu/dev/codexnext
-- now consumes published codex-provider@0.1.0-alpha.0
-- root and agent runtime require Node >=24
-- typecheck and tests passed before push
+- consumes published codex-provider@0.1.0-alpha.0
+- requires Node >=24
+- pushed clean after typecheck and tests
 ```
 
-The next work should be validated on macOS because the target user path is the real Codex App / Codex CLI environment:
+This handoff supersedes the earlier "manual gateway with --enable-web-search" target. The current product target is:
 
 ```text
-~/.codex/config.toml
-~/.codex/auth.json
-Codex App login state
-Codex CLI/app-server model provider config
-local gateway process
+CodexProvider should be installable by one curl command,
+discoverable by Codex through a Skill,
+and usable by Codex App/CLI through a local Native Gateway.
 ```
 
-## 1. One-line Closed Goal
+## 1. Final Closed Goal
 
-Build **Codex Native Gateway v1**:
+Build **CodexProvider Native Gateway + Skill Bootstrap v1**.
+
+End-user flow:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Gan-Xing/CodexProvider/main/install.sh | bash
+```
+
+Then the user can talk to Codex:
 
 ```text
-After installing codex-provider, a normal user can run setup/start/status/stop commands
-to route Codex App/CLI model requests through a local codex-provider Responses gateway,
-with optional self-hosted web_search and file_search enabled explicitly.
+Use the codex-provider skill. Connect Codex to OpenRouter with model deepseek/deepseek-chat.
 ```
 
-This is a user-facing gateway target, not a rewrite of the existing SDK.
+Codex should then know how to run:
 
-## 2. Non-regression Boundary
+```bash
+codex-provider-server setup --provider openrouter --model deepseek/deepseek-chat
+codex-provider-server start
+codex-provider-server status
+```
+
+The closed outcome:
+
+```text
+Codex App/CLI routes model requests through the local codex-provider gateway,
+third-party OpenAI-compatible models work,
+implemented hosted tools are adapted by default,
+and status/logs clearly show whether local gateway was used.
+```
+
+## 2. Product Shape
+
+The v1 product has three layers:
+
+1. `install.sh`
+   Installs or updates the `codex-provider` CLI and installs the Codex Skill.
+
+2. `skills/codex-provider/SKILL.md`
+   Teaches Codex how to configure, start, inspect, and roll back the gateway.
+
+3. `codex-provider-server`
+   Runs the local Responses gateway, writes managed Codex config, adapts tools, and reports status.
+
+Do not treat a raw handoff URL as the final user experience. The handoff is for development. The real user entrypoint is:
+
+```text
+curl bootstrap -> Codex Skill -> Native Gateway
+```
+
+## 3. Non-regression Boundary
 
 Do not break existing behavior:
 
-1. `codex-provider-server` with the current no-subcommand behavior must still start the existing standalone server from `CODEX_PROVIDER_*` env vars.
-2. Add an explicit `serve` alias for the current standalone behavior, but keep old invocation compatible.
-3. Do not change `CodexProviderRuntime` public behavior.
-4. Do not change CodexNext/CodexBridge SDK integration paths.
+1. `codex-provider-server` with no subcommand must keep current standalone server behavior.
+2. Add `codex-provider-server serve` as an explicit alias for current standalone behavior.
+3. Keep `CodexProviderRuntime` public behavior stable.
+4. Keep CodexNext/CodexBridge SDK integrations stable.
 5. Do not rename or remove existing root exports.
-6. Do not silently enable hosted tools.
-7. Do not write upstream provider API keys into the git repo or into `~/.codex/config.toml`.
-8. Do not modify the Codex App bundle, `app.asar`, or official Codex installation files.
-9. Do not set the user's global default model unless the command has an explicit `--set-default` flag.
+6. Do not modify Codex App bundle files, `app.asar`, or official Codex installation files.
+7. Do not commit or persist real upstream API keys in git or `~/.codex/config.toml`.
+8. Do not replace Codex's permission model with a second CodexProvider permission system.
+9. Do not silently claim a hosted tool is executable when required dependencies are missing.
 
-The new gateway must be opt-in. Existing users should see no behavior change unless they use the new commands.
+The new behavior is additive. Existing SDK consumers and current standalone server users should not see behavior changes unless they use the new bootstrap/gateway flow.
 
-## 3. Why This Is Different From Codex++
+## 4. Core Principle
 
-Codex++ is mainly a desktop launcher / manager / CDP injection product. Its relay injection writes a provider config and routes model traffic, while official Codex login state still owns app account features and plugin entry.
+Codex is the permission source. CodexProvider is the compatibility adapter.
 
-CodexProvider should not copy the desktop injection layer. The stronger path is:
+Correct behavior:
+
+```text
+Codex owns approvals, workspace scope, shell/apply_patch execution, MCP, and local tool orchestration.
+CodexProvider owns protocol compatibility, hosted-tool adaptation, model routing, and provider-side hosted tool execution only when needed.
+```
+
+Do not add `--enable-web-search`, `--enable-file-search`, or similar flags as the main product model.
+
+Instead:
+
+```text
+Gateway exposes implemented capabilities by default.
+Gateway delegates Codex-local tools back to Codex.
+Gateway executes provider-side hosted tools only within Codex request/config constraints.
+Gateway reports missing dependencies as unavailable.
+```
+
+## 5. Why This Is Not Codex++
+
+Codex++ is primarily a desktop launcher / manager / CDP injection and relay management product.
+
+CodexProvider should not copy that layer. The stronger route is:
 
 ```text
 Codex App / CLI
   -> local codex-provider gateway
-  -> OpenAI-compatible upstream model
-  -> optional adapter-emulated hosted tools
+  -> OpenAI-compatible upstream provider
+  -> protocol/tool adaptation
   -> Codex-compatible Responses result
 ```
 
-Our advantage is the self-hosted tool executor layer:
+CodexProvider's differentiator is the reusable hosted-tool adapter/executor layer:
 
 ```text
-web_search: builtin metasearch, Brave, Serper, SerpApi, Tavily, SearXNG/OpenSERP endpoint adapters
-file_search: explicit local roots, memory docs, SQLite FTS, vector/local-vector sources
+web_search
+file_search
+tool_search
+image_generation
+code_interpreter
+computer
+Codex-local apply_patch/shell/MCP conversion
 ```
 
-Codex++ appears to convert tool shapes and relay protocol, but it does not appear to bundle the same self-hosted search/file executor runtime.
+## 6. CLI Target
 
-## 4. Current Code Facts To Confirm Before Editing
-
-Start from these files:
-
-```text
-src/cli.ts
-src/server/standalone_server.ts
-src/server/responses-adapter-server/server.ts
-src/hosted_tools.ts
-src/hosted_tool_executors.ts
-src/web_search_executor.ts
-src/file_search_executor.ts
-docs/RECIPES.md
-docs/LIVE_SMOKE_RECIPES.md
-```
-
-Current important behavior:
-
-1. `src/cli.ts` currently behaves like an internal standalone launcher.
-2. `src/server/standalone_server.ts` requires one upstream model API key.
-3. The standalone server currently builds a model protocol adapter from env vars.
-4. The adapter server only executes adapter-emulated tools when hosted tool declarations and matching executors are registered.
-5. Without tool executors, `web_search` / `file_search` must not pretend to work.
-
-## 5. Target CLI Shape
-
-Keep this compatible:
+Keep old behavior:
 
 ```bash
 codex-provider-server
@@ -124,7 +163,7 @@ codex-provider-server --env-file .env
 codex-provider-server --trace
 ```
 
-Add this explicit old-behavior alias:
+Add explicit old-behavior alias:
 
 ```bash
 codex-provider-server serve
@@ -140,32 +179,31 @@ codex-provider-server status
 codex-provider-server stop
 ```
 
-Recommended v1 command options:
+Primary user path:
 
 ```bash
-codex-provider-server setup \
-  --provider openrouter \
-  --model deepseek/deepseek-chat \
-  --port 47321
-
-codex-provider-server start \
-  --provider openrouter \
-  --model deepseek/deepseek-chat \
-  --port 47321 \
-  --enable-web-search
-
-codex-provider-server start \
-  --provider openrouter \
-  --model deepseek/deepseek-chat \
-  --port 47321 \
-  --enable-web-search \
-  --file-search-root "$PWD"
-
+codex-provider-server setup --provider openrouter --model deepseek/deepseek-chat
+codex-provider-server start
 codex-provider-server status
-codex-provider-server stop
 ```
 
-Provider inputs should still work through existing env vars:
+Optional flags should tune configuration, not turn the product into a list of manual tool toggles:
+
+```bash
+--provider <preset>
+--model <model>
+--port <port>
+--set-default
+--env-file <path>
+--trace
+--workspace <path>
+--file-search-root <path>
+--image-provider <provider>
+--code-sandbox <adapter>
+--computer-adapter <adapter>
+```
+
+Provider credentials remain env-driven:
 
 ```bash
 OPENROUTER_API_KEY=...
@@ -179,22 +217,66 @@ CODEX_PROVIDER_BASE_URL=...
 CODEX_PROVIDER_MODEL=...
 ```
 
-Never commit real keys.
+Never log or persist secrets in plaintext status output.
 
-## 6. Config Management Contract
+## 7. Bootstrap Target
 
-`setup` should update `~/.codex/config.toml` safely.
+Create:
+
+```text
+install.sh
+skills/codex-provider/SKILL.md
+```
+
+`install.sh` responsibilities:
+
+1. Detect Node >=24.
+2. Enable Corepack when useful.
+3. Install or update `codex-provider` CLI.
+4. Install or update the skill at:
+
+```text
+~/.codex/skills/codex-provider/SKILL.md
+```
+
+5. Print the next user prompt:
+
+```text
+Use the codex-provider skill. Connect Codex to <provider> with model <model>.
+```
+
+`install.sh` must not:
+
+1. Modify `~/.codex/config.toml` automatically.
+2. Ask for or store API keys.
+3. Start the gateway automatically.
+4. Break if npm is unavailable before explaining the local/tarball fallback.
+
+The Skill is the Agent-facing product surface. It must tell Codex:
+
+1. How to check installed CLI version.
+2. How to run setup/start/status/stop.
+3. How to choose provider presets and env vars.
+4. How to verify local gateway usage.
+5. How to roll back safely.
+6. Which tools are delegated to Codex and which are provider-side.
+7. Never to commit secrets.
+
+## 8. Config Management Contract
+
+`setup` updates `~/.codex/config.toml` safely.
 
 Requirements:
 
 1. Create a timestamped backup before writing.
-2. Replace only a managed CodexProvider block on repeat runs.
+2. Replace only the managed CodexProvider block on repeat runs.
 3. Preserve unrelated user config.
-4. Do not remove official ChatGPT auth config.
-5. Do not store upstream provider API keys in `config.toml`.
-6. Codex should point at the local gateway base URL, not directly at OpenRouter/DeepSeek/Qwen.
+4. Preserve official ChatGPT login/auth state.
+5. Do not write upstream provider API keys into `config.toml`.
+6. Point Codex at the local gateway, not directly at OpenRouter/DeepSeek/Qwen.
+7. Write root defaults only with `--set-default`.
 
-Suggested managed block style:
+Suggested managed block:
 
 ```toml
 # BEGIN codex-provider native-gateway
@@ -206,22 +288,16 @@ base_url = "http://127.0.0.1:47321/v1"
 # END codex-provider native-gateway
 ```
 
-Only write root defaults when explicitly requested:
+Only with `--set-default`:
 
 ```toml
 model_provider = "codex_provider_gateway"
 model = "deepseek/deepseek-chat"
 ```
 
-This should require:
+## 9. Gateway State Contract
 
-```bash
---set-default
-```
-
-## 7. Gateway State Contract
-
-Use a state directory outside the repo:
+Use:
 
 ```text
 ~/.codex-provider/
@@ -243,81 +319,100 @@ pid: <pid or none>
 base_url: http://127.0.0.1:47321/v1
 provider: openrouter/deepseek/qwen/etc
 model: <model>
-upstream_base_url: <redacted origin only>
-web_search: disabled/enabled, provider=<builtin-metasearch/brave/serper/...>
-file_search: disabled/enabled, roots=<count>
-last_error: <short message if any>
+upstream_base_url: <redacted origin/path>
+last_request_at: <timestamp or none>
+last_upstream_provider: <provider or none>
+tools:
+  web_search: ready/unavailable/delegated
+  file_search: ready/unavailable/delegated
+  tool_search: ready/unavailable
+  image_generation: ready/unavailable
+  code_interpreter: ready/unavailable/delegated
+  computer: ready/unavailable/delegated
+  apply_patch: delegated-to-codex
+  shell: delegated-to-codex
 ```
 
-Redact secrets in all logs and status output.
+Keep status human-readable. Add `--json` later if useful.
 
-## 8. Tool Wiring Contract
+## 10. Hosted Tool Strategy
 
-`start` should support two layers:
-
-1. Model-only gateway:
+Default stance:
 
 ```text
-No hosted tools declared.
-No executor registered.
-Only protocol conversion and upstream model routing.
+Declare and adapt all implemented hosted tool capabilities by default.
+Do not require users to remember --enable-* flags.
+Do not execute unavailable tools.
+Delegate Codex-local high-permission tools to Codex.
 ```
 
-2. Explicit self-hosted tools:
+Tool behavior target:
 
 ```text
-hostedTools: [{ name: "web_search", mode: "adapter-emulated" }]
-hostedToolExecutors.web_search = createCodexProviderWebSearchExecutor(...)
+web_search:
+  default ready through codex-provider metasearch when network access is available.
+  Use Brave/Serper/SerpApi/Tavily/SearXNG/OpenSERP only when configured.
+  Respect request filters, external_web_access, user_location, and result limits.
+
+file_search:
+  default available when Codex/workspace/root scope is known.
+  Use Codex workspace/config/request roots, never whole disk.
+  If no safe root/scope is available, status says unavailable with reason.
+
+tool_search:
+  default ready when executor is present.
+  May return deferred function tools/namespaces.
+
+image_generation:
+  capability exposed as unavailable until an image provider is configured.
+  Ready only when provider/key/runtime contract exists.
+
+code_interpreter:
+  capability exposed as unavailable/delegated unless a sandbox adapter is configured.
+  Never run arbitrary code in the gateway process.
+
+computer:
+  capability exposed as unavailable/delegated unless a computer adapter is configured.
+  Do not bypass Codex approval UI.
+
+apply_patch:
+  delegated-to-codex.
+  CodexProvider keeps conversion/proxy semantics only.
+
+shell/local_shell:
+  delegated-to-codex.
+  CodexProvider keeps conversion semantics only.
+
+MCP/connectors/skills:
+  Codex-local or host-deferred unless explicit future adapter is added.
 ```
 
-For file search:
+## 11. Observability Requirement
 
-```text
-hostedTools: [{ name: "file_search", mode: "adapter-emulated" }]
-hostedToolExecutors.file_search = createCodexProviderFileSearchExecutor(...)
-```
+The user needs to know whether they are using local gateway or official Codex quota.
 
-Rules:
+Add practical verification:
 
-1. `web_search` can default to no-key builtin metasearch when `--enable-web-search` is present.
-2. API search keys are optional and selected only when configured.
-3. `file_search` must require at least one explicit `--file-search-root`.
-4. Never scan the process cwd implicitly.
-5. Unsafe tools stay disabled by default:
+1. Every `/v1/responses` request emits a redacted trace when tracing is enabled.
+2. `status` shows last request time and last upstream provider.
+3. No prompt text is logged by default.
+4. Secrets are redacted.
+5. Tool executions are visible as summaries.
 
-```text
-code_interpreter
-computer
-shell
-local_shell
-apply_patch execution
-```
-
-## 9. Observability Requirement
-
-The user needs to know whether Codex is using local gateway or official quota.
-
-Add a practical answer through local status and logs:
-
-1. Every `/v1/responses` request should emit a redacted trace line when gateway trace is enabled.
-2. Trace should include:
+Trace fields:
 
 ```text
 route=responses
 provider=<provider>
 model=<model>
-upstream=<origin/path without key>
-tools=<none/web_search/file_search>
+upstream=<redacted origin/path>
+tools=<none/web_search/file_search/...>
 request_id=<local id>
 ```
 
-3. `status` should show last request time and last upstream provider.
-4. Do not log prompts by default.
-5. Provide `--trace` for debug-level stderr/file logs.
+This solves the real problem better than trying to infer billing from outside.
 
-This is more useful than trying to prove quota usage from the outside.
-
-## 10. Mac Development Setup
+## 12. Mac Development Setup
 
 On Mac:
 
@@ -345,45 +440,37 @@ npm i -g ./codex-provider-*.tgz
 codex-provider-server --help
 ```
 
-If testing without global install:
+Bootstrap test after implementation:
 
 ```bash
-node dist/cli.js --help
+curl -fsSL https://raw.githubusercontent.com/Gan-Xing/CodexProvider/main/install.sh | bash
 ```
 
-## 11. Mac E2E Validation After Implementation
+## 13. Mac E2E Validation
 
-Use a real upstream key in the shell only:
+Use real upstream keys only in the shell:
 
 ```bash
 export OPENROUTER_API_KEY="..."
 ```
 
-Example flow:
+Run:
 
 ```bash
-codex-provider-server setup \
-  --provider openrouter \
-  --model deepseek/deepseek-chat \
-  --port 47321
-
-codex-provider-server start \
-  --provider openrouter \
-  --model deepseek/deepseek-chat \
-  --port 47321 \
-  --enable-web-search \
-  --trace
-
+codex-provider-server setup --provider openrouter --model deepseek/deepseek-chat
+codex-provider-server start --trace
 codex-provider-server status
 ```
 
-Then open Codex App / CLI and verify:
+Then verify in Codex App/CLI:
 
-1. A normal model answer works.
-2. Gateway logs show a `/v1/responses` request.
-3. Upstream provider in status is the configured non-OpenAI provider.
-4. Web search request emits hosted tool execution traces when enabled.
-5. File search only works when explicit roots are provided.
+1. Normal model answer works.
+2. Gateway logs show `/v1/responses`.
+3. Status shows the configured upstream provider/model.
+4. Hosted tool capability status is visible.
+5. `web_search` executes through gateway when requested by the model and allowed by request/config.
+6. `file_search` uses only safe workspace/root scope.
+7. `apply_patch` and shell remain Codex-delegated.
 
 Stop:
 
@@ -392,24 +479,27 @@ codex-provider-server stop
 codex-provider-server status
 ```
 
-## 12. Automated Test Checklist
+## 14. Automated Test Checklist
 
 Add tests before shipping:
 
-1. CLI parser keeps old no-subcommand `serve` behavior.
-2. `serve` alias uses the same standalone server path.
-3. `setup` writes only the managed block.
+1. Existing no-subcommand `codex-provider-server` behavior is unchanged.
+2. `serve` alias uses the same standalone path.
+3. `setup` writes only the managed config block.
 4. `setup` preserves unrelated TOML content.
 5. `setup --set-default` writes root provider/model defaults.
 6. `setup` without `--set-default` does not change root defaults.
-7. `start` model-only mode registers no hosted tool declarations.
-8. `start --enable-web-search` registers `web_search` declaration and executor.
-9. `start --file-search-root <path>` registers `file_search` declaration and executor.
-10. `file_search` rejects missing explicit roots.
-11. `status` redacts secrets.
-12. `stop` removes stale pid state when process is gone.
+7. `start` declares/adapts implemented tools by default.
+8. Missing dependencies produce `unavailable`, not fake success.
+9. Delegated tools are marked delegated-to-codex.
+10. `web_search` respects request/config constraints.
+11. `file_search` never scans whole disk and requires a safe scope.
+12. `status` redacts secrets.
+13. `stop` removes stale pid state when process is gone.
+14. `install.sh` installs the skill without changing Codex config.
+15. The skill instructions do not include secrets and do not ask Codex to modify app bundles.
 
-Run at minimum:
+Run:
 
 ```bash
 pnpm build
@@ -418,28 +508,31 @@ pnpm test
 git diff --check
 ```
 
-## 13. Release Path
+## 15. Release Path
 
 After Mac E2E passes:
 
 1. Update README quickstart.
 2. Update `docs/RECIPES.md`.
 3. Update `docs/LIVE_SMOKE_RECIPES.md`.
-4. Add live smoke result summary with secrets redacted.
+4. Add or update redacted live smoke results.
 5. Bump package version from `0.1.0-alpha.0` to the next alpha.
 6. Run `npm pack --dry-run`.
-7. Publish only after the tarball and Mac E2E are both verified.
+7. Publish only after tarball verification and Mac E2E both pass.
 
-## 14. Definition Of Done
+## 16. Definition Of Done
 
-This goal is done only when all are true:
+This target is complete only when all are true:
 
-1. A clean Mac can install/build the package.
-2. `codex-provider-server setup/start/status/stop` works.
-3. Codex App/CLI can route through local gateway.
-4. Status/logs make it obvious that the local gateway was used.
-5. `web_search` can run through self-hosted executor when enabled.
-6. `file_search` can run against an explicit local root when enabled.
-7. Old standalone server behavior still works.
-8. Existing SDK/runtime tests still pass.
-9. No upstream API key is committed or written into managed Codex config.
+1. A clean Mac can run the curl bootstrap.
+2. The bootstrap installs/updates the CLI and Codex Skill.
+3. Codex can read the skill and operate the gateway through natural language.
+4. `setup/start/status/stop` work.
+5. Codex App/CLI can route through the local gateway.
+6. Status/logs make local gateway usage obvious.
+7. Implemented hosted tools are declared/adapted by default.
+8. Unavailable tools are reported honestly.
+9. Codex-local privileged tools remain delegated to Codex.
+10. Old standalone server behavior still works.
+11. Existing SDK/runtime tests still pass.
+12. No upstream API key is committed or written into managed Codex config.
