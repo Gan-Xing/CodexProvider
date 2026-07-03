@@ -124,15 +124,30 @@ export function responsesToolsToChatTools(
   options: {
     shortenToolName: (name: string) => string;
     builtinToolConverter?: ((tool: JsonRecord) => JsonRecord | null) | null;
+    namespaceStrategy?: 'expand' | 'drop' | null;
+    maxForwardedTools?: number | null;
   },
 ): JsonRecord[] {
   if (!Array.isArray(tools)) {
     return [];
   }
   const converted: JsonRecord[] = [];
+  const namespaceStrategy = options.namespaceStrategy ?? 'expand';
+  const maxForwardedTools = normalizeMaxForwardedTools(options.maxForwardedTools);
+  const pushConverted = (entries: JsonRecord[]) => {
+    for (const entry of entries) {
+      if (maxForwardedTools !== null && converted.length >= maxForwardedTools) {
+        return;
+      }
+      converted.push(entry);
+    }
+  };
   for (const tool of tools) {
+    if (maxForwardedTools !== null && converted.length >= maxForwardedTools) {
+      break;
+    }
     if (typeof tool === 'string' && tool.trim()) {
-      converted.push(genericCustomProxyTool(options.shortenToolName(tool.trim()), ''));
+      pushConverted([genericCustomProxyTool(options.shortenToolName(tool.trim()), '')]);
       continue;
     }
     if (!tool || typeof tool !== 'object') {
@@ -144,7 +159,7 @@ export function responsesToolsToChatTools(
       case 'function': {
         const chatTool = responsesFunctionToolToChatTool(record, options.shortenToolName);
         if (chatTool) {
-          converted.push(chatTool);
+          pushConverted([chatTool]);
         }
         break;
       }
@@ -160,21 +175,23 @@ export function responsesToolsToChatTools(
         if (isHostedWebSearchToolType(type) && options.builtinToolConverter) {
           const builtin = options.builtinToolConverter(record);
           if (builtin) {
-            converted.push(builtin);
+            pushConverted([builtin]);
           }
           break;
         }
         const name = stringValue(record.name) || canonicalHostedBuiltinToolType(type);
         const description = stringValue(record.description);
         if (isApplyPatchToolDefinition(record, name)) {
-          converted.push(...buildApplyPatchProxyTools(name, description));
+          pushConverted(buildApplyPatchProxyTools(name, description));
         } else {
-          converted.push(genericCustomProxyTool(options.shortenToolName(name), description));
+          pushConverted([genericCustomProxyTool(options.shortenToolName(name), description)]);
         }
         break;
       }
       case 'namespace':
-        converted.push(...namespaceToolToChatTools(record, context, options.shortenToolName));
+        if (namespaceStrategy === 'expand') {
+          pushConverted(namespaceToolToChatTools(record, context, options.shortenToolName));
+        }
         break;
       default:
         break;
@@ -416,4 +433,12 @@ function omitUndefined<T extends JsonRecord>(record: T): T {
     }
   }
   return record;
+}
+
+function normalizeMaxForwardedTools(value: number | null | undefined): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const normalized = Number(value);
+  return Number.isInteger(normalized) && normalized > 0 ? normalized : null;
 }

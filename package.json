@@ -19,7 +19,9 @@
     "README.md",
     "CHANGELOG.md",
     "docs",
-    "examples"
+    "examples",
+    "install.sh",
+    "skills"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

@@ -54,6 +54,9 @@ import {
   normalizeString,
 } from './utils.js';
 import type {
+  ToolCatalogPolicy,
+} from '../../converters/responses-adapter/types.js';
+import type {
   AdapterHostedToolExecutionRecord,
   AdapterRoute,
   CodexProviderTraceEvent,
@@ -125,6 +128,8 @@ export class OpenAICompatibleResponsesAdapterServer {
 
   private readonly webSearchInvalidParameterStrategy: 'error' | 'drop';
 
+  private readonly toolCatalogPolicy: ToolCatalogPolicy | null;
+
   private server: http.Server | null;
 
   private startedUrl: string | null;
@@ -151,6 +156,7 @@ export class OpenAICompatibleResponsesAdapterServer {
     exposeHostedToolResultsInResponsesOutput = false,
     exposeWebSearchDetailedActions = false,
     webSearchInvalidParameterStrategy = 'error',
+    toolCatalogPolicy = null,
   }: OpenAICompatibleResponsesAdapterServerOptions) {
     const normalizedKey = normalizeString(apiKey);
     if (!normalizedKey) {
@@ -183,6 +189,7 @@ export class OpenAICompatibleResponsesAdapterServer {
     this.webSearchInvalidParameterStrategy = normalizeWebSearchInvalidParameterStrategy(
       webSearchInvalidParameterStrategy,
     );
+    this.toolCatalogPolicy = normalizeToolCatalogPolicy(toolCatalogPolicy);
     this.models = normalizeModels(
       models,
       this.defaultModel,
@@ -306,6 +313,7 @@ export class OpenAICompatibleResponsesAdapterServer {
       exposeHostedToolResultsInResponsesOutput: this.exposeHostedToolResultsInResponsesOutput,
       exposeWebSearchDetailedActions: this.exposeWebSearchDetailedActions,
       webSearchInvalidParameterStrategy: this.webSearchInvalidParameterStrategy,
+      toolCatalogPolicy: this.toolCatalogPolicy,
       fetchUpstreamWithRetry: (...args) => this.fetchUpstreamWithRetry(...args),
       writeStreamingResponse: (...args) => this.writeStreamingResponse(...args),
       writeStreamingDataLinesResponse: (...args) => this.writeStreamingDataLinesResponse(...args),
@@ -509,4 +517,16 @@ function sanitizeTraceString(value: string): string {
     return `${sanitized.slice(0, TRACE_STRING_MAX_LENGTH)}...${TRACE_TRUNCATED}`;
   }
   return sanitized;
+}
+
+function normalizeToolCatalogPolicy(value: ToolCatalogPolicy | null | undefined): ToolCatalogPolicy | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const namespaceStrategy = value.namespaceStrategy === 'drop' ? 'drop' : value.namespaceStrategy === 'expand' ? 'expand' : null;
+  const maxForwardedTools = Number(value.maxForwardedTools);
+  return {
+    ...(namespaceStrategy ? { namespaceStrategy } : {}),
+    ...(Number.isInteger(maxForwardedTools) && maxForwardedTools > 0 ? { maxForwardedTools } : {}),
+  };
 }

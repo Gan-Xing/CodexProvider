@@ -23,7 +23,7 @@ main...origin/main
 Recent completed downstream work:
 
 ```text
-/home/ubuntu/dev/codexnext
+<downstream-codexnext-checkout>
 - consumes published codex-provider@0.1.0-alpha.0
 - requires Node >=24
 - pushed clean after typecheck and tests

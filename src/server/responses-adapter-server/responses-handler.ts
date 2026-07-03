@@ -3,6 +3,9 @@ import {
   chatCompletionsResponseToResponses,
   responsesRequestToChatCompletions,
 } from '../../converters/responses-adapter/index.js';
+import type {
+  ToolCatalogPolicy,
+} from '../../converters/responses-adapter/types.js';
 import {
   resolveOpenAICompatibleProviderCapabilitiesForModel,
   type OpenAICompatibleProviderCapabilities,
@@ -102,6 +105,7 @@ export type ResponsesAdapterRequestHandlerContext = {
   exposeHostedToolResultsInResponsesOutput: boolean;
   exposeWebSearchDetailedActions: boolean;
   webSearchInvalidParameterStrategy: 'error' | 'drop';
+  toolCatalogPolicy?: ToolCatalogPolicy | null;
   fetchUpstreamWithRetry: (
     url: string,
     init: RequestInit,
@@ -154,6 +158,7 @@ export async function handleResponsesAdapterRequest({
   exposeHostedToolResultsInResponsesOutput,
   exposeWebSearchDetailedActions,
   webSearchInvalidParameterStrategy,
+  toolCatalogPolicy = null,
   fetchUpstreamWithRetry,
   writeStreamingResponse,
   writeStreamingDataLinesResponse,
@@ -231,6 +236,7 @@ export async function handleResponsesAdapterRequest({
     providerKind,
     providerCapabilities: effectiveCapabilities,
     hostedTools: executableHostedTools,
+    toolCatalogPolicy,
   });
   emitTrace({
     type: 'request.translated',

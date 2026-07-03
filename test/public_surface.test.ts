@@ -277,7 +277,7 @@ test('codex provider package metadata exposes only the primary server bin', () =
   assert.equal(packageJson.bin?.['codex-provider-server'], 'dist/cli.js');
   assert.equal(packageJson.bin?.[legacyProviderBin], undefined);
   assert.equal(packageJson.bin?.[legacyHostBin], undefined);
-  assert.deepEqual(packageJson.files, ['dist', 'README.md', 'CHANGELOG.md', 'docs', 'examples']);
+  assert.deepEqual(packageJson.files, ['dist', 'README.md', 'CHANGELOG.md', 'docs', 'examples', 'install.sh', 'skills']);
 });
 
 test('codex provider package metadata and build layout stay aligned', () => {
@@ -299,7 +299,7 @@ test('codex provider package metadata and build layout stay aligned', () => {
   assert.equal(packageJson.bin?.['codex-provider-server'], 'dist/cli.js');
   assert.equal(packageJson.bin?.[legacyProviderBin], undefined);
   assert.equal(packageJson.bin?.[legacyHostBin], undefined);
-  assert.deepEqual(packageJson.files, ['dist', 'README.md', 'CHANGELOG.md', 'docs', 'examples']);
+  assert.deepEqual(packageJson.files, ['dist', 'README.md', 'CHANGELOG.md', 'docs', 'examples', 'install.sh', 'skills']);
 });
 
 test('codex provider root scripts expose the package commands', () => {
@@ -404,6 +404,8 @@ test('codex provider package includes public examples and package readiness docs
     'docs/handoff/CODEX_PROVIDER_SELF_HOSTED_WEB_SEARCH_HANDOFF.md',
     'docs/handoff/archive/CODEX_PROVIDER_RENAME_AND_EXTRACTION_HANDOFF.md',
     'docs/handoff/archive/CODEX_PROVIDER_RENAME_CLEANUP_HANDOFF.md',
+    'install.sh',
+    'skills/codex-provider/SKILL.md',
     'examples/standalone-consumer-harness.ts',
     'examples/mixed-openrouter-runtime.ts',
     'examples/adapter-emulated-web-search.ts',

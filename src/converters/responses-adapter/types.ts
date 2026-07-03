@@ -11,6 +11,12 @@ import type {
 export type JsonRecord = Record<string, any>;
 export type ToolNameMap = Map<string, string>;
 export type AdapterEmulatedHostedToolMap = Map<string, NormalizedCodexProviderHostedToolDeclaration>;
+export type ToolNamespaceStrategy = 'expand' | 'drop';
+
+export interface ToolCatalogPolicy {
+  namespaceStrategy?: ToolNamespaceStrategy | null;
+  maxForwardedTools?: number | null;
+}
 
 export interface ResponsesToChatOptions {
   model?: string | null;
@@ -18,6 +24,7 @@ export interface ResponsesToChatOptions {
   providerKind?: string | null;
   providerCapabilities?: OpenAICompatibleProviderCapabilities | null;
   hostedTools?: NormalizedCodexProviderHostedToolDeclaration[] | null;
+  toolCatalogPolicy?: ToolCatalogPolicy | null;
   compact?: boolean | null;
 }
 

@@ -10,6 +10,8 @@ const publicEntries = [
   'package.json',
   'docs',
   'examples',
+  'install.sh',
+  'skills',
 ];
 const allowedPackedTopLevelEntries = new Set([
   'CHANGELOG.md',
@@ -18,7 +20,9 @@ const allowedPackedTopLevelEntries = new Set([
   'dist',
   'docs',
   'examples',
+  'install.sh',
   'package.json',
+  'skills',
 ]);
 const maxPackedFileBytes = 1024 * 1024;
 const dependencySections = [

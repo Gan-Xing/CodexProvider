@@ -140,6 +140,8 @@ export function responsesRequestToChatCompletions(
         builtinWebSearchTransport,
         adapterEmulatedHostedTools,
       ),
+      namespaceStrategy: options.toolCatalogPolicy?.namespaceStrategy,
+      maxForwardedTools: options.toolCatalogPolicy?.maxForwardedTools,
     })
     : [];
   if (tools.length > 0) {

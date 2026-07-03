@@ -10,6 +10,9 @@ import type {
 import type {
   CodexProviderHostedToolExecutorRegistryInput,
 } from '../../hosted_tool_executors.js';
+import type {
+  ToolCatalogPolicy,
+} from '../../converters/responses-adapter/types.js';
 
 export type JsonRecord = Record<string, any>;
 export type AdapterRoute = 'responses' | 'responses.compact';
@@ -208,4 +211,5 @@ export interface OpenAICompatibleResponsesAdapterServerOptions {
   exposeHostedToolResultsInResponsesOutput?: boolean | null;
   exposeWebSearchDetailedActions?: boolean | null;
   webSearchInvalidParameterStrategy?: CodexProviderWebSearchInvalidParameterStrategy | null;
+  toolCatalogPolicy?: ToolCatalogPolicy | null;
 }
